@@ -7,12 +7,14 @@ EV4-Shared-Contracts currently exists as a non-authoritative shared-contracts ha
 Canonical schema migration remains blocked.
 PR #2 was merged into main.
 Skeleton Health for PR #2 completed successfully.
-Phase 4 minimal shared governance has started on a dedicated branch.
+Phase 4 minimal shared governance is now open as PR #3.
 ```
 
 - Repository: `rezahh107/EV4-Shared-Contracts`
 - Main branch: `main`
 - Active work branch: `phase4/status-and-minimal-governance`
+- Active PR: `#3` — `Start Phase 4 minimal shared governance`
+- Active PR URL: `https://github.com/rezahh107/EV4-Shared-Contracts/pull/3`
 - Last merged PR: `#2` — `Add repository memory guidance and status handoff`
 - PR #2 merge commit: `6ec4de7f5bb3a107fc99bb332c5cbdace5e2d66d`
 - PR #2 head commit: `e1bba23cc388c3a94d578634baec37d791abbf34`
@@ -20,16 +22,17 @@ Phase 4 minimal shared governance has started on a dedicated branch.
 - Current Phase 4 work commits:
   - `e4cda4d8f27cbbae4931ee23c5ab69eab5da2c02` — added `docs/GOVERNANCE.md`
   - `4a9ee7f7d89cc9900de78b974d8004c53f7de629` — linked governance handbook from `README.md`
-  - `pending final report` — this status update commit
-- Current status: `minimal governance branch prepared`
+  - `2bcaad9ea8bfb42b9d92e09c17fa38e25f13b579` — updated status for Phase 4 governance work
+  - `pending final report` — this PR-number status update commit
+- Current status: `Phase 4 governance PR open`
 - Canonical migration: `blocked`
-- CI status for current branch: `CI_NOT_TRIGGERED` until a PR/check run is visible for this branch
+- CI status for current PR: `CI_PENDING` until the latest matching `Skeleton Health` run completes
 
 ## 2. Mental Model
 
 چهار repo اصلی EV4 مثل چهار کارگاه جدا هستند.
 
-`EV4-Shared-Contracts` مثل دفتر مرکزی قوانین است. اسکلت دفتر ساخته و PR قبلی merge شده است. حالا دفتر دارد آیین‌نامه داخلی خودش را می‌نویسد.
+`EV4-Shared-Contracts` مثل دفتر مرکزی قوانین است. اسکلت دفتر ساخته و PR قبلی merge شده است. حالا آیین‌نامه داخلی دفتر در یک PR جدا روی میز بررسی است.
 
 هنوز اداره رسمی ثبت schemaها نیست.
 
@@ -56,14 +59,15 @@ Phase 4 minimal shared governance has started on a dedicated branch.
 - [x] Phase 4 minimal shared governance branch was started.
 - [x] `docs/GOVERNANCE.md` was added as the minimal shared governance handbook.
 - [x] `README.md` was updated to point to the governance handbook.
+- [x] PR #3 was opened for Phase 4 minimal shared governance.
 
 ## 4. Known Limitations / Risks
 
 - [!] Full CI evidence across all four EV4 repos is incomplete.  
   The ecosystem-wide validation set is still incomplete, so promotion cannot rely on full cross-repo CI evidence yet.
 
-- [!] EV4-Shared-Contracts branch CI must be checked after opening a PR.  
-  Do not report the current Phase 4 branch as CI-verified until a matching `Skeleton Health` run is visible and successful.
+- [!] EV4-Shared-Contracts PR #3 CI is pending.  
+  Do not report PR #3 as CI-verified until the matching `Skeleton Health` run is visible and successful.
 
 - [!] `ev4-builder-context-package@1.0.0` still has historical split risk.  
   This contract/version name has carried different producer and consumer assumptions historically.
@@ -82,7 +86,7 @@ Phase 4 minimal shared governance has started on a dedicated branch.
 | Phase 1 — Shared repo skeleton | create non-authoritative coordination repo | completed | central office building created, but not legal archive yet | keep skeleton constraints intact |
 | Phase 2 — Skeleton PR and merge | review and merge skeleton into main | completed | office documents received their first approval stamp | no further action unless CI history is needed |
 | Phase 3 — Status-driven continuation | continue from repo memory files in a new chat | completed | project map pinned to the wall beside the entrance sign | continue reading `AGENTS.md`, `README.md`, and this file first |
-| Phase 4 — Minimal shared governance | add only low-risk shared policies and vocabulary | in progress | office writes internal rules before accepting legal documents | open/review PR for `phase4/status-and-minimal-governance` |
+| Phase 4 — Minimal shared governance | add only low-risk shared policies and vocabulary | PR open | office writes internal rules before accepting legal documents | verify `Skeleton Health` for PR #3 |
 | Phase 5 — First promotion candidate | choose one safe contract/concept for future promotion proposal | future | one document is reviewed before entering the archive | choose low-risk candidate; avoid `ev4-builder-context-package@1.0.0` first |
 | Phase 6 — Canonical migration | migrate canonical schemas only after evidence | blocked | legal archive opens only after all locks are tested | wait for full CI and promotion approval |
 
@@ -113,17 +117,17 @@ Do not:
 |---|---|
 | Phase/task completed | Phase 4 start — status update and minimal shared governance handbook |
 | Branch | `phase4/status-and-minimal-governance` |
-| Commit SHA | `e4cda4d8f27cbbae4931ee23c5ab69eab5da2c02`, `4a9ee7f7d89cc9900de78b974d8004c53f7de629`, `pending final report` |
-| PR number or PR URL | `pending final report` |
-| CI status | `CI_NOT_TRIGGERED` until this branch has a visible `Skeleton Health` run |
+| Commit SHA | `e4cda4d8f27cbbae4931ee23c5ab69eab5da2c02`, `4a9ee7f7d89cc9900de78b974d8004c53f7de629`, `2bcaad9ea8bfb42b9d92e09c17fa38e25f13b579`, `pending final report` |
+| PR number or PR URL | `#3` — `https://github.com/rezahh107/EV4-Shared-Contracts/pull/3` |
+| CI status | `CI_PENDING` until the latest matching `Skeleton Health` run completes |
 | Files changed | `docs/GOVERNANCE.md`, `README.md`, `docs/EV4_SHARED_CONTRACTS_STATUS.md` |
 | Remaining blockers | canonical migration blocked; full cross-repo CI incomplete; `ev4-builder-context-package@1.0.0` split risk unresolved |
-| Next action | Open PR from `phase4/status-and-minimal-governance` to `main`, then check `Skeleton Health` |
-| Simple Persian mental model | دفتر ساخته شده؛ حالا آیین‌نامه داخلی روی میز است، ولی هنوز آرشیو رسمی schemaها قفل است. |
+| Next action | Verify `Skeleton Health` for PR #3, then review/merge only if checks pass and no blocker appears |
+| Simple Persian mental model | دفتر ساخته شده؛ آیین‌نامه داخلی در PR باز است، ولی آرشیو رسمی schemaها هنوز قفل است. |
 
 ## 8. Next Immediate Step
 
-Open PR:
+Verify PR #3:
 
 ```text
 phase4/status-and-minimal-governance → main
