@@ -8,6 +8,17 @@ Patch 1 role alignment is a prerequisite, not final proof.
 
 **Current readiness: skeleton only. Canonical schema migration remains blocked.**
 
+## Repository Memory Files
+
+For AI coding agents and future chats:
+
+- `AGENTS.md` is the building entrance sign: what this repository is, what is allowed, and what is forbidden.
+- `README.md` is the building brochure: the short human-facing overview.
+- `docs/EV4_SHARED_CONTRACTS_STATUS.md` is the control-room status board: current phase, commit/PR/CI evidence, changed files, next action, and simple mental model.
+
+Read `AGENTS.md` first.
+Current project status is tracked in `docs/EV4_SHARED_CONTRACTS_STATUS.md`.
+
 ## Purpose
 
 `EV4-Shared-Contracts` is a coordination repository for future EV4 shared contracts. Its current purpose is to collect role-boundary documentation, non-authoritative contract inventory, compatibility notes, migration-readiness criteria, validation strategy, and promotion rules.
