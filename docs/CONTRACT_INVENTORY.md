@@ -12,7 +12,7 @@ Allowed status values used here:
 - `inventory-only`
 
 | Contract / Concept | Current Owner Repo | Current Status | Promotion Risk | Candidate for Shared? | Notes |
-|---|---|---:|---|---|---|
+|---|---|:---:|---|---|---|
 | `ev4-architect-builder-feed-export@1.0.0` | `rezahh107/EV4-Architect-Repo` | `local-authoritative` | Medium: must remain CE intake / non-executable handoff unless migration evidence proves otherwise | Possible later | Architect-side handoff concept. It must not be treated as Builder-executable output by default. |
 | `ev4-builder-context-package@1.0.0` | Split between `rezahh107/EV4-Architect-Repo` and `rezahh107/EV4-Builder-Assistant-Repo` | `blocked-from-promotion` | High: duplicate naming and semantic drift could freeze incompatible behavior | No, blocked | Current split: Architect-side historical compatibility/deprecated wrapper; Builder-side runtime intake package. Not safe for canonical promotion until validation evidence and naming strategy are finalized. |
 | `ce-builder-executable-prerequisites` | `rezahh107/EV4-Constructability-Engineer-Repo` | `adapter-boundary` | Medium: prerequisite semantics must be validated by both CE producer and Builder consumer | Possible later | Represents CE-owned prerequisites for Builder executable handoff. |
