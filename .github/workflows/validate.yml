@@ -1,0 +1,53 @@
+name: Skeleton Health
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+      - init/non-authoritative-skeleton
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Verify required docs exist
+        run: |
+          test -f README.md
+          test -f docs/ROLE_BOUNDARY_MAP.md
+          test -f docs/CONTRACT_INVENTORY.md
+          test -f docs/COMPATIBILITY_MAP.md
+          test -f docs/MIGRATION_READINESS_CHECKLIST.md
+          test -f docs/VALIDATION_STRATEGY.md
+          test -f docs/PROMOTION_RULES.md
+          test -f docs/ADR/0001-non-authoritative-skeleton.md
+          test -f schemas/README.md
+          test -f fixtures/README.md
+          test -f scripts/README.md
+
+      - name: Verify package metadata
+        run: node -e "JSON.parse(require('fs').readFileSync('package.json','utf8')); console.log('package.json ok')"
+
+      - name: Run skeleton status
+        run: npm run status
+
+      - name: Run skeleton validation
+        run: npm run validate
+
+      - name: Verify no canonical schema files exist
+        run: |
+          count=$(find schemas -type f ! -name README.md | wc -l | tr -d ' ')
+          if [ "$count" != "0" ]; then
+            echo "Unexpected schema files found under schemas/."
+            find schemas -type f ! -name README.md
+            exit 1
+          fi
+          echo "No canonical schema files found."

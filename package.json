@@ -1,0 +1,10 @@
+{
+  "name": "ev4-shared-contracts",
+  "private": true,
+  "version": "0.0.0-skeleton",
+  "description": "Non-authoritative skeleton for future EV4 shared contracts.",
+  "scripts": {
+    "status": "node -e \"console.log('EV4-Shared-Contracts status: non-authoritative skeleton. No canonical schemas are active.')\"",
+    "validate": "node -e \"console.log('Skeleton validation only: no canonical schema validation is active yet.')\""
+  }
+}
