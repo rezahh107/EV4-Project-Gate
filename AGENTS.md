@@ -7,6 +7,8 @@ It is not yet the canonical source of truth for schemas.
 Existing repo-local schemas remain authoritative until explicitly promoted.
 Canonical migration is blocked.
 
+Keep this file concise and operational. Put long project history in `docs/EV4_SHARED_CONTRACTS_STATUS.md`, not here.
+
 ## First Files to Read
 
 Read files in this order:
@@ -25,6 +27,16 @@ Read files in this order:
 Current mode: skeleton / non-authoritative / coordination-only.
 No canonical schemas are active.
 No runtime dependencies should point to this repo yet.
+
+## Repository Memory Model
+
+Use these files as the repository's memory:
+
+- `AGENTS.md` is the building entrance sign: where this is, what is allowed, and what is forbidden.
+- `README.md` is the building brochure: what this repository is for.
+- `docs/EV4_SHARED_CONTRACTS_STATUS.md` is the control-room status board: current phase, evidence, blockers, and next action.
+
+A new chat should be able to continue safely by reading these three files first.
 
 ## EV4 Pipeline Mental Model
 
@@ -92,13 +104,17 @@ Do not add active schema files, shared fixtures, or shared validation scripts wi
 
 ## Status Update Rule
 
-After every completed phase, update `docs/EV4_SHARED_CONTRACTS_STATUS.md` with:
+After every completed phase or repository-changing task, update `docs/EV4_SHARED_CONTRACTS_STATUS.md` with:
 
-- phase status
+- phase or task completed
 - commit SHA
-- validation/CI evidence
+- PR number or PR URL, or `none yet`
+- CI status, using `CI_PASSED`, `CI_FAILED`, `CI_PENDING`, `CI_NOT_TRIGGERED`, or `CI_NOT_VERIFIED`
+- files changed
 - next action
 - one simple Persian mental model
+
+If the current commit SHA or PR number is not known at edit time, write `pending final report` and update it in the next status pass.
 
 ## Reporting Rules
 
