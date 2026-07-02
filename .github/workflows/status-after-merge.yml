@@ -6,6 +6,7 @@ on:
       - closed
 
 permissions:
+  actions: read
   contents: write
   pull-requests: read
 
@@ -22,12 +23,27 @@ jobs:
         uses: actions/checkout@v4
         with:
           ref: main
-          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
           node-version: 20
+
+      - name: Resolve Skeleton Health status
+        env:
+          MERGED_PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          status_json=$(curl -fsSL "https://api.github.com/repos/${GITHUB_REPOSITORY}/actions/runs?head_sha=${MERGED_PR_HEAD_SHA}&event=pull_request" || echo '{}')
+          conclusion=$(printf '%s' "$status_json" | node -e "let data=''; process.stdin.on('data', c => data += c); process.stdin.on('end', () => { const runs = JSON.parse(data).workflow_runs || []; const run = runs.find(item => item.name === 'Skeleton Health'); process.stdout.write(run && run.conclusion ? run.conclusion : ''); });")
+
+          case "$conclusion" in
+            success) health="CI_PASSED" ;;
+            failure|cancelled|timed_out|action_required) health="CI_FAILED" ;;
+            '') health="CI_NOT_VERIFIED" ;;
+            *) health="CI_PENDING" ;;
+          esac
+
+          echo "MERGED_PR_SKELETON_HEALTH=$health" >> "$GITHUB_ENV"
 
       - name: Update status file
         env:
