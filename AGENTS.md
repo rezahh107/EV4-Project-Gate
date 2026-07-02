@@ -16,11 +16,13 @@ Read files in this order:
 1. `AGENTS.md`
 2. `docs/EV4_SHARED_CONTRACTS_STATUS.md`
 3. `README.md`
-4. `docs/MIGRATION_READINESS_CHECKLIST.md`
-5. `docs/CONTRACT_INVENTORY.md`
-6. `docs/COMPATIBILITY_MAP.md`
-7. `docs/PROMOTION_RULES.md`
-8. `docs/ADR/0001-non-authoritative-skeleton.md`
+4. `docs/ROLE_BOUNDARY_MAP.md`
+5. `docs/VALIDATION_STRATEGY.md`
+6. `docs/MIGRATION_READINESS_CHECKLIST.md`
+7. `docs/CONTRACT_INVENTORY.md`
+8. `docs/COMPATIBILITY_MAP.md`
+9. `docs/PROMOTION_RULES.md`
+10. `docs/ADR/0001-non-authoritative-skeleton.md`
 
 ## Current Operating Mode
 
@@ -35,8 +37,10 @@ Use these files as the repository's memory:
 - `AGENTS.md` is the building entrance sign: where this is, what is allowed, and what is forbidden.
 - `README.md` is the building brochure: what this repository is for.
 - `docs/EV4_SHARED_CONTRACTS_STATUS.md` is the control-room status board: current phase, evidence, blockers, and next action.
+- `docs/ROLE_BOUNDARY_MAP.md` is the workshop boundary map: who owns what, and what each role must not own.
+- `docs/VALIDATION_STRATEGY.md` is the inspection plan: what evidence future shared contracts must prove before promotion.
 
-A new chat should be able to continue safely by reading these three files first.
+A new chat should be able to continue safely by reading these files first.
 
 ## EV4 Pipeline Mental Model
 
@@ -115,6 +119,8 @@ After every completed phase or repository-changing task, update `docs/EV4_SHARED
 - one simple Persian mental model
 
 If the current commit SHA or PR number is not known at edit time, write `pending final report` and update it in the next status pass.
+
+Before ending a repository-changing task, verify the current `main` head, latest relevant PR state, and matching `Skeleton Health` evidence when available.
 
 ## Reporting Rules
 
