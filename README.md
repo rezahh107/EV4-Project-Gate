@@ -1,111 +1,106 @@
-# EV4 Cross-Repo Compatibility Gate
+# EV4 Project Gate
 
-The repository name is retained for continuity. Its active role has changed.
+Status: planned workflow documented; Python engine and user interface are not implemented.
 
-## Role
+## Purpose
+
+`EV4-Project-Gate` is the planned control center between the four EV4 specialist repositories:
+
+```text
+Architect → Project Gate → CE → Project Gate → Builder
+→ Project Gate → Responsive → Project Gate → final evidence
+```
+
+Each specialist repository remains authoritative for its own schemas, validators, adapters, fixtures, and domain behavior. This repository coordinates cross-repository checks and package handoffs. It is not a canonical shared-schema owner or a fifth architecture authority.
+
+## User Workflow
+
+The intended daily experience is simple:
+
+```text
+1. Receive the current stage output.
+2. Upload it to EV4 Project Gate.
+3. Run one check.
+4. Download the next-stage package or a repair package.
+```
+
+A successful screen shows a large success symbol, explicit accepted text, the completed stage, and one action to download the next-stage package.
+
+A repair-needed screen shows an explicit repair status, a plain Persian explanation, and one action to download the repair package. Meaning must not depend on color alone. Technical evidence is optional detail.
+
+The planned primary interface is a simple local browser application. GitHub Actions is the hidden automation and regression-testing layer, not the normal daily interface.
+
+## Stage Gates
+
+### Architect → CE
+
+```text
+Architect output
+→ Architect validation
+→ accepted: CE Input Package
+→ repair needed: Architect Repair Package
+```
+
+### CE → Builder
+
+```text
+CE output
+→ CE validation
+→ official adapter
+→ Builder intake validation
+→ preservation checks
+→ accepted: Builder Input Package
+→ repair needed: CE or evidenced upstream repair package
+```
+
+### Builder → Responsive
+
+```text
+Builder output plus build evidence
+→ Builder and evidence validation
+→ Responsive intake validation
+→ accepted: Responsive Input Package
+→ repair needed: Builder or evidenced upstream repair package
+```
+
+### Responsive → Final Evidence
+
+```text
+Responsive output plus viewport evidence
+→ responsive and regression checks
+→ accepted: final evidence package
+→ repair needed: Responsive or evidenced upstream repair package
+```
+
+## Package Loop
+
+A repair package will identify the failed stage, explain the problem in plain Persian, retain the original output identity, include deterministic diagnostics, and describe the required complete corrected output. The user gives it to the model connected to the relevant repository and uploads the corrected output for another check.
+
+A next-stage package contains only validated input and retained evidence needed by the next stage.
+
+When responsibility cannot be established, the result remains:
 
 ```yaml
-role: non_authoritative_cross_repo_compatibility_gate
-canonical_schema_owner: false
-runtime_dependency: false
-repair_authority: false
-python_status: not_implemented
-```
-
-The four EV4 repositories remain authoritative for their own schemas, validators, adapters, fixtures, and runtime behavior:
-
-```text
-rezahh107/EV4-Architect-Repo
-rezahh107/EV4-Constructability-Engineer-Repo
-rezahh107/EV4-Builder-Assistant-Repo
-rezahh107/EV4-Responsive-Architect
-```
-
-This repository will host deterministic compatibility verification across those repositories. It detects and reports incompatibilities. Repairs are performed later in the owning repositories after review.
-
-## Verification Model
-
-A schema diff is useful but insufficient. Compatibility must be evaluated through the real path:
-
-```text
-Producer schema and validator
-            ↓
-      validated fixture
-            ↓
- documented adapter/normalizer
-            ↓
-Consumer schema and validator
-            ↓
-preservation and semantic rules
-            ↓
-deterministic compatibility report
-```
-
-The verifier should answer:
-
-```text
-Can a supported Producer-valid output pass through the documented Adapter,
-be accepted by the Consumer,
-and preserve required identity, authority, and meaning?
-```
-
-## Main Conclusions
-
-### 1. Structural difference is not automatically a defect
-
-CE emits a rich object-shaped `paradigm_to_structure_map`. Builder has an explicit adapter that converts it to Builder runtime carriers. The representation difference is intentional for the supported path.
-
-### 2. Adapter existence does not prove full compatibility
-
-The current Builder reference adapter requires explicit left/right evidence and produces a `left-center-right` model. CE also permits paradigms such as `grid`, `vertical-list`, `split-hero`, `radial-diagram`, and `unknown`.
-
-```yaml
-finding: producer_domain_adapter_gap
-status: confirmed_contract_incompatibility
+status: insufficient_evidence
 repair_owner: unresolved
 ```
 
-### 3. Information preservation must be verified
+## Planned Python Engine
 
-The CE-to-Builder executable-package normalizer requires these visual-reference artifacts on input:
+The internal verification engine is called `EV4 Contract Watch`.
 
-```text
-golden_reference_contract
-build_intent_brief
-spatial_lexicon_version_used
-visual_tolerance_policy
-```
-
-They are not preserved in the current normalized Builder package.
-
-```yaml
-finding: required_visual_artifacts_not_preserved
-status: confirmed_contract_incompatibility
-repair_owner: unresolved
-```
-
-The correct representation may be embedded data or an immutable sidecar reference. That choice is an architecture decision, not a detector decision.
-
-## Python Verifier Scope
-
-The first implementation should provide:
-
-1. versioned compatibility manifests;
-2. Producer schema and validator execution;
-3. documented Adapter execution;
-4. Consumer schema and validator execution;
-5. field-lineage and preservation checks;
-6. versioned semantic rules;
-7. canonical JSON reports with pinned repository refs and SHA-256 evidence.
-
-Initial diagnostic targets:
+Planned responsibilities:
 
 ```text
-producer_variant_not_supported_by_adapter
-required_field_lost
+schema and provenance validation
+official validator and adapter execution
+field-lineage and preservation checks
+versioned semantic rules
+deterministic diagnostics and evidence bundles
+repair-package and next-stage package assembly
 ```
 
-Later phases may add boundary generation, property-based tests, mutation testing, and issue fingerprinting.
+It does not invent missing data, silently repair specialist outputs, select a winning schema, or claim success without evidence.
 
 ## Evidence Policy
 
@@ -113,6 +108,7 @@ Use explicit states:
 
 ```text
 observed
+exported
 validated
 resolved
 derived
@@ -121,36 +117,47 @@ unverified
 insufficient_evidence
 ```
 
-A shape check is not full Producer validation. Runtime or CI success requires retained execution evidence. Synthetic fixtures must be identified as synthetic.
+Compatibility is checked through the real Producer → Adapter → Consumer path. A schema difference alone is not a compatibility verdict. Synthetic fixtures remain clearly identified as synthetic.
 
-## Boundaries
-
-This repository is:
-
-- a compatibility test harness;
-- a host for deterministic Python rules and reports;
-- an independent evidence surface.
-
-This repository is not:
-
-- a canonical schema source;
-- a fifth architectural authority;
-- an automatic repair system;
-- a runtime dependency of the EV4 repositories.
-
-## Transition Status
-
-The role transition is documented in `README.md` and `AGENTS.md`. Older governance and promotion documents describe the previous skeleton role and are historical context when they conflict with these two files.
-
-No Python verifier is implemented yet.
-
-## Next Step
+## Repository Responsibilities
 
 ```text
-CE valid fixture
-→ CE schema and validator
-→ Builder adapter
-→ Builder schema and validator
-→ preservation and semantic checks
-→ canonical JSON report
+EV4-Architect-Repo
+  architecture decisions and architecture handoff
+
+EV4-Constructability-Engineer-Repo
+  constructability and implementation-strategy proof
+
+EV4-Builder-Assistant-Repo
+  interactive Elementor execution and build evidence
+
+EV4-Responsive-Architect
+  post-build responsive validation and repair
+
+EV4-Project-Gate
+  cross-repository verification, user workflow, and evidence packaging
+```
+
+## Implementation Order
+
+```text
+1. Align README.md and agents.me in all five repositories.
+2. Freeze the first user workflow and Phase 1 boundaries.
+3. Identify real schemas, validators, adapters, and fixtures.
+4. Build the offline-tested Python core.
+5. Add Architect → CE.
+6. Add CE → Builder.
+7. Add Builder → Responsive and final responsive evidence checks.
+8. Add GitHub Actions regression automation.
+```
+
+## Current Status
+
+```yaml
+repository_role: project_workflow_control_center
+workflow_documentation: in_review
+python_engine: not_implemented
+user_interface: not_implemented
+package_generation: not_implemented
+canonical_schema_owner: false
 ```
