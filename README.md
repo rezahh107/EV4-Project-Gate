@@ -1,126 +1,156 @@
-# EV4 Shared Contracts
+# EV4 Cross-Repo Compatibility Gate
 
-This repository is currently a non-authoritative skeleton.
-No canonical EV4 schemas are active here yet.
-Existing repo-local schemas remain authoritative until explicitly promoted.
-Canonical migration is blocked until full validation/CI evidence exists.
-Patch 1 role alignment is a prerequisite, not final proof.
+The repository name is retained for continuity. Its active role has changed.
 
-**Current readiness: skeleton only. Canonical schema migration remains blocked.**
+## Role
 
-## Repository Memory Files
-
-For AI coding agents and future chats:
-
-- `AGENTS.md` is the building entrance sign: what this repository is, what is allowed, and what is forbidden.
-- `README.md` is the building brochure: the short human-facing overview.
-- `docs/EV4_SHARED_CONTRACTS_STATUS.md` is the control-room status board: current phase, commit/PR/CI evidence, changed files, next action, and simple mental model.
-- `docs/ROLE_BOUNDARY_MAP.md` is the workshop boundary map: who owns what, and what each role must not own.
-- `docs/VALIDATION_STRATEGY.md` is the inspection plan: what future shared contracts must prove before promotion.
-
-Read `AGENTS.md` first.
-Current project status is tracked in `docs/EV4_SHARED_CONTRACTS_STATUS.md`.
-
-## Purpose
-
-`EV4-Shared-Contracts` is a coordination repository for future EV4 shared contracts. Its current purpose is to collect role-boundary documentation, non-authoritative contract inventory, compatibility notes, migration-readiness criteria, validation strategy, and promotion rules.
-
-This repository is not yet a canonical shared contract source.
-
-## Governance Documents
-
-Use these documents as the current handbook surface:
-
-- `docs/GOVERNANCE.md` — minimal shared governance rules, lifecycle states, evidence labels, and migration lock.
-- `docs/ROLE_BOUNDARY_MAP.md` — role ownership and blocked-output map for EV4 repositories.
-- `docs/VALIDATION_STRATEGY.md` — future validation and evidence strategy for shared contracts.
-- `docs/CONTRACT_INVENTORY.md` — non-authoritative contract and concept inventory.
-- `docs/COMPATIBILITY_MAP.md` — current compatibility boundaries only.
-- `docs/MIGRATION_READINESS_CHECKLIST.md` — gates that must be satisfied before canonical migration.
-- `docs/PROMOTION_RULES.md` — required evidence before any shared canonical promotion.
-- `docs/templates/PROMOTION_PROPOSAL_TEMPLATE.md` — proposal-only intake form for future promotion candidates.
-- `docs/ADR/0001-non-authoritative-skeleton.md` — accepted decision to start as a non-authoritative skeleton.
-
-If these documents appear to conflict, do not migrate or promote anything. Add a governance clarification patch or ADR instead.
-
-## Current Status
-
-The repository is initialized as a clean, minimal, non-authoritative skeleton.
-
-Current EV4 readiness state:
-
-- Static role-boundary evidence: mostly confirmed
-- Constructability Engineer validation evidence: partially available
-- Full cross-repo CI evidence: incomplete
-- Canonical schema migration: blocked
-- Shared-contract readiness: skeleton only
-
-## EV4 Pipeline
-
-```text
-Architect → Constructability Engineer → Builder → Responsive Architect
+```yaml
+role: non_authoritative_cross_repo_compatibility_gate
+canonical_schema_owner: false
+runtime_dependency: false
+repair_authority: false
+python_status: not_implemented
 ```
 
-## Role Boundaries
+The four EV4 repositories remain authoritative for their own schemas, validators, adapters, fixtures, and runtime behavior:
 
-### Architect
+```text
+rezahh107/EV4-Architect-Repo
+rezahh107/EV4-Constructability-Engineer-Repo
+rezahh107/EV4-Builder-Assistant-Repo
+rezahh107/EV4-Responsive-Architect
+```
 
-Owns approved design/handoff intent, `reference_role`, `experience_intent`, desired outcome, design-level source evidence, and approved architecture handoff.
+This repository will host deterministic compatibility verification across those repositories. It detects and reports incompatibilities. Repairs are performed later in the owning repositories after review.
 
-Must not own Builder executable authorization, Builder runtime intake, CE execution proof, or responsive behavior inference. Architect must not emit Builder-executable output by default.
+## Verification Model
 
-### Constructability Engineer
+A schema diff is useful but insufficient. Compatibility must be evaluated through the real path:
 
-Owns constructability review, execution-strategy gate, Builder Executable Package issuance, and execution prerequisites.
+```text
+Producer schema and validator
+            ↓
+      validated fixture
+            ↓
+ documented adapter/normalizer
+            ↓
+Consumer schema and validator
+            ↓
+preservation and semantic rules
+            ↓
+deterministic compatibility report
+```
 
-Carries or produces `golden_reference_contract`, `reference_paradigm_lock`, `paradigm_to_structure_map`, `build_intent_brief`, `spatial_lexicon_version_used`, `visual_tolerance_policy`, and optional/advisory `experience_intent`.
+The verifier should answer:
 
-### Builder
+```text
+Can a supported Producer-valid output pass through the documented Adapter,
+be accepted by the Consumer,
+and preserve required identity, authority, and meaning?
+```
 
-Owns runtime intake validation, CE package normalization, rendering/execution, and Builder-side gates.
+## Main Conclusions
 
-Consumes only validated Builder runtime intake packages and normalized CE Builder Executable Packages. Builder must not invent Golden Reference, Build Intent Brief, Spatial Lexicon, visual intent, reference family, or responsive behavior.
+### 1. Structural difference is not automatically a defect
 
-### Responsive Architect
+CE emits a rich object-shaped `paradigm_to_structure_map`. Builder has an explicit adapter that converts it to Builder runtime carriers. The representation difference is intentional for the supported path.
 
-Owns responsive adaptation contracts, scoped Golden Reference family linkage, viewport-specific authorization, and responsive evidence gates.
+### 2. Adapter existence does not prove full compatibility
 
-Must not infer mobile/tablet behavior from desktop screenshots and must not treat raw screenshots as responsive authority.
+The current Builder reference adapter requires explicit left/right evidence and produces a `left-center-right` model. CE also permits paradigms such as `grid`, `vertical-list`, `split-hero`, `radial-diagram`, and `unknown`.
 
-## What This Repository Is For Now
+```yaml
+finding: producer_domain_adapter_gap
+status: confirmed_contract_incompatibility
+repair_owner: unresolved
+```
 
-- Non-authoritative role-boundary map
-- Non-authoritative contract/concept inventory
-- Compatibility boundary documentation
-- Migration-readiness checklist
-- Minimal shared governance handbook
-- Promotion proposal template
-- Future validation strategy
-- Future promotion rules
-- ADRs for governance decisions
+### 3. Information preservation must be verified
 
-## What This Repository Is Not Yet
+The CE-to-Builder executable-package normalizer requires these visual-reference artifacts on input:
 
-- Not a canonical schema source
-- Not a runtime dependency target
-- Not a replacement for repo-local schemas
-- Not a producer/consumer validation authority
-- Not a schema drift resolution patch
+```text
+golden_reference_contract
+build_intent_brief
+spatial_lexicon_version_used
+visual_tolerance_policy
+```
 
-## Canonical Migration Warning
+They are not preserved in the current normalized Builder package.
 
-Do not import schemas from this repository yet. Do not treat any directory here as canonical until promotion is approved through an explicit ADR, migration plan, validation evidence, and rollback guidance.
+```yaml
+finding: required_visual_artifacts_not_preserved
+status: confirmed_contract_inconsistency
+repair_strategy: unresolved
+```
 
-Existing repo-local schemas remain authoritative until explicitly promoted.
+The correct representation may be embedded data or an immutable sidecar reference. That choice is an architecture decision, not a detector decision.
 
-## Next Safe Steps
+## Python Verifier Scope
 
-1. Keep `docs/EV4_SHARED_CONTRACTS_STATUS.md` aligned with merged PR and CI evidence.
-2. Use `docs/templates/PROMOTION_PROPOSAL_TEMPLATE.md` for proposal-only intake before any candidate is considered.
-3. Harden minimal shared governance without promoting or migrating schemas.
-4. Complete cross-repo validation evidence across all four EV4 repositories.
-5. Resolve or safely rename/deprecate duplicate `ev4-builder-context-package@1.0.0` drift.
-6. Confirm producer/consumer ownership for candidate contracts.
-7. Add positive and negative fixtures in owning repositories first.
-8. Approve versioning, compatibility, migration, and rollback policies.
-9. Promote shared contracts only through explicit ADRs.
+The first implementation should provide:
+
+1. versioned compatibility manifests;
+2. Producer schema and validator execution;
+3. documented Adapter execution;
+4. Consumer schema and validator execution;
+5. field-lineage and preservation checks;
+6. versioned semantic rules;
+7. canonical JSON reports with pinned repository refs and SHA-256 evidence.
+
+Initial diagnostic targets:
+
+```text
+producer_variant_not_supported_by_adapter
+required_field_lost
+```
+
+Later phases may add boundary generation, property-based tests, mutation testing, and issue fingerprinting.
+
+## Evidence Policy
+
+Use explicit states:
+
+```text
+observed
+validated
+resolved
+derived
+proposed
+unverified
+insufficient_evidence
+```
+
+A shape check is not full Producer validation. Runtime or CI success requires retained execution evidence. Synthetic fixtures must be identified as synthetic.
+
+## Boundaries
+
+This repository is:
+
+- a compatibility test harness;
+- a host for deterministic Python rules and reports;
+- an independent evidence surface.
+
+This repository is not:
+
+- a canonical schema source;
+- a fifth architectural authority;
+- an automatic repair system;
+- a runtime dependency of the EV4 repositories.
+
+## Transition Status
+
+The role transition is documented in `README.md` and `AGENTS.md`. Older governance and promotion documents describe the previous skeleton role and are historical context when they conflict with these two files.
+
+No Python verifier is implemented yet.
+
+## Next Step
+
+```text
+CE valid fixture
+→ CE schema and validator
+→ Builder adapter
+→ Builder schema and validator
+→ preservation and semantic checks
+→ canonical JSON report
+```
