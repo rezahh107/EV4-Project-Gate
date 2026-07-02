@@ -9,11 +9,12 @@
 - PR #5 head commit: `964a4e4eaba0966ffc12098c251519b6b3314d83`
 - PR #5 `Skeleton Health`: `CI_PASSED`
 - Current work branch: `phase5/proposal-reference-paradigm-lock`
-- Active PR: `pending final report`
-- Current status: `Phase 5 proposal-only readiness pass opened for reference_paradigm_lock`
+- Active PR: `#6` — `Add reference paradigm lock readiness proposal`
+- Current status: `Phase 5 proposal-only readiness PR open`
 - Main status correction commit: `754ff8503bc042de4a8c5bbba0ace0360a1473c5`
 - Phase 5 proposal commit: `02812d3cb1d4c76f25f1783ccfcb14f76b10ed72`
-- Phase 5 status update commit: `pending final report`
+- Phase 5 status update commit: `80055a6e68074349a7ed3562cb5fcbd27e128b65`
+- Phase 5 PR-number record commit: `pending final report`
 
 ## Current Phase
 
@@ -22,7 +23,7 @@
 | Phase 4 — Minimal shared governance | completed |
 | Phase 4.1 — Promotion proposal intake | completed |
 | Phase 4.2 — Audit correction | completed |
-| Phase 5 — First proposal-only candidate | PR pending final report |
+| Phase 5 — First proposal-only candidate | PR open |
 | Phase 6 — Shared schema migration | blocked |
 
 ## Completed in This Status Finalization
@@ -38,6 +39,7 @@
 - Selected `reference_paradigm_lock` as the first proposal-only readiness candidate.
 - Avoided `ev4-builder-context-package@1.0.0` because its split risk remains unresolved.
 - Added a proposal-only readiness document under `docs/proposals/`.
+- Opened PR #6 for review.
 - Did not add active schemas, shared fixtures, shared runtime validation scripts, or runtime dependencies.
 - Kept the final verdict as `PROPOSAL_ONLY`.
 
@@ -54,10 +56,11 @@
 | PR #5 `Skeleton Health` | `CI_PASSED` |
 | Main status correction commit | `754ff8503bc042de4a8c5bbba0ace0360a1473c5` |
 | Phase 5 branch | `phase5/proposal-reference-paradigm-lock` |
+| Phase 5 active PR | `#6` |
 | Phase 5 proposal file | `docs/proposals/0001-reference-paradigm-lock-readiness.md` |
 | Phase 5 proposal commit | `02812d3cb1d4c76f25f1783ccfcb14f76b10ed72` |
-| Phase 5 status update commit | `pending final report` |
-| Active PR | `pending final report` |
+| Phase 5 status update commit | `80055a6e68074349a7ed3562cb5fcbd27e128b65` |
+| Phase 5 PR-number record commit | `pending final report` |
 | Canonical migration | `blocked` |
 
 ## Validation / CI Status
@@ -65,7 +68,7 @@
 - `Skeleton Health` for PR #5: `CI_PASSED`.
 - Local command execution by this Phase 5 pass: `not_run`.
 - CI/check status for the direct `main` status correction commit: `CI_NOT_VERIFIED`; no matching workflow run was visible at the time of inspection.
-- CI/check status for the Phase 5 PR: `CI_PENDING` until a matching workflow run is visible.
+- CI/check status for PR #6: `CI_PENDING` until a matching workflow run is visible.
 
 ## Remaining Blockers
 
@@ -77,7 +80,7 @@
 
 ## Next Immediate Action
 
-Review the Phase 5 proposal PR. Merge only if `Skeleton Health` passes and no reviewer/check blocker appears. After merge, keep Phase 5 in `PROPOSAL_ONLY`; do not migrate schemas.
+Review PR #6. Merge only if `Skeleton Health` passes and no reviewer/check blocker appears. After merge, keep Phase 5 in `PROPOSAL_ONLY`; do not migrate schemas.
 
 ## New Chat Startup Map
 
@@ -100,6 +103,6 @@ Read in this order:
 
 این repo مثل دفتر قوانین مشترک است.
 
-PR #5 بسته و ثبت شد. حالا یک پرونده‌ی پیشنهادی برای `reference_paradigm_lock` روی میز بررسی گذاشته شده است.
+PR #5 بسته و ثبت شد. حالا PR #6 یک پرونده‌ی پیشنهادی برای `reference_paradigm_lock` روی میز بررسی گذاشته است.
 
 قفسه‌ی رسمی schemaها هنوز قفل است؛ این فقط فرم پذیرش پرونده است، نه انتقال سند به آرشیو رسمی.
