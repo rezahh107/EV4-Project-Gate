@@ -43,7 +43,7 @@ Describe where the contract or concept is authoritative today.
 | Is it runtime-facing today? | `yes` / `no` / `unknown` |
 | Is it producer output, consumer intake, or adapter boundary? | `TBD` |
 | Is there known naming/version drift? | `yes` / `no` / `unknown` |
-| Does any repo depend on this repo for runtime behavior today? | `no` |
+| Does any repo depend on `EV4-Shared-Contracts` for runtime behavior today? | `no` |
 
 Unknowns must stay marked as `unknown`. Do not fill them by assumption.
 
