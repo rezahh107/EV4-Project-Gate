@@ -34,6 +34,7 @@ Use these documents as the current handbook surface:
 - `docs/COMPATIBILITY_MAP.md` — current compatibility boundaries only.
 - `docs/MIGRATION_READINESS_CHECKLIST.md` — gates that must be satisfied before canonical migration.
 - `docs/PROMOTION_RULES.md` — required evidence before any shared canonical promotion.
+- `docs/templates/PROMOTION_PROPOSAL_TEMPLATE.md` — proposal-only intake form for future promotion candidates.
 - `docs/ADR/0001-non-authoritative-skeleton.md` — accepted decision to start as a non-authoritative skeleton.
 
 If these documents appear to conflict, do not migrate or promote anything. Add a governance clarification patch or ADR instead.
@@ -89,6 +90,7 @@ Must not infer mobile/tablet behavior from desktop screenshots and must not trea
 - Compatibility boundary documentation
 - Migration-readiness checklist
 - Minimal shared governance handbook
+- Promotion proposal template
 - Future validation strategy
 - Future promotion rules
 - ADRs for governance decisions
@@ -110,10 +112,11 @@ Existing repo-local schemas remain authoritative until explicitly promoted.
 ## Next Safe Steps
 
 1. Keep `docs/EV4_SHARED_CONTRACTS_STATUS.md` aligned with merged PR and CI evidence.
-2. Harden minimal shared governance without promoting or migrating schemas.
-3. Complete cross-repo validation evidence across all four EV4 repositories.
-4. Resolve or safely rename/deprecate duplicate `ev4-builder-context-package@1.0.0` drift.
-5. Confirm producer/consumer ownership for candidate contracts.
-6. Add positive and negative fixtures in owning repositories first.
-7. Approve versioning, compatibility, migration, and rollback policies.
-8. Promote shared contracts only through explicit ADRs.
+2. Use `docs/templates/PROMOTION_PROPOSAL_TEMPLATE.md` for proposal-only intake before any candidate is considered.
+3. Harden minimal shared governance without promoting or migrating schemas.
+4. Complete cross-repo validation evidence across all four EV4 repositories.
+5. Resolve or safely rename/deprecate duplicate `ev4-builder-context-package@1.0.0` drift.
+6. Confirm producer/consumer ownership for candidate contracts.
+7. Add positive and negative fixtures in owning repositories first.
+8. Approve versioning, compatibility, migration, and rollback policies.
+9. Promote shared contracts only through explicit ADRs.
