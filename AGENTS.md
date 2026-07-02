@@ -124,6 +124,28 @@ If the current commit SHA or PR number is not known at edit time, write `pending
 
 Before ending a repository-changing task, verify the current `main` head, latest relevant PR state, and matching `Skeleton Health` evidence when available.
 
+## Automated Merge Status Rule
+
+The `Status After Merge` workflow may update `docs/EV4_SHARED_CONTRACTS_STATUS.md` after a pull request is merged into `main`.
+
+This automation may record merge facts only:
+
+- PR number and title
+- head branch
+- head commit
+- merge commit
+- actor / repository context
+
+This automation must not:
+
+- declare CI passed unless visible CI evidence is checked and recorded by a separate verified process
+- mark schema promotion as approved
+- unlock canonical migration
+- change lifecycle phase by inference
+- add active schemas, fixtures, shared validation scripts, or runtime dependencies
+
+Human/agent review remains responsible for governance interpretation and promotion readiness.
+
 ## Reporting Rules
 
 Final reports must be in Persian.
