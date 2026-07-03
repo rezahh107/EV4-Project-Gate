@@ -4,13 +4,13 @@
 
 - Repository: `rezahh107/EV4-Shared-Contracts`
 - Main branch: `main`
-- Last merged PR: `#10` — `Document the EV4 Project Gate workflow`
-- PR #10 merge commit: `9f24400b4e96b30d728d704e5221d5899facddd7`
-- PR #10 head commit: `127f04e7e996eeb7bfc162ed9994a46a58a02491`
-- PR #10 `Skeleton Health`: `CI_PASSED`
+- Last merged PR: `#12` — `Add Python deterministic Stage Evidence core`
+- PR #12 merge commit: `d6ed11043229a8b83a6025e6cc22c267275c497b`
+- PR #12 head commit: `a1b33339ed5d90c665899174da24ea2a32ee234f`
+- PR #12 `Skeleton Health`: `CI_PASSED`
 - Current work branch: `main`
 - Active PR: `none`
-- Current status: `PR #10 merge fully recorded automatically; governance interpretation remains evidence-based; canonical migration remains blocked`
+- Current status: `PR #12 merge fully recorded automatically; governance interpretation remains evidence-based; canonical migration remains blocked`
 - Main status correction commit: `754ff8503bc042de4a8c5bbba0ace0360a1473c5`
 - Phase 5 proposal commit: `02812d3cb1d4c76f25f1783ccfcb14f76b10ed72`
 - Phase 5 status update commit: `80055a6e68074349a7ed3562cb5fcbd27e128b65`
@@ -100,6 +100,7 @@ This section is updated by GitHub Actions after a pull request is merged. It rec
 
 | PR | Title | Head branch | Head commit | Merge commit | Skeleton Health | Recorded by |
 |---|---|---|---|---|---|---|
+| `#12` | `Add Python deterministic Stage Evidence core` | `python-deterministic-core-v1` | `a1b33339ed5d90c665899174da24ea2a32ee234f` | `d6ed11043229a8b83a6025e6cc22c267275c497b` | `CI_PASSED` | `rezahh107 on rezahh107/EV4-Project-Gate` |
 | `#10` | `Document the EV4 Project Gate workflow` | `docs/project-gate-workflow` | `127f04e7e996eeb7bfc162ed9994a46a58a02491` | `9f24400b4e96b30d728d704e5221d5899facddd7` | `CI_PASSED` | `rezahh107 on rezahh107/EV4-Project-Gate` |
 | `#9` | `Redefine repository as compatibility gate` | `docs/compatibility-gate-role` | `f9c4a9df205f9044ecd4b5708b9ae2f4e0dd24d1` | `bea674e033935da5a60a94dc4b78cb634c0491f1` | `CI_PASSED` | `rezahh107 on rezahh107/EV4-Shared-Contracts` |
 | `#8` | `Fully automate post-merge status finalization` | `automation/finalize-status-after-merge` | `4f9ee4b1e25bb182f50e1431d0c5260df33a146d` | `e70650453879ac72b04cc38bfeafd5bfa813cdf8` | `CI_PASSED` | `rezahh107 on rezahh107/EV4-Shared-Contracts` |
