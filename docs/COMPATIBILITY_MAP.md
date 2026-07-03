@@ -2,6 +2,42 @@
 
 This document records current compatibility boundaries only. It does not promote any schema or contract into shared canonical status.
 
+## Architect → CE
+
+Implemented Project Gate transition:
+
+```text
+ev4-architect-to-ce-transition@1.0.0
+```
+
+Allowed path:
+
+```text
+ev4-architect-stage-payload@1.0.0
+→ ev4-ce-architect-stage-intake@1.0.0
+```
+
+The transition uses the CE-owned mapping contract:
+
+```text
+ev4-architect-stage-to-ce-intake-mapping@1.0.0
+```
+
+Blocked paths:
+
+```text
+ev4-architect-output-contract@1.0.0
+/builder-feed-export
+Builder-ready claims before CE processing
+```
+
+Validation state:
+
+```yaml
+verification_state: verified_by_synthetic_fixture
+real_cross_repository_validation: not_available
+```
+
 ## Architect
 
 `ev4-builder-context-package@1.0.0` is deprecated compatibility wrapper only.
