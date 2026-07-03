@@ -10,9 +10,13 @@ Allowed status values used here:
 - `candidate-for-shared`
 - `blocked-from-promotion`
 - `inventory-only`
+- `project-gate-orchestration`
 
 | Contract / Concept | Current Owner Repo | Current Status | Promotion Risk | Candidate for Shared? | Notes |
 |---|---|:---:|---|---|---|
+| `ev4-architect-to-ce-transition@1.0.0` | `rezahh107/EV4-Project-Gate` | `project-gate-orchestration` | Medium: must remain deterministic orchestration and must not become CE authority | No | First real Project Gate transition. Uses pinned Architect and CE contracts and synthetic validation only. |
+| `ev4-architect-stage-payload@1.0.0` | `rezahh107/EV4-Architect-Repo` | `local-authoritative` | Low for producer-side identity; real fixture evidence still unavailable | No | Source payload for Architect → CE transition v1. Specialist repo remains authoritative. |
+| `ev4-ce-architect-stage-intake@1.0.0` | `rezahh107/EV4-Constructability-Engineer-Repo` | `local-authoritative` | Low for intake shape; CE processing remains separate | No | Target payload for Architect → CE transition v1. Specialist repo remains authoritative. |
 | `ev4-architect-builder-feed-export@1.0.0` | `rezahh107/EV4-Architect-Repo` | `local-authoritative` | Medium: must remain CE intake / non-executable handoff unless migration evidence proves otherwise | Possible later | Architect-side handoff concept. It must not be treated as Builder-executable output by default. |
 | `ev4-builder-context-package@1.0.0` | Split between `rezahh107/EV4-Architect-Repo` and `rezahh107/EV4-Builder-Assistant-Repo` | `blocked-from-promotion` | High: duplicate naming and semantic drift could freeze incompatible behavior | No, blocked | Current split: Architect-side historical compatibility/deprecated wrapper; Builder-side runtime intake package. Not safe for canonical promotion until validation evidence and naming strategy are finalized. |
 | `ce-builder-executable-prerequisites` | `rezahh107/EV4-Constructability-Engineer-Repo` | `adapter-boundary` | Medium: prerequisite semantics must be validated by both CE producer and Builder consumer | Possible later | Represents CE-owned prerequisites for Builder executable handoff. |
