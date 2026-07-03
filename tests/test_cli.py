@@ -37,6 +37,15 @@ def test_cli_invalid_input_exit_code():
     assert payload["status"] == "invalid"
 
 
+def test_cli_missing_file_returns_invalid_without_traceback():
+    completed = run_cli("validate", str(ROOT / "fixtures/invalid/missing-file.v1.json"))
+    assert completed.returncode == 1
+    assert completed.stderr == ""
+    payload = json.loads(completed.stdout)
+    assert payload["status"] == "invalid"
+    assert payload["diagnostics"][0]["code"] == "FILE_READ_ERROR"
+
+
 def test_cli_persian_insufficient_evidence_output():
     completed = run_cli("validate", str(ROOT / "fixtures/insufficient-evidence/architect-stage-bundle.v1.json"), "--format", "persian")
     assert completed.returncode == 2
