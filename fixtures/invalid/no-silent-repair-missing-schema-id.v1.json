@@ -1,0 +1,44 @@
+{
+  "schema_version": "stage-evidence-bundle.v1",
+  "bundle_id": "synthetic-no-silent-repair-001",
+  "stage": "architect",
+  "payload_schema": {
+    "id": "ev4.synthetic.architect.payload",
+    "version": "0.1.0",
+    "owner_repository": "rezahh107/EV4-Architect-Repo"
+  },
+  "produced_by": {
+    "repository": "rezahh107/EV4-Architect-Repo",
+    "ref": "synthetic-fixture"
+  },
+  "evidence_status": "complete",
+  "payload": {
+    "data": {
+      "project_id": "ev4-demo",
+      "handoff_summary": "Synthetic architect handoff."
+    }
+  },
+  "evidence": [
+    {
+      "id": "architecture_handoff",
+      "kind": "document",
+      "state": "validated",
+      "description": "Synthetic architecture handoff fixture.",
+      "artifact_hash": {
+        "algorithm": "sha256",
+        "value": "5523456789abcdef5523456789abcdef5523456789abcdef5523456789abcdef",
+        "scope": "canonical_json"
+      },
+      "source": {
+        "type": "synthetic_fixture",
+        "reference": "fixtures/invalid/no-silent-repair-missing-schema-id.v1.json"
+      }
+    }
+  ],
+  "provenance": {
+    "source": "synthetic-fixture",
+    "created_by": "ev4-project-gate-tests",
+    "created_at": "2026-07-02T00:00:00Z"
+  },
+  "synthetic": true
+}
