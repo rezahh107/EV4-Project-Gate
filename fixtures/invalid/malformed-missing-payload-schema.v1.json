@@ -1,0 +1,40 @@
+{
+  "schema_version": "stage-evidence-bundle.v1",
+  "bundle_id": "synthetic-malformed-missing-payload-schema-001",
+  "stage": "architect",
+  "produced_by": {
+    "repository": "rezahh107/EV4-Architect-Repo",
+    "ref": "synthetic-fixture"
+  },
+  "evidence_status": "complete",
+  "payload": {
+    "schema_id": "ev4.synthetic.architect.payload@0.1.0",
+    "data": {
+      "project_id": "ev4-demo",
+      "handoff_summary": "Synthetic architect handoff."
+    }
+  },
+  "evidence": [
+    {
+      "id": "architecture_handoff",
+      "kind": "document",
+      "state": "validated",
+      "description": "Synthetic architecture handoff fixture.",
+      "artifact_hash": {
+        "algorithm": "sha256",
+        "value": "3323456789abcdef3323456789abcdef3323456789abcdef3323456789abcdef",
+        "scope": "canonical_json"
+      },
+      "source": {
+        "type": "synthetic_fixture",
+        "reference": "fixtures/invalid/malformed-missing-payload-schema.v1.json"
+      }
+    }
+  ],
+  "provenance": {
+    "source": "synthetic-fixture",
+    "created_by": "ev4-project-gate-tests",
+    "created_at": "2026-07-02T00:00:00Z"
+  },
+  "synthetic": true
+}
