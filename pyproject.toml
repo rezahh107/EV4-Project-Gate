@@ -1,0 +1,24 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ev4-project-gate"
+version = "0.1.0"
+description = "Deterministic EV4 Project Gate core for Stage Evidence Bundle validation."
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = ["jsonschema>=4.22,<5"]
+
+[project.optional-dependencies]
+dev = ["pytest>=8,<9"]
+
+[project.scripts]
+ev4-transition = "ev4_transition.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+addopts = "-q"
+testpaths = ["tests"]
