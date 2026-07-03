@@ -56,7 +56,12 @@ def transition_architect_to_ce(source_bundle: Any, contract_source: ContractSour
     if _has_error(diagnostics):
         return _result(source_bundle, None, diagnostics, transition_config)
 
-    source_payload = source_bundle["payload"]["data"]
+    payload_dict = source_bundle.get("payload") if isinstance(source_bundle, dict) else None
+    source_payload = payload_dict.get("data") if isinstance(payload_dict, dict) else None
+    if not isinstance(source_payload, dict):
+        diagnostics.append(diagnostic("PG_A2C_SOURCE_PAYLOAD_NOT_OBJECT", "error", "Source payload data must be an object.", "$.payload.data"))
+        return _result(source_bundle, None, diagnostics, transition_config)
+
     architect_schema = _load_external_json(contract_source, transition_config.lock, "architect_payload_schema")
     diagnostics.extend(_json_schema_diagnostics(architect_schema, source_payload, "PG_A2C_ARCHITECT_SCHEMA_VALIDATION_FAILED", "PG-A2C-01"))
     if _has_error(diagnostics):
@@ -182,12 +187,14 @@ def _trace(source: str, target: str, classification: str, ordering: str) -> dict
 
 def _mapping_invariant_diagnostics(source: dict[str, Any], target: dict[str, Any]) -> list[Diagnostic]:
     out: list[Diagnostic] = []
-    if target["selected_architecture"]["selected_candidate_id"] != source["architecture_identity"]["selected_candidate_id"]:
+    target_id = (target.get("selected_architecture") or {}).get("selected_candidate_id")
+    source_id = (source.get("architecture_identity") or {}).get("selected_candidate_id")
+    if target_id != source_id:
         out.append(diagnostic("PG_A2C_SELECTED_IDENTITY_CHANGED", "error", "Selected candidate identity changed during transition.", "$.selected_architecture.selected_candidate_id"))
     forbidden_found = sorted(CE_FORBIDDEN_FIELDS & _all_keys(target))
     if forbidden_found:
         out.append(diagnostic("PG_A2C_CE_OWNED_FIELD_EMITTED", "error", "Transition emitted CE-owned decision fields.", "$", forbidden_fields=forbidden_found))
-    positives = [k for k, v in target["negative_boundary_assertions"].items() if v is not False]
+    positives = [k for k, v in (target.get("negative_boundary_assertions") or {}).items() if v is not False]
     if positives:
         out.append(diagnostic("PG_A2C_POSITIVE_READINESS_CLAIM", "error", "Transition emitted positive downstream readiness assertions.", "$.negative_boundary_assertions", positive_fields=positives))
     return out
