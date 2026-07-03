@@ -31,6 +31,14 @@ def lock_with_real_hashes(tmp_path: Path) -> Path:
     return path
 
 
+def corrupted_lock(tmp_path: Path) -> Path:
+    good = load_json_file(lock_with_real_hashes(tmp_path))
+    good["files"][0]["sha256_file_bytes"] = "0" * 64
+    path = tmp_path / "bad-lock.json"
+    path.write_text(canonical_dumps(good) + "\n", encoding="utf-8")
+    return path
+
+
 def architect_payload(name: str = "minimal-complete.v1.json") -> dict:
     subdir = "insufficient-evidence" if "missing" in name else "valid"
     return json.loads((ARCH / "fixtures/architect-stage-payload" / subdir / name).read_text(encoding="utf-8"))
@@ -106,7 +114,7 @@ def test_invalid_identity_inputs_fail_closed(tmp_path: Path, mutator, code: str)
 
 
 def test_external_hash_mismatch_fails_closed(tmp_path: Path):
-    result = run_transition(source_bundle(architect_payload()), LOCK)
+    result = run_transition(source_bundle(architect_payload()), corrupted_lock(tmp_path))
     assert result["status"] == "invalid"
     assert result["output"] is None
     assert any(d["code"] == "PG_A2C_EXTERNAL_HASH_MISMATCH" for d in result["diagnostics"])
