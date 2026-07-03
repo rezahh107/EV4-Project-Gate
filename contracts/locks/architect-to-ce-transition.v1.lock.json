@@ -7,7 +7,7 @@
       "accepted_commit": "b0651668b97f682bb17f66840c8e8c503fd3935d",
       "path": "schemas/ev4-architect-stage-payload.v1.schema.json",
       "contract_or_schema_id": "ev4-architect-stage-payload@1.0.0",
-      "sha256_file_bytes": "0000000000000000000000000000000000000000000000000000000000000000",
+      "sha256_file_bytes": "e14b330e98b27180446764c9fe9803bcc3e1c06de34893b4f4b192b8051e8da8",
       "role": "architect_payload_schema"
     },
     {
@@ -15,7 +15,7 @@
       "accepted_commit": "b0651668b97f682bb17f66840c8e8c503fd3935d",
       "path": "scripts/check-architect-stage-payload.py",
       "contract_or_schema_id": "ev4-architect-stage-payload-validator@1.0.0",
-      "sha256_file_bytes": "0000000000000000000000000000000000000000000000000000000000000000",
+      "sha256_file_bytes": "84ad73573cb3feed248f6e7fd863ef13c200840edd10d8cb0eb03ffd048dc8d7",
       "role": "architect_payload_validator"
     },
     {
@@ -23,7 +23,7 @@
       "accepted_commit": "b0651668b97f682bb17f66840c8e8c503fd3935d",
       "path": "fixtures/architect-stage-payload/valid/minimal-complete.v1.json",
       "contract_or_schema_id": "ev4-architect-stage-payload@1.0.0",
-      "sha256_file_bytes": "0000000000000000000000000000000000000000000000000000000000000000",
+      "sha256_file_bytes": "e17e65428291fac6abb22ad5c23ab32178bf1bc390ee5f7fd62bff67906f79a0",
       "role": "architect_valid_fixture"
     },
     {
@@ -31,7 +31,7 @@
       "accepted_commit": "b0651668b97f682bb17f66840c8e8c503fd3935d",
       "path": "fixtures/architect-stage-payload/insufficient-evidence/missing-real-stage-output.v1.json",
       "contract_or_schema_id": "ev4-architect-stage-payload@1.0.0",
-      "sha256_file_bytes": "0000000000000000000000000000000000000000000000000000000000000000",
+      "sha256_file_bytes": "439c00b5a7c05e104af17e5640fb72e93531d6e95679866646eecf387759171a",
       "role": "architect_insufficient_fixture"
     },
     {
@@ -39,7 +39,7 @@
       "accepted_commit": "d3aadff91d9b6fcb38e2f5d3f4cbc2870484b0f7",
       "path": "schemas/ce_architect_stage_intake.v1.schema.json",
       "contract_or_schema_id": "ev4-ce-architect-stage-intake@1.0.0",
-      "sha256_file_bytes": "0000000000000000000000000000000000000000000000000000000000000000",
+      "sha256_file_bytes": "06a7c854f6404193cb85e4ed39dbb1f1101daf89ff1be1d3c1060ad0665bc411",
       "role": "ce_intake_schema"
     },
     {
@@ -47,7 +47,7 @@
       "accepted_commit": "d3aadff91d9b6fcb38e2f5d3f4cbc2870484b0f7",
       "path": "scripts/validate-ce-architect-stage-intake.py",
       "contract_or_schema_id": "ev4-ce-architect-stage-intake-validator@1.0.0",
-      "sha256_file_bytes": "0000000000000000000000000000000000000000000000000000000000000000",
+      "sha256_file_bytes": "4078d9d45da5bbda7005545d6414b4a544d503590921bd47d5595746ba2b4bd1",
       "role": "ce_intake_validator"
     },
     {
@@ -55,7 +55,7 @@
       "accepted_commit": "d3aadff91d9b6fcb38e2f5d3f4cbc2870484b0f7",
       "path": "contracts/ARCHITECT_STAGE_TO_CE_INTAKE_MAPPING_V1.md",
       "contract_or_schema_id": "ev4-architect-stage-to-ce-intake-mapping@1.0.0",
-      "sha256_file_bytes": "0000000000000000000000000000000000000000000000000000000000000000",
+      "sha256_file_bytes": "269c24849ea53f09c899619c116544c11e61ee39d839793b2f5e05a8abe74d49",
       "role": "ce_mapping_contract"
     },
     {
@@ -63,7 +63,7 @@
       "accepted_commit": "d3aadff91d9b6fcb38e2f5d3f4cbc2870484b0f7",
       "path": "fixtures/architect-stage-intake/valid/minimal-canonical-intake.v1.json",
       "contract_or_schema_id": "ev4-ce-architect-stage-intake@1.0.0",
-      "sha256_file_bytes": "0000000000000000000000000000000000000000000000000000000000000000",
+      "sha256_file_bytes": "44d3a4d0fcf94ac60135385c1161b691723711fe185d67470f23fd6447964ffa",
       "role": "ce_valid_fixture"
     },
     {
@@ -71,7 +71,7 @@
       "accepted_commit": "d3aadff91d9b6fcb38e2f5d3f4cbc2870484b0f7",
       "path": "fixtures/architect-stage-intake/insufficient-evidence/missing-real-architect-stage-bundle.v1.json",
       "contract_or_schema_id": "ev4-ce-architect-stage-intake@1.0.0",
-      "sha256_file_bytes": "0000000000000000000000000000000000000000000000000000000000000000",
+      "sha256_file_bytes": "a1aee7622269fc953bc335286ba882c6fa93d9bd6d2eae0b02e2dc125ec4dd96",
       "role": "ce_insufficient_fixture"
     }
   ]
