@@ -1,0 +1,21 @@
+{
+  "schema_version": "behavioral-coverage.v1",
+  "rules": [
+    {
+      "rule_id": "PG-EVIDENCE-001",
+      "rule": "No accepted result without explicit evidence.",
+      "risk": "Critical",
+      "status": "fixture_tested",
+      "target_status": "fixture_tested",
+      "carriers": ["schemas/transition-result/transition-result.v1.schema.json"],
+      "validators": ["src/ev4_transition/behavioral_coverage/validator.py"],
+      "valid_fixtures": ["tests/fixtures/result_envelope/valid/accepted_with_all_required_evidence_shape.json"],
+      "invalid_fixtures": ["tests/fixtures/result_envelope/invalid/accepted_missing_validator_evidence.json"],
+      "ci_steps": [],
+      "downstream_contracts": [],
+      "downstream_rejection_fixtures": [],
+      "documented_risk": "accepted without validator evidence creates false execution confidence.",
+      "next_enforcement_step": "Promote to ci_enforced after project-gate-validation workflow passes."
+    }
+  ]
+}
