@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass
 from typing import Any
 
@@ -8,6 +9,10 @@ from ..diagnostics import Diagnostic, diagnostic, sort_diagnostics
 LOCK_MANIFEST_SCHEMA_VERSION = "lock-manifest.v1"
 LEGACY_EXTERNAL_LOCK_SCHEMA_VERSION = "external-contract-lock.v1"
 KNOWN_LOCK_SCHEMA_VERSIONS = {LOCK_MANIFEST_SCHEMA_VERSION, LEGACY_EXTERNAL_LOCK_SCHEMA_VERSION}
+
+_REPOSITORY_RE = re.compile(r"^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$")
+_COMMIT_SHA_RE = re.compile(r"^[a-f0-9]{40}$")
+_SHA256_RE = re.compile(r"^[a-f0-9]{64}$")
 
 
 class LockManifestValidationError(ValueError):
@@ -47,9 +52,16 @@ def validate_lock_manifest(lock: Any, options: LockManifestOptions | None = None
             )
         )
 
+    transition_id = lock.get("transition_id")
+    if not isinstance(transition_id, str) or not transition_id:
+        diagnostics.append(diagnostic("PG_LOCK_TRANSITION_ID_INVALID", "error", "Lock manifest transition_id must be a non-empty string.", "$.transition_id"))
+
     files = lock.get("files")
     if not isinstance(files, list):
         diagnostics.append(diagnostic("PG_LOCK_FILES_NOT_ARRAY", "error", "Lock manifest files must be an array.", "$.files"))
+        return sort_diagnostics(diagnostics)
+    if not files:
+        diagnostics.append(diagnostic("PG_LOCK_FILES_EMPTY", "error", "Lock manifest files must contain at least one pinned file entry.", "$.files"))
         return sort_diagnostics(diagnostics)
 
     seen: set[str] = set()
@@ -58,6 +70,7 @@ def validate_lock_manifest(lock: Any, options: LockManifestOptions | None = None
         if not isinstance(item, dict):
             diagnostics.append(diagnostic("PG_LOCK_ENTRY_NOT_OBJECT", "error", "Lock manifest file entry must be an object.", path))
             continue
+
         role = item.get("role")
         if not isinstance(role, str) or not role:
             diagnostics.append(diagnostic("PG_LOCK_ROLE_INVALID", "error", "Lock manifest role must be a non-empty string.", f"{path}.role"))
@@ -65,10 +78,31 @@ def validate_lock_manifest(lock: Any, options: LockManifestOptions | None = None
             diagnostics.append(diagnostic("PG_LOCK_ROLE_DUPLICATE", "error", "Lock manifest contains a duplicate role.", f"{path}.role", role=role))
         else:
             seen.add(role)
-        for field in ("repository", "accepted_commit", "path", "contract_or_schema_id", "sha256_file_bytes"):
+
+        repository = item.get("repository")
+        if not isinstance(repository, str) or not repository:
+            diagnostics.append(diagnostic("PG_LOCK_FIELD_INVALID", "error", "Lock manifest entry field must be a non-empty string.", f"{path}.repository", field="repository"))
+        elif not _REPOSITORY_RE.fullmatch(repository):
+            diagnostics.append(diagnostic("PG_LOCK_REPOSITORY_INVALID", "error", "Lock manifest repository must match owner/repo.", f"{path}.repository", actual=repository))
+
+        accepted_commit = item.get("accepted_commit")
+        if not isinstance(accepted_commit, str) or not accepted_commit:
+            diagnostics.append(diagnostic("PG_LOCK_FIELD_INVALID", "error", "Lock manifest entry field must be a non-empty string.", f"{path}.accepted_commit", field="accepted_commit"))
+        elif not _COMMIT_SHA_RE.fullmatch(accepted_commit):
+            diagnostics.append(diagnostic("PG_LOCK_COMMIT_INVALID", "error", "Lock manifest accepted_commit must be a 40-character lowercase hexadecimal commit SHA.", f"{path}.accepted_commit", actual=accepted_commit))
+
+        for field in ("path", "contract_or_schema_id"):
             if not isinstance(item.get(field), str) or not item.get(field):
                 diagnostics.append(diagnostic("PG_LOCK_FIELD_INVALID", "error", "Lock manifest entry field must be a non-empty string.", f"{path}.{field}", field=field))
+
         digest = item.get("sha256_file_bytes")
-        if isinstance(digest, str) and len(digest) == 64 and digest.lower() != digest:
-            diagnostics.append(diagnostic("PG_LOCK_HASH_NOT_LOWERCASE", "error", "Lock file-byte SHA-256 must be lowercase hexadecimal.", f"{path}.sha256_file_bytes"))
+        if not isinstance(digest, str) or not digest:
+            diagnostics.append(diagnostic("PG_LOCK_FIELD_INVALID", "error", "Lock manifest entry field must be a non-empty string.", f"{path}.sha256_file_bytes", field="sha256_file_bytes"))
+        elif not _SHA256_RE.fullmatch(digest):
+            diagnostics.append(diagnostic("PG_LOCK_HASH_INVALID", "error", "Lock manifest sha256_file_bytes must be a 64-character lowercase hexadecimal SHA-256 digest.", f"{path}.sha256_file_bytes", actual=digest))
+
+        size_bytes = item.get("size_bytes")
+        if "size_bytes" in item and (not isinstance(size_bytes, int) or isinstance(size_bytes, bool) or size_bytes < 0):
+            diagnostics.append(diagnostic("PG_LOCK_SIZE_BYTES_INVALID", "error", "Lock manifest size_bytes must be an integer greater than or equal to 0 when present.", f"{path}.size_bytes", actual=size_bytes))
+
     return sort_diagnostics(diagnostics)
