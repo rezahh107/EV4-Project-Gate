@@ -5,8 +5,8 @@ import json
 from pathlib import Path
 from typing import Any
 
-from .architect_to_ce import transition_from_local_paths
-from .bundle_validator import BundleValidator
+from .architect_to_ce import TransitionValidatorHooks, transition_from_local_paths
+from .bundle_validator import BundleValidator, ResultValidationError
 from .canonical_json import canonical_dumps, load_json_file
 from .diagnostics import persian_summary
 from .validator_runner import run_architect_validator, run_ce_validator
@@ -54,13 +54,14 @@ def main(argv: list[str] | None = None) -> int:
             payload = _simple_invalid("FILE_READ_ERROR", "File could not be read.", error_type=type(exc).__name__)
             _emit(payload, args.format)
             return 1
-        result = transition_from_local_paths(bundle, args.schema_root, args.lock, args.architect_repo, args.ce_repo)
-        if result.get("output") is not None:
-            extras = []
-            extras.extend(run_architect_validator(args.architect_repo, bundle["payload"]["data"]))
-            extras.extend(run_ce_validator(args.ce_repo, result["output"]["payload"]["data"]))
-            if extras:
-                result = _append_external_diagnostics(result, [item.to_dict() for item in extras])
+        hooks = TransitionValidatorHooks(
+            architect=lambda payload: run_architect_validator(args.architect_repo, payload),
+            ce=lambda payload, source_bundle: run_ce_validator(args.ce_repo, payload, source_bundle),
+        )
+        try:
+            result = transition_from_local_paths(bundle, args.schema_root, args.lock, args.architect_repo, args.ce_repo, validator_hooks=hooks)
+        except ResultValidationError as exc:
+            result = _simple_invalid("TRANSITION_RESULT_SCHEMA_VALIDATION_FAILED", "Transition result schema validation failed.", error=str(exc))
         _emit(result, args.format)
         return _exit_for_status(result["status"])
 
@@ -84,27 +85,6 @@ def main(argv: list[str] | None = None) -> int:
     }
     _emit(info, args.format)
     return 0
-
-
-def _append_external_diagnostics(result: dict[str, Any], diagnostics: list[dict[str, Any]]) -> dict[str, Any]:
-    combined = dict(result)
-    combined["diagnostics"] = sorted(
-        result.get("diagnostics", []) + diagnostics,
-        key=lambda d: (
-            str(d.get("path") or "$"),
-            str(d.get("severity") or ""),
-            str(d.get("code") or ""),
-            str(d.get("message") or ""),
-        ),
-    )
-    if any(item["severity"] == "error" for item in combined["diagnostics"]):
-        combined["status"] = "invalid"
-        combined["output"] = None
-        combined["hashes"]["target_payload"] = None
-        combined["hashes"]["target_bundle"] = None
-    elif any(item["severity"] == "insufficient_evidence" for item in combined["diagnostics"]):
-        combined["status"] = "insufficient_evidence"
-    return combined
 
 
 def _simple_invalid(code: str, message: str, **details: Any) -> dict[str, Any]:
