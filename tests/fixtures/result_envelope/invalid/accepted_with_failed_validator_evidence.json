@@ -1,0 +1,46 @@
+{
+  "schema_version": "transition-result.v1",
+  "result_type": "stage_bundle_validation",
+  "status": "accepted",
+  "source_stage": "architect",
+  "diagnostics": [],
+  "hashes": {
+    "source_bundle_hash": {
+      "algorithm": "sha256",
+      "canonicalization": "ev4-canonical-json.v1",
+      "scope": "source_bundle",
+      "value": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+    },
+    "canonical_payload_hash": {
+      "algorithm": "sha256",
+      "canonicalization": "ev4-canonical-json.v1",
+      "scope": "payload",
+      "value": "abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789"
+    }
+  },
+  "provenance": {
+    "source_provenance": {
+      "kind": "real_ev4_evidence",
+      "verification_state": "official_validators_failed"
+    },
+    "produced_by": {
+      "tool": "ev4-transition",
+      "official_validators": [
+        {
+          "schema_version": "validator-evidence.v1",
+          "validator_id": "architect-owner-validator",
+          "owner_repository": "rezahh107/EV4-Architect-Repo",
+          "accepted_commit": "b0651668b97f682bb17f66840c8e8c503fd3935d",
+          "validator_path": "scripts/check-architect-stage-payload.py",
+          "execution_id": "prompt-02-fixture",
+          "status": "failed",
+          "validated_stage": "architect",
+          "validated_scope": "payload",
+          "validated_hash": "abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789",
+          "result_digest": "1111111111111111111111111111111111111111111111111111111111111111"
+        }
+      ]
+    }
+  },
+  "output": null
+}
