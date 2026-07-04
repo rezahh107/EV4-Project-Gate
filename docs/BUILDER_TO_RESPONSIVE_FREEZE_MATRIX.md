@@ -33,7 +33,7 @@ production_ready_claimed: false
 Builder currently does not define a single formal Builder-owned export schema named `ev4-builder-to-responsive-handoff`.
 
 ```yaml
-builder_to_responsive_formal_export:
+builder_formal_responsive_export:
   status: not_implemented
   schema_file: null
   validator: null
@@ -171,6 +171,10 @@ must_pin_and_hash:
     - scripts/validate-real-elementor-execution-evidence.mjs
     - scripts/validate.mjs
     - examples/smart-home-connector/real_elementor_execution_evidence.template.json
+    - tests/valid/layout_check*.json
+    - tests/invalid/layout_check*.json
+    - tests/valid/completion_gate*.json
+    - tests/invalid/completion_gate*.json
     - tests/invalid/real_elementor_execution_evidence_claim_without_proof.json
     - tests/invalid/real_elementor_execution_evidence_duplicate_ref.json
     - tests/invalid/real_elementor_execution_evidence_conflicting_next_action.json
