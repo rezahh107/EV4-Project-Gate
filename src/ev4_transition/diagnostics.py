@@ -4,6 +4,8 @@ from dataclasses import dataclass, field
 from typing import Any, Literal
 
 Severity = Literal["error", "warning", "info", "insufficient_evidence"]
+ValidationStatus = Literal["valid", "invalid", "insufficient_evidence"]
+ProjectGateStatus = Literal["accepted", "repair_needed", "insufficient_evidence", "invalid"]
 
 _SEVERITY_ORDER: dict[str, int] = {
     "error": 0,
@@ -49,7 +51,9 @@ def sort_diagnostics(items: list[Diagnostic]) -> list[Diagnostic]:
     return sorted(items, key=lambda item: item.sort_key())
 
 
-def status_from_diagnostics(items: list[Diagnostic]) -> str:
+def status_from_diagnostics(items: list[Diagnostic]) -> ValidationStatus:
+    """Return the legacy validation-result status used by current validators."""
+
     if any(item.severity == "error" for item in items):
         return "invalid"
     if any(item.severity == "insufficient_evidence" for item in items):
@@ -57,9 +61,23 @@ def status_from_diagnostics(items: list[Diagnostic]) -> str:
     return "valid"
 
 
+def project_gate_status_from_diagnostics(items: list[Diagnostic]) -> ProjectGateStatus:
+    """Map diagnostics into the target Project Gate transition status vocabulary."""
+
+    if any(item.severity == "error" for item in items):
+        return "invalid"
+    if any(item.severity == "insufficient_evidence" for item in items):
+        return "insufficient_evidence"
+    if any(item.severity == "warning" for item in items):
+        return "repair_needed"
+    return "accepted"
+
+
 def persian_summary(status: str) -> str:
     return {
-        "valid": "بسته معتبر است و شواهد لازم برای این بررسی وجود دارد.",
-        "invalid": "بسته نامعتبر است و بدون حدس یا اصلاح خودکار رد شد.",
-        "insufficient_evidence": "شواهد کافی نیست؛ وضعیت به‌صورت ساختاری ثبت شد و هیچ مقدار گمشده‌ای حدس زده نشد.",
+        "accepted": "✅ پذیرفته شد — بسته معتبر است و شواهد لازم برای این بررسی وجود دارد.",
+        "valid": "✅ پذیرفته شد — بسته معتبر است و وضعیت legacy `valid` به‌عنوان معادل `accepted` نمایش داده شد.",
+        "repair_needed": "🛠️ نیازمند اصلاح — بسته قابل فهم است، اما هشدارهای قابل اصلاح دارد.",
+        "invalid": "❌ نامعتبر — بسته بدون حدس یا اصلاح خودکار رد شد.",
+        "insufficient_evidence": "⚠️ شواهد کافی نیست — وضعیت به‌صورت ساختاری ثبت شد و هیچ مقدار گمشده‌ای حدس زده نشد.",
     }.get(status, f"وضعیت: {status}")

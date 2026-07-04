@@ -1,6 +1,6 @@
 # EV4 Project Gate Architecture
 
-Status: `PROMPT-00` audit/freeze baseline. This document describes the current architecture before further implementation.
+Status: `PROMPT-01` Project Gate-owned contracts and deterministic core hardening.
 
 ## Mental model
 
@@ -23,7 +23,7 @@ Project Gate is a deterministic checkpoint/customs system. It is not a fifth EV4
 Project Gate may own:
 
 - Stage Evidence Bundle envelope validation;
-- Project Gate transition/result schemas;
+- Project Gate transition/result/diagnostic/lock carrier schemas;
 - deterministic canonical JSON and SHA-256 utilities;
 - file-byte hash verification for pinned external contracts;
 - lock manifests and expected dependency configuration;
@@ -59,10 +59,13 @@ Implemented package:
 src/ev4_transition
 ```
 
-Implemented CLI:
+Prompt 01 adds explicit package namespaces without replacing the existing public modules:
 
 ```text
-ev4-transition
+src/ev4_transition/core/
+src/ev4_transition/stage_bundle/
+src/ev4_transition/locks/
+src/ev4_transition/presentation/status_mapping.py
 ```
 
 Implemented Project Gate-owned schemas:
@@ -71,9 +74,11 @@ Implemented Project Gate-owned schemas:
 schemas/stage-bundle/stage-bundle.v1.schema.json
 schemas/transition-result/transition-result.v1.schema.json
 schemas/architect-to-ce-transition-result/architect-to-ce-transition-result.v1.schema.json
+schemas/diagnostic/diagnostic.v1.schema.json
+schemas/lock-manifest/lock-manifest.v1.schema.json
 ```
 
-These are envelope/result contracts only. They are not Architect, CE, Builder, or Responsive specialist schemas.
+These are envelope/result/diagnostic/lock carrier contracts only. They are not Architect, CE, Builder, or Responsive specialist schemas.
 
 ## Current transition architecture
 
@@ -136,7 +141,7 @@ Builder output and build evidence
 → Responsive output and viewport evidence
 ```
 
-Current Builder repo does not implement a single formal `ev4-builder-to-responsive-handoff` export schema. Current Responsive repo does implement a schema-bound but non-executing Builder-specific input eligibility package, `ev4-builder-responsive-input@0.1.0`; this is input eligibility only, not responsive correctness.
+Responsive Builder-specific input eligibility is not responsive correctness. Project Gate must stay fail-closed on missing Builder evidence.
 
 ### Final evidence gate
 
@@ -146,7 +151,7 @@ A future final gate must remain fail-closed unless explicit Responsive, frontend
 
 ## Determinism model
 
-Implemented current deterministic behavior:
+Implemented deterministic behavior:
 
 ```yaml
 canonicalization: ev4-canonical-json.v1
@@ -158,32 +163,14 @@ nan_and_infinity: rejected
 implicit_current_timestamp: not_generated
 hidden_unicode_normalization: not_performed
 hash_algorithm: sha256
+file_byte_sha256: explicit helper
 ```
 
 Canonical JSON hashing is suitable for deterministic evidence and lock operations. File-byte SHA-256 is used for external contract lock verification.
 
-## Runner / official tool boundary
-
-Current official validator calls are narrow and explicit:
-
-```text
-Architect validator: scripts/check-architect-stage-payload.py
-CE intake validator: scripts/validate-ce-architect-stage-intake.py
-```
-
-They are invoked from `src/ev4_transition/validator_runner.py` when local pinned checkouts are supplied. Future prompts should harden this boundary before adding more transitions.
-
 ## Status model note
 
-Current implemented validation-result schemas use:
-
-```text
-valid
-invalid
-insufficient_evidence
-```
-
-The target transition decision model in the Project Gate charter uses:
+Target Project Gate transition statuses are:
 
 ```text
 accepted
@@ -192,23 +179,23 @@ insufficient_evidence
 invalid
 ```
 
-This is a deliberate baseline gap. Future implementation should align transition decision semantics without falsely relabeling existing validation results.
+Current Stage Bundle validation and existing Architect→CE paths retain legacy `valid` compatibility. `src/ev4_transition/presentation/status_mapping.py` maps `valid` to `accepted` for presentation and exit-code behavior. Future transition-specific prompts should emit the target vocabulary directly once their evidence gates are implemented.
 
 ## UX/reporting boundary
 
-Persian summaries are currently minimal. Future UX work should preserve result immutability while adding:
+Persian summaries must preserve result truth:
 
-- RTL Persian summary rendering;
-- icon + text + semantic status;
-- copyable LTR technical identifiers;
-- clear visibility for `insufficient_evidence`.
+- status uses icon + text + semantic tone;
+- `insufficient_evidence` is warning/blocking, not ordinary info;
+- technical identifiers remain LTR/copyable;
+- result immutability must not be changed by presentation.
 
 ## Current architecture classification
 
 ```yaml
 repository_role: project_workflow_control_center
-architecture_state: implementation_ready_baseline
-python_deterministic_core: implemented_initial_v1
+architecture_state: prompt_01_core_foundation_hardened
+python_deterministic_core: implemented_initial_v1_plus_prompt_01_hardening
 architect_to_ce_transition: implemented_synthetic_verified
 ce_to_builder_transition: not_implemented
 builder_to_responsive_transition: not_implemented

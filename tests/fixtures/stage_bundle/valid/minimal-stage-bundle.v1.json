@@ -1,0 +1,44 @@
+{
+  "schema_version": "stage-evidence-bundle.v1",
+  "bundle_id": "prompt01-valid-stage-bundle",
+  "stage": "architect",
+  "payload_schema": {
+    "id": "ev4.synthetic.architect.payload@0.1.0",
+    "version": "0.1.0",
+    "owner_repository": "rezahh107/EV4-Architect-Repo"
+  },
+  "produced_by": {
+    "repository": "rezahh107/EV4-Architect-Repo",
+    "ref": "synthetic-fixture"
+  },
+  "evidence_status": "complete",
+  "payload": {
+    "schema_id": "ev4.synthetic.architect.payload@0.1.0",
+    "data": {
+      "project_id": "ev4-prompt01",
+      "summary": "Synthetic prompt 01 stage bundle fixture."
+    }
+  },
+  "evidence": [
+    {
+      "id": "prompt01-evidence",
+      "kind": "fixture",
+      "state": "validated",
+      "description": "Synthetic prompt 01 evidence fixture.",
+      "artifact_hash": {
+        "algorithm": "sha256",
+        "value": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+        "scope": "canonical_json"
+      },
+      "source": {
+        "type": "synthetic_fixture",
+        "reference": "tests/fixtures/stage_bundle/valid/minimal-stage-bundle.v1.json"
+      }
+    }
+  ],
+  "provenance": {
+    "source": "synthetic-fixture",
+    "created_by": "ev4-project-gate-tests"
+  },
+  "synthetic": true
+}

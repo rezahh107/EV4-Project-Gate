@@ -9,6 +9,7 @@ from .architect_to_ce import TransitionValidatorHooks, transition_from_local_pat
 from .bundle_validator import BundleValidator, ResultValidationError
 from .canonical_json import canonical_dumps, load_json_file
 from .diagnostics import persian_summary
+from .presentation.status_mapping import exit_code_for_status
 from .validator_runner import run_architect_validator, run_ce_validator
 
 
@@ -73,15 +74,16 @@ def main(argv: list[str] | None = None) -> int:
             "structured_diagnostics",
             "stage_bundle_validation",
             "transition_result_schema_foundation",
+            "status_presentation_mapping",
             "architect-to-ce transition",
-            "minimal_cli"
+            "minimal_cli",
         ],
         "not_implemented": [
             "ce-to-builder transition",
             "builder-to-responsive transition",
             "real EV4 artifact validation",
-            "UI"
-        ]
+            "UI",
+        ],
     }
     _emit(info, args.format)
     return 0
@@ -92,11 +94,7 @@ def _simple_invalid(code: str, message: str, **details: Any) -> dict[str, Any]:
 
 
 def _exit_for_status(status: str) -> int:
-    if status == "valid":
-        return 0
-    if status == "insufficient_evidence":
-        return 2
-    return 1
+    return exit_code_for_status(status)
 
 
 def _emit(payload: dict[str, Any], fmt: str) -> None:

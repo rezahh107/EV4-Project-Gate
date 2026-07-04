@@ -1,0 +1,30 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ev4.local/schemas/diagnostic/diagnostic.v1.schema.json",
+  "title": "EV4 Project Gate Diagnostic v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["code", "severity", "message", "path"],
+  "properties": {
+    "code": {
+      "type": "string",
+      "pattern": "^[A-Z0-9_]+$"
+    },
+    "severity": {
+      "type": "string",
+      "enum": ["error", "warning", "info", "insufficient_evidence"]
+    },
+    "message": {
+      "type": "string",
+      "minLength": 1
+    },
+    "path": {
+      "type": "string",
+      "minLength": 1
+    },
+    "details": {
+      "type": "object",
+      "additionalProperties": true
+    }
+  }
+}

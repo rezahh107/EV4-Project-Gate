@@ -1,6 +1,6 @@
 # EV4 Role Boundary Map
 
-Status: `PROMPT-00` audit/freeze baseline. This document records current live repository boundaries for Project Gate implementation planning. It is coordination documentation, not a promotion of any specialist contract into Project Gate ownership.
+Status: `PROMPT-01` Project Gate-owned contract foundation. This document records repository boundaries for Project Gate implementation planning. It is coordination documentation, not a promotion of any specialist contract into Project Gate ownership.
 
 ## Authority rule
 
@@ -12,7 +12,7 @@ Specialist repositories remain authoritative for their schemas, validators, adap
 | `rezahh107/EV4-Constructability-Engineer-Repo` | Constructability Engineer | Constructability review; implementation-strategy proof; canonical Architect-facing CE intake `ev4-ce-architect-stage-intake@1.1.0`; CE-owned mapping `ev4-architect-stage-to-ce-intake-mapping@1.1.0`; Builder Executable Package producer semantics | Architect redesign; Builder runtime execution; Builder adapter projection; Responsive repair; production readiness | CE intake validation; CE review output; Builder Executable Package when evidence-gated | Builder runtime output; Builder compact `node:model` carriers in CE source output; production-ready claims | Project Gate, then Builder | repo-local authoritative for CE review/gating and executable handoff issuance |
 | `rezahh107/EV4-Builder-Assistant-Repo` | Builder | Runtime intake validation; `ev4-builder-context-package@1.0.0`; CE→Builder Contract Gate; CE→Builder adapter; Builder action batch, layout check, completion gate, and real Elementor execution evidence validators | Architecture decisions; CE strategy proof; Responsive conclusions; production readiness; invention of missing Golden Reference / Build Intent Brief / Spatial Lexicon | Normalized Builder runtime intake; execution/build evidence; Builder-side validation decisions | Architect-only package treated as Builder-ready; CE review-only package treated as runtime-ready; Responsive correctness claims | Project Gate, then Responsive | repo-local authoritative for Builder runtime intake, execution behavior, and Builder-owned evidence surfaces |
 | `rezahh107/EV4-Responsive-Architect` | Responsive Architect | Responsive input eligibility; `ev4-builder-responsive-input@0.1.0`; responsive output `ev4-responsive-output@0.3.0`; viewport evidence gates; Responsive repair semantics; responsive handoff export family | Original architecture selection; CE constructability proof; Builder execution; mobile/tablet inference from desktop-only evidence; final readiness without evidence | Responsive input eligibility decisions; responsive output; viewport-scoped evidence; repair outputs when authorized | Raw screenshot as baseline authority; frontend/export/accessibility/production claims without evidence | Project Gate final gate | repo-local authoritative for responsive adaptation, viewport evidence, and Responsive-owned output concepts |
-| `rezahh107/EV4-Project-Gate` | Project Gate | Stage Evidence Bundle envelope; transition/result schemas; deterministic canonical JSON and SHA-256; lock manifests; pinned external contract verification; orchestration of official validators/adapters; diagnostics; Persian summaries; behavioral coverage ledger | Specialist schemas as canonical copies; CE constructability logic; Builder runtime logic; Responsive repair logic; evidence invention; silent normalization; accepted/final claims without evidence | Validation results; transition results; pinned/hash reports; next-stage packages only when owner contracts/evidence validate; repair/insufficient-evidence diagnostics | Specialist logic; copied owner schemas; synthetic fixtures described as real evidence; production readiness claims | User and next specialist repository | Project Gate-owned orchestration authority only |
+| `rezahh107/EV4-Project-Gate` | Project Gate | Stage Evidence Bundle envelope; transition/result schemas; diagnostic schema; lock manifest schema; deterministic canonical JSON and SHA-256; pinned external contract verification; orchestration of official validators/adapters; diagnostics; Persian summaries; behavioral coverage ledger | Specialist schemas as canonical copies; CE constructability logic; Builder runtime logic; Responsive repair logic; evidence invention; silent normalization; accepted/final claims without evidence | Validation results; transition results; pinned/hash reports; next-stage packages only when owner contracts/evidence validate; repair/insufficient-evidence diagnostics | Specialist logic; copied owner schemas; synthetic fixtures described as real evidence; production readiness claims | User and next specialist repository | Project Gate-owned orchestration authority only |
 
 ## Boundary invariants
 
@@ -38,6 +38,21 @@ project_gate:
     - emit_accepted_without_explicit_evidence
 ```
 
+## Prompt 01 boundary update
+
+`PROMPT-01` adds Project Gate-owned contract carriers and deterministic namespace structure only:
+
+```text
+schemas/diagnostic/diagnostic.v1.schema.json
+schemas/lock-manifest/lock-manifest.v1.schema.json
+src/ev4_transition/core/
+src/ev4_transition/stage_bundle/
+src/ev4_transition/locks/
+src/ev4_transition/presentation/status_mapping.py
+```
+
+No CE→Builder, Builder→Responsive, final gate, specialist validator/adapter expansion, or specialist domain logic is implemented in this prompt.
+
 ## Current implementation boundary summary
 
 ```yaml
@@ -46,6 +61,8 @@ implemented:
   - Stage Evidence Bundle validation
   - structured diagnostics
   - canonical JSON and SHA-256
+  - Project Gate diagnostic and lock carrier schemas
+  - status presentation mapping
   - Architect-to-CE transition orchestration
   - official Architect and CE validator calls for pinned local checkouts
 not_implemented:
@@ -64,5 +81,8 @@ not_implemented:
   action: update transition boundary map and future lock baseline before PROMPT-05.
 - id: DRIFT-A2C-STATUS-ARCHITECT-README
   description: Architect README still says Project Gate Architect-to-CE transition is not implemented. Live Project Gate repo records it as implemented.
-  action: treat Architect README statement as stale for Project Gate implementation status, but do not modify specialist repos in PROMPT-00.
+  action: treat Architect README statement as stale for Project Gate implementation status, but do not modify specialist repos in PROMPT-01.
+- id: STATUS-MODEL-LEGACY-VALID
+  description: Current Stage Bundle validation and existing Architect→CE paths retain legacy valid status compatibility while Prompt 01 adds target status presentation mapping.
+  action: future transition prompts should emit accepted/repair_needed/insufficient_evidence/invalid directly once evidence gates are implemented.
 ```

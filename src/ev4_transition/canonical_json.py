@@ -35,6 +35,7 @@ def canonical_dumps(value: Any) -> str:
     - compact separators with no insignificant whitespace.
     - non-ASCII characters preserved, not escaped.
     - NaN and infinity rejected.
+    - no Unicode normalization is applied before serialization.
     """
 
     _reject_non_finite(value)
@@ -60,6 +61,12 @@ def canonical_sha256(value: Any) -> str:
 
 def bytes_sha256(content: bytes) -> str:
     return hashlib.sha256(content).hexdigest()
+
+
+def file_sha256(path: str | Path) -> str:
+    """Compute SHA-256 over exact file bytes without decoding or normalization."""
+
+    return bytes_sha256(Path(path).read_bytes())
 
 
 def load_json_file(path: str | Path) -> Any:

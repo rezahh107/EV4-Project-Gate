@@ -1,0 +1,32 @@
+{
+  "schema_version": "transition-result.v1",
+  "result_type": "stage_bundle_validation",
+  "status": "accepted",
+  "source_stage": "architect",
+  "diagnostics": [],
+  "hashes": {
+    "source_bundle_hash": {
+      "algorithm": "sha256",
+      "canonicalization": "ev4-canonical-json.v1",
+      "scope": "source_bundle",
+      "value": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+    },
+    "canonical_payload_hash": {
+      "algorithm": "sha256",
+      "canonicalization": "ev4-canonical-json.v1",
+      "scope": "payload",
+      "value": "abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789"
+    }
+  },
+  "provenance": {
+    "source_provenance": {
+      "kind": "synthetic_fixture",
+      "fixture": "accepted-stage-validation.v1.json"
+    },
+    "produced_by": {
+      "tool": "ev4-transition",
+      "mode": "test_fixture"
+    }
+  },
+  "output": null
+}

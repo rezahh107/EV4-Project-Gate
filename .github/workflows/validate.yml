@@ -46,14 +46,14 @@ jobs:
 
       - name: Verify no specialist canonical schema files exist
         run: |
-          allowed='^(schemas/README.md|schemas/stage-bundle/stage-bundle.v1.schema.json|schemas/transition-result/transition-result.v1.schema.json|schemas/architect-to-ce-transition-result/architect-to-ce-transition-result.v1.schema.json)$'
+          allowed='^(schemas/README.md|schemas/stage-bundle/stage-bundle.v1.schema.json|schemas/transition-result/transition-result.v1.schema.json|schemas/architect-to-ce-transition-result/architect-to-ce-transition-result.v1.schema.json|schemas/diagnostic/diagnostic.v1.schema.json|schemas/lock-manifest/lock-manifest.v1.schema.json)$'
           unexpected=$(find schemas -type f | grep -Ev "$allowed" || true)
           if [ -n "$unexpected" ]; then
             echo "Unexpected schema files found under schemas/."
             printf '%s\n' "$unexpected"
             exit 1
           fi
-          echo "Only Project Gate envelope/result schemas found."
+          echo "Only Project Gate envelope/result/diagnostic/lock schemas found."
 
   python-core:
     runs-on: ubuntu-latest
