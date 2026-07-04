@@ -66,12 +66,71 @@
   },
   "allOf": [
     {
-      "if": {"properties": {"status": {"const": "invalid"}}, "required": ["status"]},
-      "then": {"properties": {"diagnostics": {"minItems": 1}}}
+      "if": {"properties": {"status": {"const": "accepted"}}, "required": ["status"]},
+      "then": {
+        "properties": {
+          "diagnostics": {
+            "items": {"$ref": "#/$defs/infoDiagnostic"}
+          },
+          "hashes": {
+            "properties": {
+              "source_bundle_hash": {"$ref": "#/$defs/hashRecord"},
+              "canonical_payload_hash": {"$ref": "#/$defs/hashRecord"}
+            }
+          },
+          "provenance": {
+            "properties": {
+              "source_provenance": {"type": "object"},
+              "produced_by": {"type": "object"}
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {"properties": {"status": {"const": "valid"}}, "required": ["status"]},
+      "then": {
+        "properties": {
+          "diagnostics": {
+            "items": {"$ref": "#/$defs/infoDiagnostic"}
+          }
+        }
+      }
+    },
+    {
+      "if": {"properties": {"status": {"const": "repair_needed"}}, "required": ["status"]},
+      "then": {
+        "properties": {
+          "diagnostics": {
+            "minItems": 1,
+            "contains": {"$ref": "#/$defs/warningDiagnostic"},
+            "not": {"contains": {"anyOf": [{"$ref": "#/$defs/errorDiagnostic"}, {"$ref": "#/$defs/insufficientEvidenceDiagnostic"}]}}
+          }
+        }
+      }
     },
     {
       "if": {"properties": {"status": {"const": "insufficient_evidence"}}, "required": ["status"]},
-      "then": {"properties": {"diagnostics": {"minItems": 1}}}
+      "then": {
+        "properties": {
+          "diagnostics": {
+            "minItems": 1,
+            "contains": {"$ref": "#/$defs/insufficientEvidenceDiagnostic"},
+            "not": {"contains": {"$ref": "#/$defs/errorDiagnostic"}}
+          }
+        }
+      }
+    },
+    {
+      "if": {"properties": {"status": {"const": "invalid"}}, "required": ["status"]},
+      "then": {
+        "properties": {
+          "diagnostics": {
+            "minItems": 1,
+            "contains": {"$ref": "#/$defs/errorDiagnostic"}
+          }
+        }
+      }
     }
   ],
   "$defs": {
@@ -101,6 +160,30 @@
           "additionalProperties": true
         }
       }
+    },
+    "infoDiagnostic": {
+      "allOf": [
+        {"$ref": "#/$defs/diagnostic"},
+        {"properties": {"severity": {"const": "info"}}, "required": ["severity"]}
+      ]
+    },
+    "warningDiagnostic": {
+      "allOf": [
+        {"$ref": "#/$defs/diagnostic"},
+        {"properties": {"severity": {"const": "warning"}}, "required": ["severity"]}
+      ]
+    },
+    "errorDiagnostic": {
+      "allOf": [
+        {"$ref": "#/$defs/diagnostic"},
+        {"properties": {"severity": {"const": "error"}}, "required": ["severity"]}
+      ]
+    },
+    "insufficientEvidenceDiagnostic": {
+      "allOf": [
+        {"$ref": "#/$defs/diagnostic"},
+        {"properties": {"severity": {"const": "insufficient_evidence"}}, "required": ["severity"]}
+      ]
     },
     "hashRecord": {
       "type": "object",
