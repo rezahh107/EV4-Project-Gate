@@ -40,6 +40,7 @@ details: optional object
 | `PG_LOCK_ROLE_INVALID` | `error` | Project Gate | Lock entry role is missing or invalid. |
 | `PG_LOCK_ROLE_DUPLICATE` | `error` | Project Gate | Lock manifest contains duplicate roles. |
 | `PG_LOCK_FIELD_INVALID` | `error` | Project Gate | Required lock entry field is missing or not a non-empty string. |
+| `PG_LOCK_UNKNOWN_FIELD` | `error` | Project Gate | Lock manifest contains a field not allowed by the lock schema. |
 | `PG_LOCK_REPOSITORY_INVALID` | `error` | Project Gate | Lock entry repository does not match `owner/repo`. |
 | `PG_LOCK_COMMIT_INVALID` | `error` | Project Gate | Lock entry accepted commit is not a 40-character lowercase hexadecimal SHA. |
 | `PG_LOCK_HASH_INVALID` | `error` | Project Gate | Lock entry file-byte hash is not a 64-character lowercase hexadecimal SHA-256 digest. |
