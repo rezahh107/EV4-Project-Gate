@@ -19,8 +19,14 @@
     }
   },
   "provenance": {
-    "source_provenance": null,
-    "produced_by": null
+    "source_provenance": {
+      "kind": "synthetic_fixture",
+      "fixture": "accepted-stage-validation.v1.json"
+    },
+    "produced_by": {
+      "tool": "ev4-transition",
+      "mode": "test_fixture"
+    }
   },
   "output": null
 }
