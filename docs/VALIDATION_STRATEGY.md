@@ -61,7 +61,30 @@ Required pinned local checkouts:
 
 ```text
 rezahh107/EV4-Architect-Repo@b0651668b97f682bb17f66840c8e8c503fd3935d
-rezahh107/EV4-Constructability-Engineer-Repo@d3aadff91d9b6fcb38e2f5d3f4cbc2870484b0f7
+rezahh107/EV4-Constructability-Engineer-Repo@546680a2e2a309c0d7e0ddbfc017e9e194ece7cb
+```
+
+## CE-to-Builder Transition Validation Baseline
+
+The CE → Builder transition is documented as a freeze baseline only. It is not implemented in Project Gate yet.
+
+When implemented later, it should validate:
+
+- CE Stage Evidence Bundle envelope;
+- CE package identity `ev4-builder-executable-package@1.0.0`;
+- pinned CE producer contract, schema, validators, and proving fixtures;
+- Builder CE→Builder Contract Gate;
+- Builder transformation registry;
+- Builder CE→Builder adapter;
+- generated Builder Context Package schema validation;
+- generated Builder Context Package cross-field validation;
+- target Stage Evidence Bundle envelope;
+- transition result schema for the future CE→Builder transition.
+
+The current freeze matrix is:
+
+```text
+docs/CE_TO_BUILDER_FREEZE_MATRIX.md
 ```
 
 ## Local Schema Validation
@@ -74,13 +97,13 @@ schemas/transition-result/transition-result.v1.schema.json
 schemas/architect-to-ce-transition-result/architect-to-ce-transition-result.v1.schema.json
 ```
 
-They are not copied specialist-domain schemas and must not be treated as canonical Architect, CE, Builder, or Responsive contracts.
+They are not copied specialist-domain schemas and are not canonical Architect, CE, Builder, or Responsive contracts.
 
 ## Cross-Repo Fixture Validation
 
-Transition PRs must validate against fixtures from the relevant producer and consumer repositories.
+Transition PRs validate against fixtures from the relevant producer and consumer repositories.
 
-Positive fixtures must prove accepted behavior. Negative fixtures must prove boundary rejection.
+Positive fixtures prove accepted behavior. Negative fixtures prove boundary rejection.
 
 For Architect-to-CE v1:
 
@@ -93,7 +116,7 @@ No real EV4 fixture validation is claimed by this transition.
 
 ## Contract Compatibility Matrix
 
-A compatibility matrix must define, for each future transition contract:
+A compatibility matrix defines, for each future transition contract:
 
 - owner repo
 - producer
@@ -108,14 +131,13 @@ A compatibility matrix must define, for each future transition contract:
 
 No real transition is accepted without at least one producer-side fixture and one consumer-side fixture.
 
-Producer tests must prove the owning repo can emit or carry the contract correctly.
-Consumer tests must prove the downstream repo accepts valid input and rejects invalid or premature input.
+Producer tests prove the owning repo can emit or carry the contract correctly. Consumer tests prove the downstream repo accepts valid input and rejects invalid or premature input.
 
 ## CI Requirement
 
 CI evidence is required before schema promotion or transition activation.
 
-At minimum, transition CI must prove:
+At minimum, transition CI should prove:
 
 - Python package installs
 - unit tests pass
@@ -129,6 +151,4 @@ At minimum, transition CI must prove:
 
 ## Dependency Boundary
 
-No runtime dependency from existing specialist repos until promotion is approved.
-
-Existing EV4 repositories must not import from this repository until an explicit ADR, migration plan, validation evidence, compatibility policy, and rollback guidance are approved.
+Existing EV4 repositories should not import from this repository until an explicit ADR, migration plan, validation evidence, compatibility policy, and rollback guidance are approved.
