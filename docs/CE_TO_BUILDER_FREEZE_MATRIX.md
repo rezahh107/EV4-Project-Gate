@@ -35,8 +35,6 @@ normative_tests:
   - tests/test_architect_contract.py
 ```
 
-CE preserves structured source evidence. The structured CE `connector_layer` object is producer data; Builder compact projection belongs to the downstream Builder adapter.
-
 ## Builder input contract and adapter
 
 ```yaml
@@ -64,39 +62,44 @@ negative_fixtures:
   - tests/invalid/ce_builder_package_adapter_missing_carriers.json
 ```
 
-Builder runtime intake is the normalized Builder Context Package, after the Builder-owned gate and adapter route.
-
-## Future pin/hash recommendation
+## Future pin and hash recommendation
 
 ```yaml
-must_pin_and_hash:
-  ce:
-    - docs/CE_TO_BUILDER_PRODUCER_CONTRACT.md
-    - schemas/builder_executable_package.schema.json
-    - validator/engine.py
-    - validator/rules.py
-    - scripts/validate-role-alignment-fixtures.py
-    - tests/test_architect_contract.py
-    - tests/role-alignment/valid/executable_visual_reference_package.json
-    - tests/role-alignment/invalid/builder_package_with_decisions.json
-    - tests/role-alignment/invalid/visual_package_missing_golden_reference.json
-  builder:
-    - input-contracts/BUILDER_CONTEXT_INPUT_CONTRACT.md
-    - schemas/builder-context-package.schema.json
-    - schemas/ce-to-builder-contract-gate-report.schema.json
-    - docs/CE_TO_BUILDER_CONTRACT_GATE.md
-    - docs/CE_TO_BUILDER_TRANSFORMATION_SPEC.md
-    - docs/CE_BUILDER_PACKAGE_ADAPTER_CONTRACT.md
-    - data/ce-builder-transformation-registry.v1.json
-    - scripts/validate-ce-to-builder-contract-gate.mjs
-    - scripts/normalize-ce-builder-executable-package.mjs
-    - scripts/normalize-ce-reference-map.mjs
-    - scripts/ce-builder-transformation-registry.mjs
-    - scripts/validate-ce-builder-transformation-registry.mjs
-    - scripts/validate-ce-builder-package-adapter.mjs
-    - scripts/validate-package.mjs
-    - scripts/validate.mjs
-should_pin_and_hash:
+ce_required:
+  - docs/CE_TO_BUILDER_PRODUCER_CONTRACT.md
+  - schemas/builder_executable_package.schema.json
+  - validator/engine.py
+  - validator/rules.py
+  - scripts/validate-role-alignment-fixtures.py
+  - tests/test_architect_contract.py
+  - tests/role-alignment/valid/executable_visual_reference_package.json
+  - tests/role-alignment/invalid/builder_package_with_decisions.json
+  - tests/role-alignment/invalid/visual_package_missing_golden_reference.json
+builder_required:
+  - input-contracts/BUILDER_CONTEXT_INPUT_CONTRACT.md
+  - schemas/builder-context-package.schema.json
+  - schemas/ce-to-builder-contract-gate-report.schema.json
+  - docs/CE_TO_BUILDER_CONTRACT_GATE.md
+  - docs/CE_TO_BUILDER_TRANSFORMATION_SPEC.md
+  - docs/CE_BUILDER_PACKAGE_ADAPTER_CONTRACT.md
+  - data/ce-builder-transformation-registry.v1.json
+  - scripts/validate-ce-to-builder-contract-gate.mjs
+  - scripts/normalize-ce-builder-executable-package.mjs
+  - scripts/normalize-ce-reference-map.mjs
+  - scripts/ce-builder-transformation-registry.mjs
+  - scripts/validate-ce-builder-transformation-registry.mjs
+  - scripts/validate-ce-builder-package-adapter.mjs
+  - scripts/validate-package.mjs
+  - scripts/validate.mjs
+  - tests/valid/ce_to_builder_contract_gate_valid.json
+  - tests/valid/ce_builder_package_adapter_valid.json
+  - tests/valid/ce_reference_map_adapter_valid.json
+  - tests/invalid/ce_to_builder_contract_gate_missing_architect_approved_classes.json
+  - tests/invalid/ce_to_builder_contract_gate_missing_batch_action_ids.json
+  - tests/invalid/ce_to_builder_contract_gate_class_map_item_not_object.json
+  - tests/invalid/ce_builder_package_adapter_not_executable_ready.json
+  - tests/invalid/ce_builder_package_adapter_missing_carriers.json
+recommended_context:
   ce:
     - README.md
     - STATUS.md
@@ -106,7 +109,7 @@ should_pin_and_hash:
     - STATUS.md
     - AGENTS.md
     - package.json
-do_not_pin:
+exclude:
   - patch-reports/*
   - old handoff summaries
   - copied specialist schemas inside Project Gate
