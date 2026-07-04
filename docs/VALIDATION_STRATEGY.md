@@ -104,6 +104,31 @@ The current freeze matrix is:
 docs/CE_TO_BUILDER_FREEZE_MATRIX.md
 ```
 
+## Builder-to-Responsive Transition Validation Baseline
+
+The Builder → Responsive transition is documented as a freeze baseline only. It is not implemented in Project Gate yet.
+
+When implemented later, it should validate:
+
+- Builder Stage Evidence Bundle envelope or equivalent Project Gate transport envelope;
+- pinned Builder action batch, layout check, completion gate, and real Elementor execution evidence contracts;
+- pinned Builder validators and proving fixtures;
+- explicit absence or presence of a formal Builder→Responsive export schema;
+- Responsive Builder→Responsive input boundary;
+- Responsive output schema validation;
+- Responsive submitted-packet dry-run boundary validation;
+- Responsive evidence-intake, pilot-boundary, Issue #8, RTAQ, and STATUS guard checks;
+- target Stage Evidence Bundle envelope;
+- transition result schema for the future Builder→Responsive transition.
+
+The current freeze matrix is:
+
+```text
+docs/BUILDER_TO_RESPONSIVE_FREEZE_MATRIX.md
+```
+
+The transition may be implemented as fail-closed while formal Builder and Responsive handoff package schemas remain absent. It must not emit an accepted handoff result unless current pinned artifacts and official validators support that result.
+
 ## Local Schema Validation
 
 The active schemas in this repository are Project Gate envelope/result schemas only:
