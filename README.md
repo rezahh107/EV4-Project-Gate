@@ -73,7 +73,7 @@ ce:
   commit: 546680a2e2a309c0d7e0ddbfc017e9e194ece7cb
   intake_schema: ev4-ce-architect-stage-intake@1.1.0
   mapping_contract: ev4-architect-stage-to-ce-intake-mapping@1.1.0
-verification_state: synthetic_cross_repository_fixtures_only
+verification_state: synthetic_fixture_only
 real_elementor_validation: not_available
 ```
 
