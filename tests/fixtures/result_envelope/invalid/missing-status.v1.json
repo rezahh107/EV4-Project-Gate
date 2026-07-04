@@ -1,0 +1,15 @@
+{
+  "schema_version": "transition-result.v1",
+  "result_type": "stage_bundle_validation",
+  "source_stage": "architect",
+  "diagnostics": [],
+  "hashes": {
+    "source_bundle_hash": null,
+    "canonical_payload_hash": null
+  },
+  "provenance": {
+    "source_provenance": null,
+    "produced_by": null
+  },
+  "output": null
+}
