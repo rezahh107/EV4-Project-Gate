@@ -37,7 +37,7 @@ def source_bundle(payload: dict[str, Any], *, bundle_id: str = "synthetic-archit
 
 def run_cli(bundle_path: Path, architect_repo: str, ce_repo: str) -> subprocess.CompletedProcess[str]:
     return subprocess.run([
-        sys.executable, "-m", "ev4_transition.cli", "transition", "architect-to-ce", str(bundle_path),
+        sys.executable, "-m", "ev4_transition.cli", "transition", "architect-to-ce", str(bundle_path.resolve()),
         "--architect-repo", architect_repo,
         "--ce-repo", ce_repo,
         "--format", "json",
@@ -66,8 +66,8 @@ def assert_transition_case(bundle: dict[str, Any], expected_exit: int, expected_
 
 
 def validate_generated_ce_intake(result: dict[str, Any], source_bundle_value: dict[str, Any], ce_repo: str, work_dir: Path) -> None:
-    intake_path = work_dir / "generated-ce-intake.v1_1.json"
-    source_path = work_dir / "generated-source-bundle.v1.json"
+    intake_path = (work_dir / "generated-ce-intake.v1_1.json").resolve()
+    source_path = (work_dir / "generated-source-bundle.v1.json").resolve()
     write_json(intake_path, result["output"]["payload"]["data"])
     write_json(source_path, source_bundle_value)
     completed = subprocess.run([
