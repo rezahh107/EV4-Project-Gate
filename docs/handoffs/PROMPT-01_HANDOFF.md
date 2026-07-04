@@ -22,7 +22,15 @@ commit_groups:
     - bdb2a239e897d1000c7b20de698ae83de924fab2 docs: document result status schema correlation
     - 804f277eeabdbf891eedd8a0d74b02967ce81720 docs: align status matrix with result schema
     - 760cb089e0e6006ece42c0845d34ee81e34128a4 docs: record inspector result-contract fixes
-    - self_reference: docs: record second inspector blocker fixes; final commit SHA is reported in the final response.
+    - ded157caf279788b938cfa678c8cbbeb8bb5bd18 docs: record second inspector blocker fixes
+  r2_inspector_followup:
+    - fc6742e0b98728c4b4710ca837916758c855ccae schemas: close accepted evidence bypasses and legacy warning drift
+    - 9286a5e95ee1ced546cf542b8f602e0132448dba tests: remove stale result status contract test for rewrite
+    - 425eb6b0f7a3dd585a49f8357e3668921ed96f7d tests: cover accepted evidence bypasses and legacy warning contract
+    - 2703a6755f81729b061efc8d6ccaec2d85df2fe3 docs: tighten accepted evidence model and legacy valid warning rule
+    - 14310274d9809cc4f5c29291876940214f9412a4 docs: align valid warning compatibility in status matrix
+    - 87a52efd30511289ca332f89a55c1b7472067c76 docs: record r2 accepted and legacy valid fixes
+    - self_reference: docs: record r2 inspector blocker fixes; final commit SHA is reported in the final response.
 files_changed:
   - .github/workflows/validate.yml
   - docs/ARCHITECTURE.md
@@ -59,24 +67,27 @@ tests_run:
   - GitHub Actions run 28715773325: skeleton passed; python-core failed at Run Project Gate Python tests on pre-fix head b2342be6b7b7ecb35d90e79731848cfeab8ff4a0.
   - GitHub Actions run 28715844363: skeleton and python-core passed on code-bearing head decece3f6e87663cba565c51e91eb8b0775528b5.
   - GitHub Actions run 28716189498: skeleton and python-core passed on first Inspector follow-up head 5ba2c7874657e52f81a010e42aa516dae99094d0.
-  - PR-Inspector second pass reported PRF-001 result schema correlation gap and PRF-002 lock manifest unknown-field gap against head 5ba2c7874657e52f81a010e42aa516dae99094d0.
-  - Final post-second-Inspector GitHub Actions must run after this handoff commit; do not merge until it passes.
+  - GitHub Actions run 28716744210: skeleton and python-core passed on second Inspector follow-up head ded157caf279788b938cfa678c8cbbeb8bb5bd18.
+  - PR-Inspector R2 reported accepted bypasses for null source stage, empty provenance, and swapped hash scopes, plus valid-warning producer/schema drift against head ded157caf279788b938cfa678c8cbbeb8bb5bd18.
+  - Final R2 GitHub Actions must run after this handoff commit; do not merge until it passes.
 tests_passed:
-  - Run 28716189498: skeleton succeeded.
-  - Run 28716189498: python-core succeeded.
-  - Run 28716189498: Run Project Gate Python tests succeeded.
-  - Run 28716189498: Verify external contract lock hashes succeeded.
-  - Run 28716189498: CLI smoke valid bundle succeeded.
-  - Run 28716189498: CLI smoke invalid array succeeded.
-  - Run 28716189498: CLI smoke Persian insufficient evidence succeeded.
-  - Run 28716189498: Official Architect validator fixture suite succeeded.
-  - Run 28716189498: Official CE validator fixture suite succeeded.
-  - Run 28716189498: Generated Architect-to-CE transition smoke and CE binding succeeded.
+  - Run 28716744210: skeleton succeeded.
+  - Run 28716744210: python-core succeeded.
+  - Run 28716744210: Run Project Gate Python tests succeeded.
+  - Run 28716744210: Verify external contract lock hashes succeeded.
+  - Run 28716744210: CLI smoke valid bundle succeeded.
+  - Run 28716744210: CLI smoke invalid array succeeded.
+  - Run 28716744210: CLI smoke Persian insufficient evidence succeeded.
+  - Run 28716744210: Official Architect validator fixture suite succeeded.
+  - Run 28716744210: Official CE validator fixture suite succeeded.
+  - Run 28716744210: Generated Architect-to-CE transition smoke and CE binding succeeded.
 tests_failed:
   - Run 28715773325: python-core failed before fix commit b11db5606038dbbb1f276b0397658c15b09e5155.
   - First Inspector PRF-001: validate_lock_manifest was weaker than schema/policy on reviewed head 7d5c751f6a7a095d4de97eb6bbbaa2402b2f9ffb.
   - Second Inspector PRF-001: transition-result.v1 accepted contradictory accepted/error/no-evidence combinations on reviewed head 5ba2c7874657e52f81a010e42aa516dae99094d0.
   - Second Inspector PRF-002: validate_lock_manifest accepted unknown top-level and file-entry fields on reviewed head 5ba2c7874657e52f81a010e42aa516dae99094d0.
+  - R2 Inspector PRF-001: accepted still permitted null source stage, empty provenance objects, and swapped hash scopes on reviewed head ded157caf279788b938cfa678c8cbbeb8bb5bd18.
+  - R2 Inspector PRF-002: legacy producer returns valid for warnings while schema rejected valid+warning on reviewed head ded157caf279788b938cfa678c8cbbeb8bb5bd18.
 tests_not_run:
   - local python -m pip install -e '.[dev]'
   - local pytest
@@ -90,9 +101,9 @@ tests_not_run:
 coverage_rules_advanced:
   - PG-HASH-001: explicit file-byte SHA-256 helper and deterministic canonical JSON regression tests added; compatibility namespace now re-exports the canonical helper.
   - PG-LOCK-001: lock manifest schema, strict structural lock manifest validator, schema allowlist checks, and fail-closed negative tests added.
-  - PG-STATUS-001: target status mapping, result schema status/diagnostic correlation, and contradiction tests added.
+  - PG-STATUS-001: target status mapping, result schema status/diagnostic correlation, contradiction tests, and legacy valid-warning compatibility test added.
   - PG-UNICODE-001: explicit composed/decomposed Unicode no-normalization regression test added.
-  - PG-EVIDENCE-001: accepted result carrier now requires non-null hashes/provenance and no blocking diagnostic.
+  - PG-EVIDENCE-001: accepted result carrier now requires concrete source_stage, property-specific hash scopes, source_provenance.kind, produced_by.tool, and no blocking diagnostic.
   - PG-SYNTH-001: Stage Bundle synthetic-label negative fixture added.
 coverage_rules_still_gap:
   - PG-STATUS-001: existing Stage Bundle and A2C paths still emit legacy valid; target status mapping exists but direct target emission is not universal.
@@ -123,8 +134,9 @@ new_or_changed_ci:
 important_design_decisions:
   - Preserved existing stage-bundle.v1 schema instead of replacing it.
   - Added Project Gate-owned diagnostic and lock manifest schemas only; no specialist schema was copied.
-  - Preserved legacy valid status compatibility in current Stage Bundle and A2C implementation to avoid a broad breaking change during Prompt 01.
+  - Preserved legacy valid status compatibility in current Stage Bundle and A2C implementation; warning-only legacy results remain schema-valid in Prompt 01.
   - Enforced accepted/repair_needed/insufficient_evidence/invalid status correlation in transition-result.v1 while keeping legacy valid explicitly separate.
+  - Tightened accepted carrier evidence without adding CE/Builder/Responsive specialist semantics.
   - Kept progress/runtime state out of canonical JSON helpers; no implicit timestamp helper was added.
   - Kept Unicode strings unnormalized; added regression test to distinguish composed and decomposed forms.
   - Kept lock manifest validation structural; file-byte verification against repositories remains in transition-specific code.
@@ -134,9 +146,9 @@ next_allowed_prompt: PROMPT-02
 blocking_issues:
   - Local tests were not run by the assistant because the container could not resolve github.com and no local repository checkout was available.
   - Existing Architect-to-CE result schema still uses legacy valid/invalid/insufficient_evidence vocabulary; full migration to target transition statuses is deferred to future scoped work.
-  - Final post-second-Inspector GitHub Actions must pass before merge.
+  - Final R2 GitHub Actions must pass before merge.
 remaining_insufficient_evidence:
-  - final post-second-Inspector GitHub Actions result
+  - final R2 GitHub Actions result
   - real Elementor artifact validation
   - real cross-repository validation beyond synthetic fixtures
   - CE-to-Builder Project Gate lock manifest and transition result contract
