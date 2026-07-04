@@ -1,6 +1,6 @@
 # Behavioral Rule Coverage
 
-Status: `PROMPT-01` Project Gate-owned contracts and deterministic core hardening. This file records current behavioral enforcement status honestly. It does not claim enforcement without a carrier, validator, fixture, CI step, or downstream contract.
+Status: `PROMPT-02` Behavioral Rule Coverage hardening. This file now contains a machine-readable coverage ledger validated by `schemas/behavioral-coverage/behavioral-coverage.v1.schema.json` and `scripts/validate-behavioral-rule-coverage.py`.
 
 Allowed statuses:
 
@@ -13,64 +13,181 @@ ci_enforced
 downstream_contract_enforced
 ```
 
+## Machine-readable coverage ledger
+
+The JSON block below is the validator source of truth for this document.
+
+```json behavioral-coverage.v1
+{
+  "schema_version": "behavioral-coverage.v1",
+  "generated_by": "PROMPT-02 behavioral coverage validator",
+  "rules": [
+    {
+      "rule_id": "PG-BRC-001",
+      "rule": "Behavioral coverage must be tracked honestly.",
+      "risk": "High",
+      "status": "fixture_tested",
+      "target_status": "ci_enforced",
+      "carriers": ["docs/BEHAVIORAL_RULE_COVERAGE.md", "schemas/behavioral-coverage/behavioral-coverage.v1.schema.json"],
+      "validators": ["src/ev4_transition/behavioral_coverage/validator.py", "scripts/validate-behavioral-rule-coverage.py"],
+      "valid_fixtures": ["tests/fixtures/behavioral_coverage/valid/critical_rule_fixture_tested.json"],
+      "invalid_fixtures": ["tests/fixtures/behavioral_coverage/invalid/critical_rule_prose_only.json", "tests/fixtures/behavioral_coverage/invalid/critical_rule_schema_backed_without_followup.json"],
+      "ci_steps": [".github/workflows/validate.yml / Behavioral coverage validator"],
+      "downstream_contracts": [],
+      "downstream_rejection_fixtures": [],
+      "documented_risk": "False behavioral coverage lets prose-only Critical rules appear enforced.",
+      "next_enforcement_step": "Promote to ci_enforced only after this PR workflow passes on the final head.",
+      "notes": "Coverage validator is scoped to coverage honesty, not transition orchestration."
+    },
+    {
+      "rule_id": "PG-EVIDENCE-001",
+      "rule": "No accepted/final result without explicit evidence.",
+      "risk": "Critical",
+      "status": "fixture_tested",
+      "target_status": "ci_enforced",
+      "carriers": ["schemas/transition-result/transition-result.v1.schema.json", "src/ev4_transition/behavioral_coverage/validator.py"],
+      "validators": ["validate_transition_result_semantics"],
+      "valid_fixtures": ["tests/fixtures/result_envelope/valid/accepted_with_all_required_evidence_shape.json"],
+      "invalid_fixtures": ["tests/fixtures/result_envelope/invalid/accepted_missing_validator_evidence.json"],
+      "ci_steps": [".github/workflows/validate.yml / Run Project Gate Python tests"],
+      "downstream_contracts": [],
+      "downstream_rejection_fixtures": [],
+      "documented_risk": "Accepted without official validator evidence creates false execution and false readiness claims.",
+      "next_enforcement_step": "Promote after final PR CI passes; add transition-specific evidence acquisition in later prompts.",
+      "notes": "Semantic fixture guard supplements the schema without changing normal Phase 1 transition validation."
+    },
+    {
+      "rule_id": "PG-SYNTH-001",
+      "rule": "Synthetic fixtures must not be treated as real EV4 evidence.",
+      "risk": "Critical",
+      "status": "fixture_tested",
+      "target_status": "ci_enforced",
+      "carriers": ["schemas/stage-bundle/stage-bundle.v1.schema.json", "src/ev4_transition/behavioral_coverage/validator.py"],
+      "validators": ["validate_transition_result_semantics"],
+      "valid_fixtures": ["tests/fixtures/result_envelope/valid/synthetic_fixture_labeled.json"],
+      "invalid_fixtures": ["tests/fixtures/result_envelope/invalid/synthetic_only_marked_as_real_evidence.json"],
+      "ci_steps": [".github/workflows/validate.yml / Run Project Gate Python tests"],
+      "downstream_contracts": [],
+      "downstream_rejection_fixtures": [],
+      "documented_risk": "Synthetic-only fixtures can otherwise be mistaken for real EV4 transition evidence.",
+      "next_enforcement_step": "Promote after CI; keep real evidence gates fail-closed in future transitions.",
+      "notes": "A labeled synthetic fixture remains valid only when not accepted as real evidence."
+    },
+    {
+      "rule_id": "PG-SCHEMA-001",
+      "rule": "Project Gate must not copy specialist schemas as competing canonical contracts.",
+      "risk": "Critical",
+      "status": "fixture_tested",
+      "target_status": "ci_enforced",
+      "carriers": ["schemas/README.md", ".github/workflows/validate.yml", "src/ev4_transition/behavioral_coverage/validator.py"],
+      "validators": ["schema allowlist in CI", "validate_stage_bundle_semantics"],
+      "valid_fixtures": ["tests/fixtures/stage_bundle/valid/project_gate_owned_schema_only.json"],
+      "invalid_fixtures": ["tests/fixtures/stage_bundle/invalid/copied_specialist_schema_claimed_as_project_gate_owned.json"],
+      "ci_steps": [".github/workflows/validate.yml / Verify no specialist canonical schema files exist", ".github/workflows/validate.yml / Run Project Gate Python tests"],
+      "downstream_contracts": [],
+      "downstream_rejection_fixtures": [],
+      "documented_risk": "Copied schemas produce contract drift and false canonical ownership.",
+      "next_enforcement_step": "Promote after final PR CI passes; extend anti-drift scanner in PROMPT-03.",
+      "notes": "This covers Project Gate-owned schema copy claims, not downstream specialist semantics."
+    },
+    {
+      "rule_id": "PG-OUTPUT-001",
+      "rule": "Machine-readable JSON and Persian summaries must be truthful.",
+      "risk": "High",
+      "status": "fixture_tested",
+      "target_status": "ci_enforced",
+      "carriers": ["src/ev4_transition/cli.py", "src/ev4_transition/behavioral_coverage/validator.py"],
+      "validators": ["validate_transition_result_semantics"],
+      "valid_fixtures": ["tests/fixtures/result_envelope/valid/output_write_success.json"],
+      "invalid_fixtures": ["tests/fixtures/result_envelope/invalid/output_write_failed_but_success.json"],
+      "ci_steps": [".github/workflows/validate.yml / Run Project Gate Python tests"],
+      "downstream_contracts": [],
+      "downstream_rejection_fixtures": [],
+      "documented_risk": "A success status after output write failure gives the user an unusable artifact.",
+      "next_enforcement_step": "Add full Persian RTL/LTR report fixtures in PROMPT-06.",
+      "notes": "Prompt 02 only covers output-write truthfulness, not full UX/typography."
+    },
+    {
+      "rule_id": "PG-BOUNDARY-001",
+      "rule": "Project Gate must remain an orchestrator/checkpoint, not a specialist engine.",
+      "risk": "Critical",
+      "status": "fixture_tested",
+      "target_status": "ci_enforced",
+      "carriers": ["README.md", "AGENTS.md", "docs/ROLE_BOUNDARY_MAP.md", "src/ev4_transition/behavioral_coverage/validator.py"],
+      "validators": ["validate_stage_bundle_semantics"],
+      "valid_fixtures": ["tests/fixtures/stage_bundle/valid/project_gate_owned_schema_only.json"],
+      "invalid_fixtures": ["tests/fixtures/stage_bundle/invalid/copied_specialist_schema_claimed_as_project_gate_owned.json"],
+      "ci_steps": [".github/workflows/validate.yml / Verify no specialist canonical schema files exist", ".github/workflows/validate.yml / Run Project Gate Python tests"],
+      "downstream_contracts": [],
+      "downstream_rejection_fixtures": [],
+      "documented_risk": "Boundary drift turns Project Gate into a fifth specialist engine.",
+      "next_enforcement_step": "Add broader static runner/boundary scanner in PROMPT-03.",
+      "notes": "Advanced at anti-drift/coverage level only; no CE/Builder/Responsive domain logic was added."
+    },
+    {
+      "rule_id": "PG-DOWNSTREAM-001",
+      "rule": "Downstream rejection evidence is required before claiming downstream compatibility.",
+      "risk": "Critical",
+      "status": "fixture_tested",
+      "target_status": "downstream_contract_enforced",
+      "carriers": ["docs/BEHAVIORAL_RULE_COVERAGE.md", "src/ev4_transition/behavioral_coverage/validator.py"],
+      "validators": ["validate_coverage_document"],
+      "valid_fixtures": ["tests/fixtures/behavioral_coverage/valid/critical_rule_fixture_tested.json"],
+      "invalid_fixtures": ["tests/fixtures/behavioral_coverage/invalid/downstream_contract_missing_for_claimed_enforcement.json"],
+      "ci_steps": [".github/workflows/validate.yml / Behavioral coverage validator"],
+      "downstream_contracts": [],
+      "downstream_rejection_fixtures": [],
+      "documented_risk": "Future transitions must not claim downstream_contract_enforced without owner rejection evidence.",
+      "next_enforcement_step": "PROMPT-04/05 must add real downstream contract and rejection evidence before changing this to downstream_contract_enforced.",
+      "notes": "This is visibility/gap tracking and false-claim prevention; it is not downstream compatibility enforcement."
+    }
+  ]
+}
+```
+
 ## Coverage table
 
-| Rule ID | Rule | Current carrier | Validator | Fixture/test | CI | Downstream evidence | Current status | Next enforcement step |
-|---|---|---|---|---|---|---|---|---|
-| `PG-BOUNDARY-001` | Project Gate must remain an orchestrator/checkpoint, not a specialist engine. | `README.md`, `AGENTS.md`, `docs/ROLE_BOUNDARY_MAP.md`, `docs/ARCHITECTURE.md` | Partial: schema allowlist in CI prevents unexpected copied schema files. | No dedicated boundary scanner. | Partial via `.github/workflows/validate.yml` schema allowlist. | Specialist repo boundary docs. | `ci_enforced` for schema-copy subset; broader rule remains partial. | Add static boundary scanner for forbidden specialist logic/imports/prose claims. |
-| `PG-SCHEMA-001` | Project Gate must not copy specialist schemas as competing canonical contracts. | `AGENTS.md`, `docs/VALIDATION_STRATEGY.md`, `schemas/README.md`, workflow schema allowlist. | Workflow `find schemas` allowlist. | CI checks current `schemas/` allowlist. | Final R2 CI must pass before merge. | Specialist schemas remain in owner repos. | `fixture_tested` until final R2 CI passes. | Extend scanner to future contract folders and lock manifests. |
-| `PG-EVIDENCE-001` | No accepted/final result without explicit evidence. | `docs/RESULT_MODEL.md`, `docs/STATUS_DECISION_MATRIX.md`, Stage Bundle schema, validators, docs. | `BundleValidator`; `transition-result.v1` now requires concrete `source_stage`, property-specific hash scopes, non-empty provenance identity, and no warning/error/insufficient_evidence diagnostics under `accepted`. | Result status-correlation negative tests cover accepted-with-error, accepted-without-hash/provenance, empty provenance objects, swapped hash scopes, null source stage, and repair/insufficient/invalid contradictions. | Final R2 CI must pass before merge. | Limited to Stage Bundle and A2C synthetic fixtures. | `fixture_tested` at carrier level; full future transition evidence acquisition remains a gap. | Add transition-specific accepted-gate validators when CE→Builder/Builder→Responsive/final gates are implemented. |
-| `PG-SYNTH-001` | Synthetic fixtures must not be treated as real EV4 evidence. | README, AGENTS, Stage Bundle `synthetic`, docs. | Stage Bundle schema requires top-level `synthetic`. | Prompt 01 adds missing synthetic-label negative fixture test. | Final R2 CI must pass before merge. | No real downstream evidence. | `fixture_tested` at carrier level. | Add report-level guard that blocks real-readiness wording when `synthetic=true` or verification is `synthetic_fixture_only`. |
-| `PG-ADAPTER-001` | Project Gate may call official adapters but must not implement specialist adapter logic. | A2C mapping exists; Builder adapter documented in Builder repo. | Current Project Gate does not yet call Builder adapter. | None for CE→Builder in Project Gate. | None in Project Gate. | Builder adapter contract and registry exist downstream. | `prose_only` for future adapters; A2C has implemented deterministic projection only because CE-owned mapping is pinned. | In `PROMPT-03/04`, isolate adapter execution behind runner and prove no internal Builder adapter implementation. |
-| `PG-VALIDATOR-001` | Project Gate must call official specialist validators where transition claims depend on them. | `validator_runner.py`; A2C transition. | Architect and CE validators called by subprocess when local checkouts supplied. | A2C transition tests and CI smoke. | Python CI runs official Architect and CE validator fixture suites when workflow executes. | Architect/CE official validators exist. | `ci_enforced` for A2C baseline when workflow passes; Prompt 01 did not expand validator execution. | Generalize runner boundary for future validator execution. |
-| `PG-HASH-001` | Canonical JSON/file-byte hashes must be deterministic. | `canonical_json.py`; `src/ev4_transition/core/`; `external_lock.py`; schemas. | Canonical hash functions, explicit file-byte helper, and lock verifier; compatibility namespace re-exports `file_sha256` rather than reimplementing it. | Prompt 01 adds tests for stable JSON, NaN/Infinity rejection, object-key sorting, array preservation, file-byte hash change detection, and Unicode no-normalization. | Final R2 CI must pass before merge. | External A2C contract locks use file bytes. | `fixture_tested` for Prompt 01 additions; baseline A2C lock remains CI-configured. | Keep final CI evidence with PR #17 before merge. |
-| `PG-LOCK-001` | External locks must verify pinned repo/ref/path/hash/identity and not trust themselves. | `external_lock.py`; `src/ev4_transition/locks/`; `schemas/lock-manifest/lock-manifest.v1.schema.json`; `contracts/locks/architect-to-ce-transition.v1.lock.json`. | `verify_external_contract_lock`; structural `validate_lock_manifest` now enforces non-empty `files`, schema allowlisted fields, `owner/repo`, 40-char lowercase commit SHA, 64-char lowercase SHA-256, and non-negative `size_bytes`. | Prompt 01 adds missing/unknown lock schema version tests and fail-closed negative tests for empty files, malformed repository, short/uppercase commit SHA, short/non-hex/uppercase hash, negative `size_bytes`, and unknown top-level/file-entry fields. | Final R2 CI must pass before merge. | Architect/CE pinned files. | `fixture_tested`; can be marked `ci_enforced` only after corrected-head CI passes. | Add transition-specific lock baselines for CE→Builder and Builder→Responsive in later prompts. |
-| `PG-STATUS-001` | Status decisions must be evidence-driven and fail closed. | `docs/STATUS_DECISION_MATRIX.md`, `src/ev4_transition/presentation/status_mapping.py`, `diagnostics.py`, result schemas. | Legacy `status_from_diagnostics`; target `project_gate_status_from_diagnostics`; `transition-result.v1` status/diagnostic correlation; legacy `valid` permits warning to match the current producer. | Prompt 01 adds warning→repair_needed, insufficient_evidence→warning-tone, result schema contradiction tests, and an end-to-end legacy warning producer/schema test. | Final R2 CI must pass before merge. | Partial; current A2C implementation still emits legacy `valid`. | `fixture_tested` for mapping and carrier; direct target transition emission remains a gap. | Move future transition result emission to `accepted/repair_needed/insufficient_evidence/invalid` when evidence gates are implemented. |
-| `PG-OUTPUT-001` | Machine-readable JSON and Persian summaries must be truthful. | CLI `_emit`; `persian_summary`; status mapping. | Result schemas validate JSON; Persian summary maps icon + label + meaning. | CLI tests include Persian insufficient evidence; Prompt 01 mapping tests added. | Final R2 CI must pass before merge. | No full UX contract enforcement. | `fixture_tested` for status presentation subset. | Add Persian RTL/LTR report fixtures and status icon + text + tone checks in `PROMPT-06`. |
-| `PG-UNICODE-001` | Project Gate must not silently normalize Unicode for canonical hashing. | `canonical_json.py`; `src/ev4_transition/core/canonical_json.py`. | Canonical JSON implementation does not call Unicode normalization; explicit regression test added. | Prompt 01 adds composed/decomposed Unicode hash inequality test. | Final R2 CI must pass before merge. | None. | `fixture_tested`; can be marked `ci_enforced` only after corrected-head CI passes. | Add fixture-level Unicode corpus later if needed. |
-| `PG-PROGRESS-001` | Project Gate reports must not claim unexecuted progress. | README/AGENTS no-false-execution policy; handoff requirement. | No validator for progress claims. | Handoff records run/fail/pass/not-run states. | No dedicated CI. | None. | `prose_only` | Add handoff/report schema or linter for executed/not-run/test fields. |
-| `PG-BRC-001` | Behavioral coverage must be tracked honestly. | This file. | None yet. | None yet. | None yet. | None. | `prose_only` | Add behavioral coverage schema/validator/fixtures/CI in `PROMPT-02`. |
-| `PG-DOWNSTREAM-001` | Downstream rejection evidence is required before claiming downstream compatibility. | Validation strategy docs; downstream validators in specialist repos. | A2C has Architect/CE validators; future transitions not wired. | Synthetic A2C fixtures only. | A2C official validator CI only when workflow executes. | CE/Builder/Responsive rejection evidence exists in owner repos but not orchestrated by Project Gate for future transitions. | `ci_enforced` for A2C baseline only; `prose_only` for CE→Builder and Builder→Responsive. | In `PROMPT-04/05`, run official downstream gates/adapters and capture rejection fixtures. |
+| Rule ID | Risk | Current status | Coverage meaning | Next enforcement step |
+|---|---|---|---|---|
+| `PG-BRC-001` | `High` | `fixture_tested` | Coverage validator/schema/fixtures now exist. | Promote to `ci_enforced` only after this PR workflow passes on the final head. |
+| `PG-EVIDENCE-001` | `Critical` | `fixture_tested` | `accepted` without explicit validator evidence fails semantic fixture validation. | Add transition-specific evidence acquisition in later prompts. |
+| `PG-SYNTH-001` | `Critical` | `fixture_tested` | Synthetic-only accepted-as-real evidence fails semantic fixture validation. | Keep future real evidence gates fail-closed. |
+| `PG-SCHEMA-001` | `Critical` | `fixture_tested` | Copied specialist schema ownership claims fail semantic fixture validation. | Extend scanner in `PROMPT-03`. |
+| `PG-OUTPUT-001` | `High` | `fixture_tested` | Output-write failure paired with success status fails. | Add full Persian report UX fixtures in `PROMPT-06`. |
+| `PG-BOUNDARY-001` | `Critical` | `fixture_tested` | Boundary anti-drift is covered at schema-ownership level. | Add broader runner/boundary scanner in `PROMPT-03`. |
+| `PG-DOWNSTREAM-001` | `Critical` | `fixture_tested` | False downstream enforcement claims fail without downstream contract/rejection fixture. | Real downstream enforcement remains deferred to `PROMPT-04/05`. |
+
+## Rules advanced by PROMPT-02
+
+```yaml
+advanced:
+  - PG-BRC-001: schema, validator, fixtures, CLI, and CI step configured.
+  - PG-EVIDENCE-001: accepted-without-validator-evidence semantic fixture now fails.
+  - PG-SYNTH-001: synthetic-only evidence marked accepted now fails.
+  - PG-SCHEMA-001: copied specialist schema claimed as Project Gate-owned now fails at semantic fixture level.
+  - PG-OUTPUT-001: output write failure paired with success status now fails.
+  - PG-BOUNDARY-001: anti-drift coverage fixture added for schema ownership claims.
+  - PG-DOWNSTREAM-001: false downstream_contract_enforced claims now fail unless downstream contract and rejection fixture exist.
+not_advanced_to_full_enforcement:
+  - no CE-to-Builder transition orchestration added
+  - no Builder-to-Responsive transition orchestration added
+  - no specialist validator/adapter calls added beyond existing A2C baseline
+  - no downstream_contract_enforced claim added for future transitions
+  - ci_enforced status for Prompt 02 additions requires final PR workflow evidence
+```
 
 ## Critical / High gaps
 
 ```yaml
 critical:
-  - PG-ADAPTER-001 for CE-to-Builder and Builder-to-Responsive is prose_only in Project Gate.
-  - PG-DOWNSTREAM-001 is not enforced for CE-to-Builder or Builder-to-Responsive.
+  - PG-ADAPTER-001 still needs PROMPT-03 runner/adapter boundary enforcement.
+  - PG-DOWNSTREAM-001 is fixture_tested for false-claim prevention only; real downstream compatibility remains insufficient_evidence until PROMPT-04/05.
+  - PG-STATUS-001 still has legacy valid compatibility in existing A2C/stage-bundle paths.
 high:
-  - PG-BRC-001 has no schema/validator/fixture/CI yet.
-  - PG-PROGRESS-001 lacks automated no-false-progress/handoff validation.
-  - PG-OUTPUT-001 Persian UX is minimal and not yet full RTL/LTR/report-contract enforced.
-  - Existing A2C and Stage Bundle paths still use legacy `valid`; target status vocabulary is available through mapping and docs but not emitted everywhere.
+  - PG-PROGRESS-001 still lacks a handoff/report linter.
+  - PG-OUTPUT-001 still lacks full Persian RTL/LTR report-contract fixtures; PROMPT-02 only covers output-write truthfulness.
 ```
-
-## Rules advanced by PROMPT-01
-
-```yaml
-advanced:
-  - PG-HASH-001: explicit file-byte SHA-256 helper and deterministic canonical JSON regression tests added; compatibility namespace now re-exports the canonical helper.
-  - PG-LOCK-001: Project Gate-owned lock manifest schema, strict structural lock manifest validator, schema allowlist checks, and fail-closed negative tests added.
-  - PG-STATUS-001: target status presentation mapping and result schema status/diagnostic correlation added; legacy valid warning compatibility is explicit and tested.
-  - PG-UNICODE-001: explicit no-hidden-Unicode-normalization test added.
-  - PG-EVIDENCE-001: accepted carrier now requires concrete stage, property-specific hashes, non-empty provenance, and no blocking diagnostics.
-  - PG-SYNTH-001: synthetic-label negative fixture path added.
-not_advanced_to_full_enforcement:
-  - no CE-to-Builder implementation added
-  - no Builder-to-Responsive implementation added
-  - no final evidence gate added
-  - no new specialist schema copied
-  - final R2 CI result must be checked before merge
-```
-
-## Inspector follow-up
-
-The first PR Inspector pass reported that `validate_lock_manifest()` was weaker than `schemas/lock-manifest/lock-manifest.v1.schema.json` and `docs/LOCK_MANIFEST_POLICY.md`; strict format and fail-closed negative tests were added.
-
-The second PR Inspector pass reported that `transition-result.v1` accepted contradictory `accepted` payloads and that `validate_lock_manifest()` still accepted unknown fields despite schema `additionalProperties: false`; result status correlation and lock unknown-field checks were added.
-
-The R2 PR Inspector pass reported accepted evidence bypasses for null stage, empty provenance, and swapped hash scopes, plus a legacy `valid + warning` producer/schema conflict. The accepted carrier was tightened and legacy warning compatibility was made explicit and tested.
 
 ## Enforcement honesty note
 
-No Critical/High future-transition rule should be described as fully enforced until the required carrier, official validator/adapter execution, fixture, CI step, and downstream rejection evidence exist.
+`fixture_tested` means the behavioral claim has a validator plus valid/invalid fixture coverage. It does not mean downstream owner compatibility unless the status is explicitly `downstream_contract_enforced` and the ledger includes downstream contracts plus downstream rejection fixtures.
