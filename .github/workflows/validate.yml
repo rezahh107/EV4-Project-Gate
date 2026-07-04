@@ -8,6 +8,7 @@ on:
       - init/non-authoritative-skeleton
       - python-deterministic-core-v1
       - architect-to-ce-transition-v1
+      - project-gate-prompt-02-behavioral-coverage
 
 jobs:
   skeleton:
@@ -46,14 +47,14 @@ jobs:
 
       - name: Verify no specialist canonical schema files exist
         run: |
-          allowed='^(schemas/README.md|schemas/stage-bundle/stage-bundle.v1.schema.json|schemas/transition-result/transition-result.v1.schema.json|schemas/architect-to-ce-transition-result/architect-to-ce-transition-result.v1.schema.json|schemas/diagnostic/diagnostic.v1.schema.json|schemas/lock-manifest/lock-manifest.v1.schema.json)$'
+          allowed='^(schemas/README.md|schemas/stage-bundle/stage-bundle.v1.schema.json|schemas/transition-result/transition-result.v1.schema.json|schemas/architect-to-ce-transition-result/architect-to-ce-transition-result.v1.schema.json|schemas/diagnostic/diagnostic.v1.schema.json|schemas/lock-manifest/lock-manifest.v1.schema.json|schemas/behavioral-coverage/behavioral-coverage.v1.schema.json)$'
           unexpected=$(find schemas -type f | grep -Ev "$allowed" || true)
           if [ -n "$unexpected" ]; then
             echo "Unexpected schema files found under schemas/."
             printf '%s\n' "$unexpected"
             exit 1
           fi
-          echo "Only Project Gate envelope/result/diagnostic/lock schemas found."
+          echo "Only Project Gate envelope/result/diagnostic/lock/behavioral-coverage schemas found."
 
   python-core:
     runs-on: ubuntu-latest
@@ -92,6 +93,16 @@ jobs:
           EV4_ARCHITECT_REPO: ${{ github.workspace }}/EV4-Architect-Repo
           EV4_CE_REPO: ${{ github.workspace }}/EV4-Constructability-Engineer-Repo
         run: pytest
+
+      - name: Behavioral coverage validator
+        working-directory: EV4-Project-Gate
+        run: |
+          python scripts/validate-behavioral-rule-coverage.py docs/BEHAVIORAL_RULE_COVERAGE.md
+          ev4-transition coverage validate docs/BEHAVIORAL_RULE_COVERAGE.md
+
+      - name: Behavioral fixture validation
+        working-directory: EV4-Project-Gate
+        run: pytest tests/behavioral_coverage
 
       - name: Verify external contract lock hashes
         working-directory: EV4-Project-Gate
