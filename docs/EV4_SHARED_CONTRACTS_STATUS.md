@@ -4,13 +4,13 @@
 
 - Repository: `rezahh107/EV4-Shared-Contracts`
 - Main branch: `main`
-- Last merged PR: `#17` — `PROMPT-01 Project Gate contracts and deterministic core hardening`
-- PR #17 merge commit: `4897d7c2e0d693a1df29447f4a010acf3a65feac`
-- PR #17 head commit: `4153c9df348e66626ed81d63ad1888ef41430fb6`
-- PR #17 `Skeleton Health`: `CI_PASSED`
+- Last merged PR: `#18` — `PROMPT-02 Behavioral Rule Coverage enforcement`
+- PR #18 merge commit: `cf0d1f40047bcd2479cec7359f99c969088267f8`
+- PR #18 head commit: `0a355b24fabd3f74ea73c1e66d85df359286fe03`
+- PR #18 `Skeleton Health`: `CI_PASSED`
 - Current work branch: `main`
 - Active PR: `none`
-- Current status: `PR #17 merge fully recorded automatically; governance interpretation remains evidence-based; canonical migration remains blocked`
+- Current status: `PR #18 merge fully recorded automatically; governance interpretation remains evidence-based; canonical migration remains blocked`
 - Main status correction commit: `754ff8503bc042de4a8c5bbba0ace0360a1473c5`
 - Phase 5 proposal commit: `02812d3cb1d4c76f25f1783ccfcb14f76b10ed72`
 - Phase 5 status update commit: `80055a6e68074349a7ed3562cb5fcbd27e128b65`
@@ -100,6 +100,7 @@ This section is updated by GitHub Actions after a pull request is merged. It rec
 
 | PR | Title | Head branch | Head commit | Merge commit | Skeleton Health | Recorded by |
 |---|---|---|---|---|---|---|
+| `#18` | `PROMPT-02 Behavioral Rule Coverage enforcement` | `project-gate-prompt-02-behavioral-coverage` | `0a355b24fabd3f74ea73c1e66d85df359286fe03` | `cf0d1f40047bcd2479cec7359f99c969088267f8` | `CI_PASSED` | `rezahh107 on rezahh107/EV4-Project-Gate` |
 | `#17` | `PROMPT-01 Project Gate contracts and deterministic core hardening` | `project-gate-prompt-01-deterministic-core` | `4153c9df348e66626ed81d63ad1888ef41430fb6` | `4897d7c2e0d693a1df29447f4a010acf3a65feac` | `CI_PASSED` | `rezahh107 on rezahh107/EV4-Project-Gate` |
 | `#16` | `PROMPT-00 audit/freeze baseline` | `project-gate-prompt-00-audit-freeze-baseline` | `9fa656078ee1b8bf293a163be58f058f2f03ee64` | `e1d855740445f5cfcf23b6c2aac1fb44286369c2` | `CI_PASSED` | `rezahh107 on rezahh107/EV4-Project-Gate` |
 | `#15` | `Close Builder→Responsive readiness baseline` | `fix/builder-responsive-closure-pg` | `9c1c51b09dab13de076dbab256bf5a1f9fe96b0e` | `77bb41857be0d9862a609e66a2e707f274849e2f` | `CI_PASSED` | `rezahh107 on rezahh107/EV4-Project-Gate` |
