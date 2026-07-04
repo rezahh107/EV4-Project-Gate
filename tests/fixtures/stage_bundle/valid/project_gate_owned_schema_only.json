@@ -1,0 +1,44 @@
+{
+  "schema_version": "stage-evidence-bundle.v1",
+  "bundle_id": "test-bundle",
+  "stage": "architect",
+  "payload_schema": {
+    "id": "stage-bundle.v1",
+    "version": "1.0.0",
+    "owner_repository": "rezahh107/EV4-Project-Gate"
+  },
+  "produced_by": {
+    "repository": "rezahh107/EV4-Project-Gate",
+    "ref": "project-gate-prompt-02-behavioral-coverage",
+    "commit_sha": "0123456789abcdef0123456789abcdef01234567"
+  },
+  "evidence_status": "complete",
+  "payload": {
+    "schema_id": "stage-bundle.v1",
+    "data": {
+      "note": "Project Gate-owned envelope only."
+    }
+  },
+  "evidence": [
+    {
+      "id": "fixture",
+      "kind": "fixture",
+      "state": "validated",
+      "description": "Synthetic Project Gate-owned schema fixture.",
+      "artifact_hash": {
+        "algorithm": "sha256",
+        "value": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+        "scope": "canonical_json"
+      },
+      "source": {
+        "type": "synthetic_fixture",
+        "reference": "tests/fixtures/stage_bundle/valid/project_gate_owned_schema_only.json"
+      }
+    }
+  ],
+  "provenance": {
+    "source": "synthetic_fixture",
+    "created_by": "prompt-02"
+  },
+  "synthetic": true
+}
