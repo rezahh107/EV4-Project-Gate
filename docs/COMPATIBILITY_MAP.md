@@ -14,12 +14,19 @@ Allowed path:
 
 ```text
 ev4-architect-stage-payload@1.0.0
-→ ev4-ce-architect-stage-intake@1.0.0
+→ ev4-ce-architect-stage-intake@1.1.0
 ```
 
 The transition uses the CE-owned mapping contract:
 
 ```text
+ev4-architect-stage-to-ce-intake-mapping@1.1.0
+```
+
+Historical compatibility-only path:
+
+```text
+ev4-ce-architect-stage-intake@1.0.0
 ev4-architect-stage-to-ce-intake-mapping@1.0.0
 ```
 
@@ -34,9 +41,35 @@ Builder-ready claims before CE processing
 Validation state:
 
 ```yaml
-verification_state: verified_by_synthetic_fixture
+verification_state: synthetic_fixture_only
 real_cross_repository_validation: not_available
 ```
+
+## CE → Builder
+
+Planned Project Gate transition:
+
+```text
+ev4-ce-to-builder-transition@1.0.0
+```
+
+Implementation status:
+
+```yaml
+implemented: false
+freeze_matrix: docs/CE_TO_BUILDER_FREEZE_MATRIX.md
+```
+
+Allowed future route:
+
+```text
+ev4-builder-executable-package@1.0.0
+→ Builder CE→Builder Contract Gate
+→ Builder CE→Builder adapter
+→ ev4-builder-context-package@1.0.0
+```
+
+Project Gate later coordinates file-byte pins, hashes, official validators, official adapters, provenance, diagnostics, and handoff packaging for this route. CE and Builder remain the owners of their specialist behavior.
 
 ## Architect
 
@@ -44,7 +77,7 @@ real_cross_repository_validation: not_available
 
 `ev4-architect-builder-feed-export@1.0.0` is CE intake / non-executable handoff.
 
-Architect-owned outputs must not be treated as Builder-executable output by default.
+Architect-owned outputs are not Builder-executable output by default.
 
 ## Constructability Engineer
 
@@ -58,9 +91,9 @@ CE owns constructability review, execution-strategy gate, Builder Executable Pac
 
 Builder runtime intake remains local-authoritative inside Builder repo.
 
-CE executable packages must be normalized by Builder adapter before runtime use.
+CE executable packages are normalized by Builder adapter before runtime use.
 
-Builder must reject Architect-only packages as Builder-ready and must reject CE review-only packages as runtime-ready.
+Builder rejects Architect-only packages as Builder-ready and rejects CE review-only packages as runtime-ready.
 
 ## Responsive Architect
 
@@ -68,4 +101,4 @@ Responsive reference-family linkage is local-authoritative inside Responsive rep
 
 It is not yet a canonical shared contract.
 
-Responsive behavior must not be inferred from desktop screenshots or raw screenshot authority.
+Responsive behavior is not inferred from desktop screenshots or raw screenshot authority.
