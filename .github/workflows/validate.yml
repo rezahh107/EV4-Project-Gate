@@ -55,6 +55,57 @@ jobs:
           fi
           echo "Only Project Gate envelope/result schemas found."
 
+  contract-lock-discovery:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Project Gate
+        uses: actions/checkout@v4
+        with:
+          path: EV4-Project-Gate
+
+      - name: Checkout Architect pinned contract repo
+        uses: actions/checkout@v4
+        with:
+          repository: rezahh107/EV4-Architect-Repo
+          ref: b0651668b97f682bb17f66840c8e8c503fd3935d
+          path: EV4-Architect-Repo
+
+      - name: Checkout CE pinned contract repo v1.1
+        uses: actions/checkout@v4
+        with:
+          repository: rezahh107/EV4-Constructability-Engineer-Repo
+          ref: 546680a2e2a309c0d7e0ddbfc017e9e194ece7cb
+          path: EV4-Constructability-Engineer-Repo
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Discover external contract file hashes
+        working-directory: EV4-Project-Gate
+        run: |
+          python scripts/discover-architect-to-ce-contract-lock.py \
+            --architect-repo "${{ github.workspace }}/EV4-Architect-Repo" \
+            --ce-repo "${{ github.workspace }}/EV4-Constructability-Engineer-Repo" \
+            --output "${{ runner.temp }}/architect-to-ce-lock-discovery.json" > "${{ runner.temp }}/architect-to-ce-lock-discovery.stdout.json"
+          python scripts/discover-architect-to-ce-contract-lock.py \
+            --architect-repo "${{ github.workspace }}/EV4-Architect-Repo" \
+            --ce-repo "${{ github.workspace }}/EV4-Constructability-Engineer-Repo" \
+            --output "${{ runner.temp }}/architect-to-ce-lock-discovery.repeat.json" > "${{ runner.temp }}/architect-to-ce-lock-discovery.repeat.stdout.json"
+          cmp "${{ runner.temp }}/architect-to-ce-lock-discovery.json" "${{ runner.temp }}/architect-to-ce-lock-discovery.repeat.json"
+          cmp "${{ runner.temp }}/architect-to-ce-lock-discovery.json" "${{ runner.temp }}/architect-to-ce-lock-discovery.stdout.json"
+          echo 'BEGIN_ARCHITECT_TO_CE_LOCK_DISCOVERY'
+          cat "${{ runner.temp }}/architect-to-ce-lock-discovery.json"
+          echo 'END_ARCHITECT_TO_CE_LOCK_DISCOVERY'
+
+      - name: Upload discovery artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: architect-to-ce-lock-discovery
+          path: ${{ runner.temp }}/architect-to-ce-lock-discovery.json
+          if-no-files-found: error
+
   python-core:
     runs-on: ubuntu-latest
     steps:
