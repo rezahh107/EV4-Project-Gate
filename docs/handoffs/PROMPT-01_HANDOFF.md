@@ -30,7 +30,9 @@ commits:
   - de6b31489087bb49cd11b4eb7f14f54e03c4e91a docs: update architecture for prompt 01 core foundation
   - d89353bd5c854c7cc0a69e8227054038dae896e5 docs: update role boundary for prompt 01 contracts
   - 08de4a715a91d206c0d885b85a58eea140129b6f docs: update behavioral coverage for prompt 01
-  - self_reference: docs: add prompt 01 handoff; exact commit SHA is reported after this file is committed.
+  - b2342be6b7b7ecb35d90e79731848cfeab8ff4a0 docs: add prompt 01 handoff
+  - b11db5606038dbbb1f276b0397658c15b09e5155 fix: preserve legacy valid Persian wording
+  - self_reference: docs: refresh prompt 01 handoff after ci feedback; exact commit SHA is reported in final response.
 files_changed:
   - .github/workflows/validate.yml
   - docs/ARCHITECTURE.md
@@ -62,19 +64,22 @@ files_changed:
   - tests/fixtures/stage_bundle/valid/minimal-stage-bundle.v1.json
   - tests/unit/test_prompt01_deterministic_core.py
 tests_run:
-  - not_run: local repository clone/test execution failed because the container could not resolve github.com; GitHub Actions result was not yet observed in this chat.
-tests_passed: []
-tests_failed: []
+  - GitHub Actions run 28715773325: skeleton job passed; python-core failed at Run Project Gate Python tests on pre-fix head b2342be6b7b7ecb35d90e79731848cfeab8ff4a0.
+  - GitHub Actions run 28715821162: started after fix commit b11db5606038dbbb1f276b0397658c15b09e5155; final result not recorded in this handoff because a handoff refresh commit follows it.
+tests_passed:
+  - GitHub Actions run 28715773325: skeleton job succeeded.
+tests_failed:
+  - GitHub Actions run 28715773325: python-core failed at Run Project Gate Python tests.
 tests_not_run:
-  - python -m pip install -e '.[dev]'
-  - pytest
-  - ev4-transition validate fixtures/valid/architect-stage-bundle.v1.json
-  - ev4-transition validate fixtures/invalid/array-input.v1.json
-  - ev4-transition validate fixtures/insufficient-evidence/architect-stage-bundle.v1.json --format persian
-  - python scripts/verify-architect-to-ce-lock.py --architect-repo ../EV4-Architect-Repo --ce-repo ../EV4-Constructability-Engineer-Repo
-  - python scripts/transition-smoke.py --architect-repo ../EV4-Architect-Repo --ce-repo ../EV4-Constructability-Engineer-Repo
-  - npm run status
-  - npm run validate
+  - local python -m pip install -e '.[dev]'
+  - local pytest
+  - local ev4-transition validate fixtures/valid/architect-stage-bundle.v1.json
+  - local ev4-transition validate fixtures/invalid/array-input.v1.json
+  - local ev4-transition validate fixtures/insufficient-evidence/architect-stage-bundle.v1.json --format persian
+  - local python scripts/verify-architect-to-ce-lock.py --architect-repo ../EV4-Architect-Repo --ce-repo ../EV4-Constructability-Engineer-Repo
+  - local python scripts/transition-smoke.py --architect-repo ../EV4-Architect-Repo --ce-repo ../EV4-Constructability-Engineer-Repo
+  - local npm run status
+  - local npm run validate
 coverage_rules_advanced:
   - PG-HASH-001: explicit file-byte SHA-256 helper and deterministic canonical JSON regression tests added.
   - PG-LOCK-001: lock manifest schema and structural lock manifest validator added.
@@ -111,15 +116,15 @@ important_design_decisions:
   - Kept progress/runtime state out of canonical JSON helpers; no implicit timestamp helper was added.
   - Kept Unicode strings unnormalized; added regression test to distinguish composed and decomposed forms.
   - A large direct rewrite of src/ev4_transition/architect_to_ce.py was attempted but blocked by the GitHub write safety layer; no commit occurred from that blocked call, and the final design avoided the broad rewrite.
+  - After CI feedback, legacy Persian valid wording was restored to include بسته معتبر while keeping the new accepted mapping.
 web_sources_used: []
 next_allowed_prompt: PROMPT-02
 blocking_issues:
   - Local tests were not run by the assistant because the container could not resolve github.com and no local repository checkout was available.
-  - GitHub Actions result for this branch was not observed at the time of handoff creation.
+  - Latest post-fix GitHub Actions result must be checked before merge.
   - Existing Architect-to-CE result schema still uses legacy valid/invalid/insufficient_evidence vocabulary; full migration to target transition statuses is deferred to future scoped work.
 remaining_insufficient_evidence:
-  - Prompt 01 pytest result
-  - Prompt 01 GitHub Actions result
+  - latest post-fix Prompt 01 GitHub Actions result
   - real Elementor artifact validation
   - real cross-repository validation beyond synthetic fixtures
   - CE-to-Builder Project Gate lock manifest and transition result contract
