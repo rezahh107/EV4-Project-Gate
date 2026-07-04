@@ -1,0 +1,40 @@
+{
+  "schema_version": "transition-result.v1",
+  "result_type": "stage_bundle_validation",
+  "status": "insufficient_evidence",
+  "source_stage": "architect",
+  "diagnostics": [
+    {
+      "code": "PG_SYNTHETIC_FIXTURE_ONLY",
+      "severity": "insufficient_evidence",
+      "message": "Synthetic fixture is labeled and not treated as real evidence.",
+      "path": "$.provenance.source_provenance"
+    }
+  ],
+  "hashes": {
+    "source_bundle_hash": {
+      "algorithm": "sha256",
+      "canonicalization": "ev4-canonical-json.v1",
+      "scope": "source_bundle",
+      "value": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+    },
+    "canonical_payload_hash": {
+      "algorithm": "sha256",
+      "canonicalization": "ev4-canonical-json.v1",
+      "scope": "payload",
+      "value": "abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789"
+    }
+  },
+  "provenance": {
+    "source_provenance": {
+      "kind": "synthetic_fixture",
+      "synthetic": true,
+      "verification_state": "synthetic_fixture_only"
+    },
+    "produced_by": {
+      "tool": "ev4-transition",
+      "official_validators": []
+    }
+  },
+  "output": null
+}
