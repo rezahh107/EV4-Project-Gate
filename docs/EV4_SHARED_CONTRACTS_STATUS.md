@@ -4,13 +4,13 @@
 
 - Repository: `rezahh107/EV4-Shared-Contracts`
 - Main branch: `main`
-- Last merged PR: `#14` — `Close CE→Builder readiness baseline`
-- PR #14 merge commit: `0b076ab5b370f3de9098cd2a96a2c2302097fa8b`
-- PR #14 head commit: `443f8b1f0b2790bb82b3b512da6c5178bf5de424`
-- PR #14 `Skeleton Health`: `CI_PASSED`
+- Last merged PR: `#15` — `Close Builder→Responsive readiness baseline`
+- PR #15 merge commit: `77bb41857be0d9862a609e66a2e707f274849e2f`
+- PR #15 head commit: `9c1c51b09dab13de076dbab256bf5a1f9fe96b0e`
+- PR #15 `Skeleton Health`: `CI_PASSED`
 - Current work branch: `main`
 - Active PR: `none`
-- Current status: `PR #14 merge fully recorded automatically; governance interpretation remains evidence-based; canonical migration remains blocked`
+- Current status: `PR #15 merge fully recorded automatically; governance interpretation remains evidence-based; canonical migration remains blocked`
 - Main status correction commit: `754ff8503bc042de4a8c5bbba0ace0360a1473c5`
 - Phase 5 proposal commit: `02812d3cb1d4c76f25f1783ccfcb14f76b10ed72`
 - Phase 5 status update commit: `80055a6e68074349a7ed3562cb5fcbd27e128b65`
@@ -100,6 +100,7 @@ This section is updated by GitHub Actions after a pull request is merged. It rec
 
 | PR | Title | Head branch | Head commit | Merge commit | Skeleton Health | Recorded by |
 |---|---|---|---|---|---|---|
+| `#15` | `Close Builder→Responsive readiness baseline` | `fix/builder-responsive-closure-pg` | `9c1c51b09dab13de076dbab256bf5a1f9fe96b0e` | `77bb41857be0d9862a609e66a2e707f274849e2f` | `CI_PASSED` | `rezahh107 on rezahh107/EV4-Project-Gate` |
 | `#14` | `Close CE→Builder readiness baseline` | `fix/ce-builder-closure-project-gate` | `443f8b1f0b2790bb82b3b512da6c5178bf5de424` | `0b076ab5b370f3de9098cd2a96a2c2302097fa8b` | `CI_PASSED` | `rezahh107 on rezahh107/EV4-Project-Gate` |
 | `#13` | `Add Architect-to-CE transition v1` | `architect-to-ce-transition-v1` | `6f824de7febd533f3b0f8d37a789798e15f7c3df` | `75d546e9e593aa578ef5a006b7f2b622249bdd5c` | `CI_PASSED` | `rezahh107 on rezahh107/EV4-Project-Gate` |
 | `#12` | `Add Python deterministic Stage Evidence core` | `python-deterministic-core-v1` | `a1b33339ed5d90c665899174da24ea2a32ee234f` | `d6ed11043229a8b83a6025e6cc22c267275c497b` | `CI_PASSED` | `rezahh107 on rezahh107/EV4-Project-Gate` |
