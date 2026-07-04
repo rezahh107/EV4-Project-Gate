@@ -1,0 +1,43 @@
+{
+  "schema_version": "transition-result.v1",
+  "result_type": "stage_bundle_validation",
+  "status": "accepted",
+  "source_stage": "architect",
+  "diagnostics": [],
+  "hashes": {
+    "source_bundle_hash": {
+      "algorithm": "sha256",
+      "canonicalization": "ev4-canonical-json.v1",
+      "scope": "source_bundle",
+      "value": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+    },
+    "canonical_payload_hash": {
+      "algorithm": "sha256",
+      "canonicalization": "ev4-canonical-json.v1",
+      "scope": "payload",
+      "value": "abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789"
+    }
+  },
+  "provenance": {
+    "source_provenance": {
+      "kind": "real_ev4_evidence",
+      "verification_state": "official_validators_passed"
+    },
+    "produced_by": {
+      "tool": "ev4-transition",
+      "official_validators": [
+        {
+          "name": "owner-validator",
+          "repository": "rezahh107/EV4-Architect-Repo",
+          "status": "passed"
+        }
+      ],
+      "output_write": {
+        "attempted": true,
+        "succeeded": true,
+        "path": "out/result.json"
+      }
+    }
+  },
+  "output": null
+}
