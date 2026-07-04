@@ -1,0 +1,44 @@
+{
+  "schema_version": "stage-evidence-bundle.v1",
+  "bundle_id": "test-bundle",
+  "stage": "architect",
+  "payload_schema": {
+    "id": "builder-runtime-export.v1.schema.json",
+    "version": "1.0.0",
+    "owner_repository": "rezahh107/EV4-Project-Gate"
+  },
+  "produced_by": {
+    "repository": "rezahh107/EV4-Project-Gate",
+    "ref": "project-gate-prompt-02-behavioral-coverage",
+    "commit_sha": "0123456789abcdef0123456789abcdef01234567"
+  },
+  "evidence_status": "complete",
+  "payload": {
+    "schema_id": "builder-runtime-export.v1.schema.json",
+    "data": {
+      "copied_from": "rezahh107/EV4-Builder-Assistant-Repo"
+    }
+  },
+  "evidence": [
+    {
+      "id": "fixture",
+      "kind": "fixture",
+      "state": "validated",
+      "description": "Invalid copied specialist schema ownership fixture.",
+      "artifact_hash": {
+        "algorithm": "sha256",
+        "value": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+        "scope": "canonical_json"
+      },
+      "source": {
+        "type": "synthetic_fixture",
+        "reference": "tests/fixtures/stage_bundle/invalid/copied_specialist_schema_claimed_as_project_gate_owned.json"
+      }
+    }
+  ],
+  "provenance": {
+    "source": "synthetic_fixture",
+    "created_by": "prompt-02"
+  },
+  "synthetic": true
+}
