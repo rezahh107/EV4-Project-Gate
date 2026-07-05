@@ -1,83 +1,55 @@
-prompt_id: PROMPT-04
-status: ce_to_builder_repository_aware_lock_patch_pending_ci
-updated_at: 2026-07-05
-scope: continue_PR_20_after_PR_Inspector_YELLOW_HANDOFF
+prompt_id: PROMPT-05
+branch: project-gate-prompt-05-builder-responsive-final-gate
+status: draft_pr_baseline_pending_ci
+main_head_at_start: dca39ed177d5660d96df04a05fff0a0314c6c339
 
-capability_handshake:
-  github_read: AVAILABLE
-  github_write: AVAILABLE
-  branch: project-gate-prompt-04-ce-to-builder
-  pull_request: 20
-  codex: UNKNOWN
-  local_test_runner: UNAVAILABLE_FOR_REPO_CHECKOUT
-  github_actions_status: PENDING_AFTER_REPOSITORY_AWARE_LOCK_PATCH
-  external_owner_checkout_in_ci: PENDING_AFTER_REPOSITORY_AWARE_LOCK_PATCH
+implemented:
+  builder_to_responsive_transition:
+    module: src/ev4_transition/transitions/builder_to_responsive.py
+    result_schema: schemas/builder-to-responsive-transition-result/builder-to-responsive-transition-result.v1.schema.json
+    lock: contracts/locks/builder-to-responsive-transition.v1.lock.json
+    status: fail_closed_baseline
+  final_evidence_gate:
+    module: src/ev4_transition/transitions/final_gate.py
+    result_schema: schemas/final-gate-result/final-gate-result.v1.schema.json
+    lock: contracts/locks/final-gate.v1.lock.json
+    status: fail_closed_baseline
+  runner_progress_import_fix:
+    file: src/ev4_transition/progress.py
+    reason: current runner imports ev4_transition.progress
 
-repository:
-  name: rezahh107/EV4-Project-Gate
-  default_branch: main
-  direct_commit_to_main: false
-  pr_draft: true
-  merged_to_main: false
+verified_live_owner_boundary_samples:
+  builder:
+    repository: rezahh107/EV4-Builder-Assistant-Repo
+    observed_file: docs/BUILDER_TO_RESPONSIVE_HANDOFF_BOUNDARY.md
+    observed_blob_sha: ab84b50ffacc2e73e398a8da9c9a861fb9c473b7
+  responsive:
+    repository: rezahh107/EV4-Responsive-Architect
+    observed_schema: schemas/ev4-builder-responsive-input.schema.json
+    observed_schema_blob_sha: 98dcdec4d06b083ce4e360bf24cca3b58e6af597
+    observed_validator: validation/e2e/run_builder_responsive_input_boundary_check.py
+    observed_validator_blob_sha: bcacaf4c991f30c628eb022a4f4575caefff4fdd
 
-implementation_summary:
-  python_package: implemented_initial_v1
-  package_path: src/ev4_transition
-  package_generation:
-    architect_to_ce: implemented_synthetic_verified
-    ce_to_builder: repository_aware_lock_patch_pending_ci
-    builder_to_responsive: not_implemented
-    final_evidence_gate: not_implemented
+lock_state:
+  builder_to_responsive: placeholder_not_refreshed_from_owner_checkouts
+  final_gate: placeholder_not_refreshed_from_owner_checkouts
+  accepted_live_verification: blocked_until_exact_hash_refresh
 
-active_transitions:
-  ce_to_builder:
-    transition_id: ev4-ce-to-builder-transition@1.0.0
-    status: repository_aware_lock_patch_pending_ci
-    source_repository: rezahh107/EV4-Constructability-Engineer-Repo
-    source_commit: cfceec5c20269c75a1cc19b2675d7087cede4599
-    consumer_repository: rezahh107/EV4-Builder-Assistant-Repo
-    consumer_commit: 69a2c61edf6d06b4418ad770fcefbfdffcf275d6
-    result_schema: schemas/ce-to-builder-transition-result/ce-to-builder-transition-result.v1.schema.json
-    lock_manifest: contracts/locks/ce-to-builder-transition.v1.lock.json
-    followup_fixes:
-      immutable_action_sha_pinning: applied
-      action_pinning_static_guard: applied
-      raw_no_source_real_evidence_fail_closed: applied
-      raw_no_source_negative_test: applied
-      handoff_coverage_status_consistency: applied
-      repository_aware_lock_diagnostics: applied
-      accepted_requires_lock_mismatch_matrix_tests: applied
-    behavioral_coverage_status:
-      PG-C2B-001: validator_backed
-      PG-C2B-002: validator_backed
-      PG-DOWNSTREAM-001: fixture_tested
-    acceptance_state: integration_smoke_only_not_real_handoff_evidence
+tests_declared:
+  - tests/transitions/test_builder_to_responsive.py
+  - tests/transitions/test_final_gate.py
+  - tests/fixture_matrix/builder_to_responsive
 
-ci_baseline:
-  workflow: .github/workflows/validate.yml
-  historical_green_before_repository_aware_patch:
-    head_sha: d613dd21d644b18fad6eb869b7c229b4567e4ffa
-    run_id: 28743697368
-    result: success
-  current_repository_aware_patch:
-    status: pending_ci_on_latest_pr_head
-    note: Verify current PR head and GitHub Actions result after this status update before merge.
-
-critical_or_high_gaps:
-  - id: GAP-C2B-REAL-EVIDENCE
-    severity: high
-    description: Live owner smoke uses an owner fixture and is integration evidence only; it is not a real non-synthetic CE handoff package.
-  - id: GAP-BUILDER-RESPONSIVE-PG
-    severity: critical
-    description: Builder-to-Responsive Project Gate transition remains not implemented.
-  - id: GAP-FINAL-EVIDENCE
-    severity: critical
-    description: Final evidence gate remains not implemented.
+ci:
+  local_sandbox_py_compile: passed_for_new_python_files
+  local_sandbox_json_parse: passed_for_new_json_files
+  local_sandbox_pytest: not_claimed_full_repo_unavailable
+  branch_ci: pending_after_draft_pr
 
 remaining_insufficient_evidence:
-  - post_repository_aware_patch_green_ci_on_latest_head
+  - prompt_05_exact_owner_file_byte_hash_refresh
+  - prompt_05_branch_ci_green_on_latest_head
   - real_non_synthetic_CE_to_Builder_transition_evidence
-  - Builder_to_Responsive_Project_Gate_transition
-  - final_evidence_gate
-
-next_allowed_prompt: verify_CI_and_PR_Inspector_review_on_latest_head
+  - real_Builder_execution_evidence_bundle
+  - real_Responsive_output_evidence_bundle
+  - downstream_rejection_evidence_not_claimed
