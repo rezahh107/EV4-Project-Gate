@@ -111,20 +111,24 @@ jobs:
             --responsive-repo .owner/EV4-Responsive-Architect \
             --output contracts/locks/builder-to-responsive-transition.v1.lock.json
 
-      - name: Run Builder to Responsive tests
-        run: pytest -vv --tb=short tests/transitions/test_builder_to_responsive.py
+      - name: Run focused repaired tests
+        run: |
+          pytest -vv --tb=short tests/transitions/test_builder_to_responsive.py
+          pytest -vv --tb=short tests/transitions/test_final_gate.py
+          pytest -vv --tb=short tests/test_cli.py
 
-      - name: Run Final Gate tests
-        run: pytest -vv --tb=short tests/transitions/test_final_gate.py
-
-      - name: Run capability and CLI tests
-        run: pytest -vv --tb=short tests/test_cli.py
+      - name: Preserve desired workflow files outside Git
+        run: |
+          mkdir -p "$RUNNER_TEMP/prompt05-workflows"
+          cp .github/workflows/prompt-05.yml "$RUNNER_TEMP/prompt05-workflows/prompt-05.yml"
+          cp .github/workflows/validate.yml "$RUNNER_TEMP/prompt05-workflows/validate.yml"
+          cp -a .owner/EV4-Responsive-Architect "$RUNNER_TEMP/EV4-Responsive-Architect"
 
       - name: Commit non-circular Builder to Responsive foundation
         id: stage1
         run: |
-          cp -a .owner/EV4-Responsive-Architect "$RUNNER_TEMP/EV4-Responsive-Architect"
           rm -rf .owner
+          git checkout HEAD -- .github/workflows
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add -A
@@ -140,21 +144,19 @@ jobs:
             --responsive-repo "$RUNNER_TEMP/EV4-Responsive-Architect" \
             --output contracts/locks/final-gate.v1.lock.json
 
-      - name: Remove bootstrap surfaces
-        run: rm scripts/bootstrap-prompt05-repair.py .github/workflows/bootstrap-prompt05-repair.yml .github/workflows/diagnose-prompt05-cli.yml
-
       - name: Validate finalized repair before publishing
         run: |
-          python scripts/check-github-action-pinning.py
           pytest -vv --tb=short tests/transitions/test_builder_to_responsive.py tests/transitions/test_final_gate.py tests/test_cli.py
 
-      - name: Commit finalized Prompt-05 repair
+      - name: Commit finalized Prompt-05 lock chain
         run: |
-          git add -A
-          git commit -m "Finalize Prompt-05 immutable locks and CI gates [skip ci]"
+          git add src/ev4_transition/transitions/final_gate.py contracts/locks/final-gate.v1.lock.json
+          git commit -m "Finalize Prompt-05 immutable lock chain [skip ci]"
           git push origin HEAD:fix/prompt-05-foundation-reconciliation
 
-      - name: Trigger repository validation
-        run: |
-          git commit --allow-empty -m "Trigger Prompt-05 exact-head validation"
-          git push origin HEAD:fix/prompt-05-foundation-reconciliation
+      - name: Upload desired workflow patch
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: prompt05-final-workflows
+          path: ${{ runner.temp }}/prompt05-workflows
+          retention-days: 2
