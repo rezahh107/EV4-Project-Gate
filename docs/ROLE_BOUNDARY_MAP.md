@@ -1,6 +1,6 @@
 # EV4 Role Boundary Map
 
-Status: `PROMPT-01` Project Gate-owned contract foundation. This document records repository boundaries for Project Gate implementation planning. It is coordination documentation, not a promotion of any specialist contract into Project Gate ownership.
+Status: `PROMPT-03` runner boundary infrastructure added on branch `project-gate-prompt-03-runner-boundary`. This document records repository boundaries for Project Gate implementation planning. It is coordination documentation, not a promotion of any specialist contract into Project Gate ownership.
 
 ## Authority rule
 
@@ -12,7 +12,7 @@ Specialist repositories remain authoritative for their schemas, validators, adap
 | `rezahh107/EV4-Constructability-Engineer-Repo` | Constructability Engineer | Constructability review; implementation-strategy proof; canonical Architect-facing CE intake `ev4-ce-architect-stage-intake@1.1.0`; CE-owned mapping `ev4-architect-stage-to-ce-intake-mapping@1.1.0`; Builder Executable Package producer semantics | Architect redesign; Builder runtime execution; Builder adapter projection; Responsive repair; production readiness | CE intake validation; CE review output; Builder Executable Package when evidence-gated | Builder runtime output; Builder compact `node:model` carriers in CE source output; production-ready claims | Project Gate, then Builder | repo-local authoritative for CE review/gating and executable handoff issuance |
 | `rezahh107/EV4-Builder-Assistant-Repo` | Builder | Runtime intake validation; `ev4-builder-context-package@1.0.0`; CE→Builder Contract Gate; CE→Builder adapter; Builder action batch, layout check, completion gate, and real Elementor execution evidence validators | Architecture decisions; CE strategy proof; Responsive conclusions; production readiness; invention of missing Golden Reference / Build Intent Brief / Spatial Lexicon | Normalized Builder runtime intake; execution/build evidence; Builder-side validation decisions | Architect-only package treated as Builder-ready; CE review-only package treated as runtime-ready; Responsive correctness claims | Project Gate, then Responsive | repo-local authoritative for Builder runtime intake, execution behavior, and Builder-owned evidence surfaces |
 | `rezahh107/EV4-Responsive-Architect` | Responsive Architect | Responsive input eligibility; `ev4-builder-responsive-input@0.1.0`; responsive output `ev4-responsive-output@0.3.0`; viewport evidence gates; Responsive repair semantics; responsive handoff export family | Original architecture selection; CE constructability proof; Builder execution; mobile/tablet inference from desktop-only evidence; final readiness without evidence | Responsive input eligibility decisions; responsive output; viewport-scoped evidence; repair outputs when authorized | Raw screenshot as baseline authority; frontend/export/accessibility/production claims without evidence | Project Gate final gate | repo-local authoritative for responsive adaptation, viewport evidence, and Responsive-owned output concepts |
-| `rezahh107/EV4-Project-Gate` | Project Gate | Stage Evidence Bundle envelope; transition/result schemas; diagnostic schema; lock manifest schema; deterministic canonical JSON and SHA-256; pinned external contract verification; orchestration of official validators/adapters; diagnostics; Persian summaries; behavioral coverage ledger | Specialist schemas as canonical copies; CE constructability logic; Builder runtime logic; Responsive repair logic; evidence invention; silent normalization; accepted/final claims without evidence | Validation results; transition results; pinned/hash reports; next-stage packages only when owner contracts/evidence validate; repair/insufficient-evidence diagnostics | Specialist logic; copied owner schemas; synthetic fixtures described as real evidence; production readiness claims | User and next specialist repository | Project Gate-owned orchestration authority only |
+| `rezahh107/EV4-Project-Gate` | Project Gate | Stage Evidence Bundle envelope; transition/result schemas; diagnostic schema; lock manifest schema; deterministic canonical JSON and SHA-256; pinned external contract verification; orchestration of official validators/adapters through `src/ev4_transition/runners/`; diagnostics; Persian summaries; behavioral coverage ledger | Specialist schemas as canonical copies; CE constructability logic; Builder runtime logic; Responsive repair logic; evidence invention; silent normalization; accepted/final claims without evidence; subprocess execution outside `src/ev4_transition/runners/` | Validation results; transition results; pinned/hash reports; next-stage packages only when owner contracts/evidence validate; repair/insufficient-evidence diagnostics | Specialist logic; copied owner schemas; synthetic fixtures described as real evidence; production readiness claims | User and next specialist repository | Project Gate-owned orchestration authority only |
 
 ## Boundary invariants
 
@@ -53,6 +53,31 @@ src/ev4_transition/presentation/status_mapping.py
 
 No CE→Builder, Builder→Responsive, final gate, specialist validator/adapter expansion, or specialist domain logic is implemented in this prompt.
 
+## PROMPT-03 runner boundary
+
+Only `src/ev4_transition/runners/` may execute subprocesses for official specialist validators or adapters.
+
+```yaml
+runner_boundary:
+  allowed_inside:
+    - src/ev4_transition/runners/subprocess_runner.py imports and calls subprocess
+    - src/ev4_transition/runners/official_tools.py builds official validator/adapter commands
+    - src/ev4_transition/runners/records.py creates execution records
+    - src/ev4_transition/runners/failure_mapping.py maps failures to deterministic Project Gate statuses
+  forbidden_outside:
+    - subprocess imports or calls
+    - os.system
+    - shell=True
+    - importlib-based dynamic specialist imports
+    - direct Python/Node command execution for specialist tools
+  scanner:
+    - scripts/check-runner-boundary.py
+```
+
+`src/ev4_transition/validator_runner.py` is now a compatibility wrapper for the existing Architect→CE CLI path. It does not execute subprocesses directly; it delegates official validator execution to `src/ev4_transition/runners/`.
+
+The runner boundary is infrastructure only. It does not implement CE→Builder transition logic, Builder→Responsive transition logic, final gate logic, fallback adapter behavior, CE constructability logic, Builder runtime logic, or Responsive repair logic.
+
 ## Current implementation boundary summary
 
 ```yaml
@@ -65,6 +90,10 @@ implemented:
   - status presentation mapping
   - Architect-to-CE transition orchestration
   - official Architect and CE validator calls for pinned local checkouts
+  - runner boundary for official validator/adapter subprocess execution
+  - local-only mockable repo access abstraction
+  - sanitized runtime progress events
+  - static runner-boundary scanner
 not_implemented:
   - CE-to-Builder Project Gate transition
   - Builder-to-Responsive Project Gate transition

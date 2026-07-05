@@ -1,1 +1,105 @@
-{"$defs":{"diagnostic":{"additionalProperties":false,"properties":{"code":{"pattern":"^[A-Z0-9_]+$","type":"string"},"details":{"additionalProperties":true,"type":"object"},"message":{"minLength":1,"type":"string"},"path":{"minLength":1,"type":"string"},"severity":{"enum":["error","warning","info","insufficient_evidence"]}},"required":["code","severity","message","path"],"type":"object"},"hashRecord":{"additionalProperties":false,"properties":{"algorithm":{"const":"sha256"},"canonicalization":{"enum":["ev4-canonical-json.v1","file_bytes"]},"scope":{"enum":["source_bundle","source_payload","target_payload","target_bundle","external_contract_lock","external_contract_file"]},"value":{"pattern":"^[a-f0-9]{64}$","type":"string"}},"required":["algorithm","canonicalization","scope","value"],"type":"object"}},"$id":"https://ev4.local/schemas/architect-to-ce-transition-result/architect-to-ce-transition-result.v1.schema.json","$schema":"https://json-schema.org/draft/2020-12/schema","additionalProperties":false,"allOf":[{"if":{"properties":{"status":{"const":"invalid"}},"required":["status"]},"then":{"properties":{"output":{"type":"null"}}}},{"if":{"properties":{"status":{"const":"valid"}},"required":["status"]},"then":{"properties":{"output":{"type":"object"}}}}],"properties":{"diagnostics":{"items":{"$ref":"#/$defs/diagnostic"},"type":"array"},"hashes":{"additionalProperties":false,"properties":{"external_contract_lock":{"$ref":"#/$defs/hashRecord"},"source_bundle":{"anyOf":[{"$ref":"#/$defs/hashRecord"},{"type":"null"}]},"source_payload":{"anyOf":[{"$ref":"#/$defs/hashRecord"},{"type":"null"}]},"target_bundle":{"anyOf":[{"$ref":"#/$defs/hashRecord"},{"type":"null"}]},"target_payload":{"anyOf":[{"$ref":"#/$defs/hashRecord"},{"type":"null"}]}},"required":["source_bundle","source_payload","target_payload","target_bundle","external_contract_lock"],"type":"object"},"output":{"anyOf":[{"type":"object"},{"type":"null"}]},"provenance":{"additionalProperties":true,"type":"object"},"result_type":{"const":"architect_to_ce_transition"},"schema_version":{"const":"architect-to-ce-transition-result.v1"},"source_stage":{"const":"architect"},"status":{"enum":["valid","invalid","insufficient_evidence"]},"target_stage":{"const":"ce"},"transition":{"additionalProperties":false,"properties":{"id":{"const":"ev4-architect-to-ce-transition@1.0.0"},"mapping_contract":{"const":"ev4-architect-stage-to-ce-intake-mapping@1.1.0"},"source_payload_schema":{"const":"ev4-architect-stage-payload@1.0.0"},"target_payload_schema":{"const":"ev4-ce-architect-stage-intake@1.1.0"},"version":{"const":"1.0.0"}},"required":["id","version","source_payload_schema","target_payload_schema","mapping_contract"],"type":"object"}},"required":["schema_version","result_type","transition","status","source_stage","target_stage","diagnostics","hashes","provenance","output"],"title":"EV4 Architect to CE Transition Result v1","type":"object"}
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ev4.local/schemas/architect-to-ce-transition-result/architect-to-ce-transition-result.v1.schema.json",
+  "title": "EV4 Architect to CE Transition Result v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "result_type",
+    "transition",
+    "status",
+    "source_stage",
+    "target_stage",
+    "diagnostics",
+    "hashes",
+    "provenance",
+    "output"
+  ],
+  "properties": {
+    "schema_version": {"const": "architect-to-ce-transition-result.v1"},
+    "result_type": {"const": "architect_to_ce_transition"},
+    "transition": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "version", "source_payload_schema", "target_payload_schema", "mapping_contract"],
+      "properties": {
+        "id": {"const": "ev4-architect-to-ce-transition@1.0.0"},
+        "version": {"const": "1.0.0"},
+        "source_payload_schema": {"const": "ev4-architect-stage-payload@1.0.0"},
+        "target_payload_schema": {"const": "ev4-ce-architect-stage-intake@1.1.0"},
+        "mapping_contract": {"const": "ev4-architect-stage-to-ce-intake-mapping@1.1.0"}
+      }
+    },
+    "status": {"enum": ["valid", "invalid", "insufficient_evidence"]},
+    "source_stage": {"const": "architect"},
+    "target_stage": {"const": "ce"},
+    "diagnostics": {
+      "type": "array",
+      "items": {"$ref": "#/$defs/diagnostic"}
+    },
+    "hashes": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["source_bundle", "source_payload", "target_payload", "target_bundle", "external_contract_lock"],
+      "properties": {
+        "source_bundle": {"anyOf": [{"$ref": "#/$defs/hashRecord"}, {"type": "null"}]},
+        "source_payload": {"anyOf": [{"$ref": "#/$defs/hashRecord"}, {"type": "null"}]},
+        "target_payload": {"anyOf": [{"$ref": "#/$defs/hashRecord"}, {"type": "null"}]},
+        "target_bundle": {"anyOf": [{"$ref": "#/$defs/hashRecord"}, {"type": "null"}]},
+        "external_contract_lock": {"$ref": "#/$defs/hashRecord"}
+      }
+    },
+    "provenance": {
+      "type": "object",
+      "additionalProperties": true
+    },
+    "output": {
+      "anyOf": [{"type": "object"}, {"type": "null"}]
+    }
+  },
+  "allOf": [
+    {
+      "if": {"properties": {"status": {"const": "invalid"}}, "required": ["status"]},
+      "then": {"properties": {"output": {"type": "null"}}}
+    },
+    {
+      "if": {"properties": {"status": {"const": "valid"}}, "required": ["status"]},
+      "then": {"properties": {"output": {"type": "object"}}}
+    }
+  ],
+  "$defs": {
+    "diagnostic": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["code", "severity", "message", "path"],
+      "properties": {
+        "code": {"type": "string", "pattern": "^[A-Z0-9_]+(?:\\.[A-Z0-9_]+)*$"},
+        "severity": {"enum": ["error", "warning", "info", "insufficient_evidence"]},
+        "message": {"type": "string", "minLength": 1},
+        "path": {"type": "string", "minLength": 1},
+        "details": {"type": "object", "additionalProperties": true}
+      }
+    },
+    "hashRecord": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["algorithm", "canonicalization", "scope", "value"],
+      "properties": {
+        "algorithm": {"const": "sha256"},
+        "canonicalization": {"enum": ["ev4-canonical-json.v1", "file_bytes"]},
+        "scope": {
+          "enum": [
+            "source_bundle",
+            "source_payload",
+            "target_payload",
+            "target_bundle",
+            "external_contract_lock",
+            "external_contract_file"
+          ]
+        },
+        "value": {"type": "string", "pattern": "^[a-f0-9]{64}$"}
+      }
+    }
+  }
+}

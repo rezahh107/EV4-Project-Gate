@@ -9,6 +9,7 @@ on:
       - python-deterministic-core-v1
       - architect-to-ce-transition-v1
       - project-gate-prompt-02-behavioral-coverage
+      - project-gate-prompt-03-runner-boundary
 
 jobs:
   skeleton:
@@ -87,12 +88,92 @@ jobs:
         working-directory: EV4-Project-Gate
         run: python -m pip install -e '.[dev]'
 
-      - name: Run Project Gate Python tests
+      - name: CLI and bundle tests
+        working-directory: EV4-Project-Gate
+        run: pytest tests/test_cli.py tests/test_canonical_json.py tests/test_bundle_validator.py
+
+      - name: A2C valid transition smoke
         working-directory: EV4-Project-Gate
         env:
           EV4_ARCHITECT_REPO: ${{ github.workspace }}/EV4-Architect-Repo
           EV4_CE_REPO: ${{ github.workspace }}/EV4-Constructability-Engineer-Repo
-        run: pytest
+        run: pytest tests/test_architect_to_ce_transition.py::test_valid_transition_outputs_complete_ce_v1_1_bundle
+
+      - name: A2C mapping and order tests
+        working-directory: EV4-Project-Gate
+        env:
+          EV4_ARCHITECT_REPO: ${{ github.workspace }}/EV4-Architect-Repo
+          EV4_CE_REPO: ${{ github.workspace }}/EV4-Constructability-Engineer-Repo
+        run: pytest tests/test_architect_to_ce_transition.py -k 'complete_mapping_trace or canonical_source_hash or validation_order'
+
+      - name: A2C fail-closed hook tests
+        working-directory: EV4-Project-Gate
+        env:
+          EV4_ARCHITECT_REPO: ${{ github.workspace }}/EV4-Architect-Repo
+          EV4_CE_REPO: ${{ github.workspace }}/EV4-Constructability-Engineer-Repo
+        run: pytest tests/test_architect_to_ce_transition.py -k 'mapper_skipped or target_bundle_absent or invalid_identity'
+
+      - name: A2C source commit preservation test
+        working-directory: EV4-Project-Gate
+        env:
+          EV4_ARCHITECT_REPO: ${{ github.workspace }}/EV4-Architect-Repo
+          EV4_CE_REPO: ${{ github.workspace }}/EV4-Constructability-Engineer-Repo
+        run: pytest tests/test_architect_to_ce_transition.py::test_explicit_source_commit_preserved_and_missing_commit_omitted
+
+      - name: A2C insufficient evidence test
+        working-directory: EV4-Project-Gate
+        env:
+          EV4_ARCHITECT_REPO: ${{ github.workspace }}/EV4-Architect-Repo
+          EV4_CE_REPO: ${{ github.workspace }}/EV4-Constructability-Engineer-Repo
+        run: pytest tests/test_architect_to_ce_transition.py::test_insufficient_evidence_transition_keeps_output_and_status
+
+      - name: A2C lock enforcement test
+        working-directory: EV4-Project-Gate
+        env:
+          EV4_ARCHITECT_REPO: ${{ github.workspace }}/EV4-Architect-Repo
+          EV4_CE_REPO: ${{ github.workspace }}/EV4-Constructability-Engineer-Repo
+        run: pytest tests/test_architect_to_ce_transition.py -k 'lock_enforcement'
+
+      - name: A2C repeat run determinism test
+        working-directory: EV4-Project-Gate
+        env:
+          EV4_ARCHITECT_REPO: ${{ github.workspace }}/EV4-Architect-Repo
+          EV4_CE_REPO: ${{ github.workspace }}/EV4-Constructability-Engineer-Repo
+        run: pytest tests/test_architect_to_ce_transition.py::test_repeat_run_byte_identical
+
+      - name: A2C nonfinite edge test
+        working-directory: EV4-Project-Gate
+        env:
+          EV4_ARCHITECT_REPO: ${{ github.workspace }}/EV4-Architect-Repo
+          EV4_CE_REPO: ${{ github.workspace }}/EV4-Constructability-Engineer-Repo
+        run: pytest tests/test_architect_to_ce_transition.py::test_no_live_timestamp_and_nonfinite_invalid
+
+      - name: Architect-to-CE CLI transition tests
+        working-directory: EV4-Project-Gate
+        env:
+          EV4_ARCHITECT_REPO: ${{ github.workspace }}/EV4-Architect-Repo
+          EV4_CE_REPO: ${{ github.workspace }}/EV4-Constructability-Engineer-Repo
+        run: pytest tests/test_architect_to_ce_transition.py -k 'cli'
+
+      - name: Prompt 01 unit tests
+        working-directory: EV4-Project-Gate
+        run: pytest tests/unit
+
+      - name: Static runner-boundary scanner
+        working-directory: EV4-Project-Gate
+        run: python scripts/check-runner-boundary.py
+
+      - name: Runner tests
+        working-directory: EV4-Project-Gate
+        run: pytest tests/runners
+
+      - name: Progress tests
+        working-directory: EV4-Project-Gate
+        run: pytest tests/progress
+
+      - name: Runner boundary tests
+        working-directory: EV4-Project-Gate
+        run: pytest tests/boundary
 
       - name: Behavioral coverage validator
         working-directory: EV4-Project-Gate

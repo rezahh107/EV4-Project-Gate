@@ -1,1 +1,142 @@
-{"$schema":"https://json-schema.org/draft/2020-12/schema","$id":"https://ev4.local/schemas/transition-result/transition-result.v1.schema.json","title":"EV4 Project Gate Validation Result v1","type":"object","additionalProperties":false,"required":["schema_version","result_type","status","source_stage","diagnostics","hashes","provenance","output"],"properties":{"schema_version":{"const":"transition-result.v1"},"result_type":{"const":"stage_bundle_validation"},"status":{"type":"string","enum":["accepted","valid","repair_needed","insufficient_evidence","invalid"]},"source_stage":{"type":["string","null"],"enum":["architect","ce","builder","responsive",null]},"diagnostics":{"type":"array","items":{"$ref":"#/$defs/diagnostic"}},"hashes":{"type":"object","additionalProperties":false,"required":["source_bundle_hash","canonical_payload_hash"],"properties":{"source_bundle_hash":{"anyOf":[{"$ref":"#/$defs/hashRecord"},{"type":"null"}]},"canonical_payload_hash":{"anyOf":[{"$ref":"#/$defs/hashRecord"},{"type":"null"}]}}},"provenance":{"type":"object","additionalProperties":false,"required":["source_provenance","produced_by"],"properties":{"source_provenance":{"type":["object","null"],"additionalProperties":true},"produced_by":{"type":["object","null"],"additionalProperties":true}}},"output":{"type":"null"}},"allOf":[{"if":{"properties":{"status":{"const":"accepted"}},"required":["status"]},"then":{"properties":{"source_stage":{"type":"string","enum":["architect","ce","builder","responsive"]},"diagnostics":{"items":{"$ref":"#/$defs/infoDiagnostic"}},"hashes":{"properties":{"source_bundle_hash":{"$ref":"#/$defs/sourceBundleHashRecord"},"canonical_payload_hash":{"$ref":"#/$defs/canonicalPayloadHashRecord"}}},"provenance":{"properties":{"source_provenance":{"$ref":"#/$defs/sourceProvenance"},"produced_by":{"$ref":"#/$defs/producerIdentity"}}}}}},{"if":{"properties":{"status":{"const":"valid"}},"required":["status"]},"then":{"properties":{"diagnostics":{"items":{"$ref":"#/$defs/legacyValidDiagnostic"}}}}},{"if":{"properties":{"status":{"const":"repair_needed"}},"required":["status"]},"then":{"properties":{"diagnostics":{"minItems":1,"contains":{"$ref":"#/$defs/warningDiagnostic"},"not":{"contains":{"anyOf":[{"$ref":"#/$defs/errorDiagnostic"},{"$ref":"#/$defs/insufficientEvidenceDiagnostic"}]}}}}}},{"if":{"properties":{"status":{"const":"insufficient_evidence"}},"required":["status"]},"then":{"properties":{"diagnostics":{"minItems":1,"contains":{"$ref":"#/$defs/insufficientEvidenceDiagnostic"},"not":{"contains":{"$ref":"#/$defs/errorDiagnostic"}}}}}},{"if":{"properties":{"status":{"const":"invalid"}},"required":["status"]},"then":{"properties":{"diagnostics":{"minItems":1,"contains":{"$ref":"#/$defs/errorDiagnostic"}}}}}],"$defs":{"diagnostic":{"type":"object","additionalProperties":false,"required":["code","severity","message","path"],"properties":{"code":{"type":"string","pattern":"^[A-Z0-9_]+$"},"severity":{"type":"string","enum":["error","warning","info","insufficient_evidence"]},"message":{"type":"string","minLength":1},"path":{"type":"string","minLength":1},"details":{"type":"object","additionalProperties":true}}},"infoDiagnostic":{"allOf":[{"$ref":"#/$defs/diagnostic"},{"properties":{"severity":{"const":"info"}},"required":["severity"]}]},"warningDiagnostic":{"allOf":[{"$ref":"#/$defs/diagnostic"},{"properties":{"severity":{"const":"warning"}},"required":["severity"]}]},"legacyValidDiagnostic":{"allOf":[{"$ref":"#/$defs/diagnostic"},{"properties":{"severity":{"enum":["info","warning"]}},"required":["severity"]}]},"errorDiagnostic":{"allOf":[{"$ref":"#/$defs/diagnostic"},{"properties":{"severity":{"const":"error"}},"required":["severity"]}]},"insufficientEvidenceDiagnostic":{"allOf":[{"$ref":"#/$defs/diagnostic"},{"properties":{"severity":{"const":"insufficient_evidence"}},"required":["severity"]}]},"hashRecord":{"type":"object","additionalProperties":false,"required":["algorithm","canonicalization","scope","value"],"properties":{"algorithm":{"const":"sha256"},"canonicalization":{"const":"ev4-canonical-json.v1"},"scope":{"type":"string","enum":["source_bundle","payload"]},"value":{"type":"string","pattern":"^[a-f0-9]{64}$"}}},"sourceBundleHashRecord":{"allOf":[{"$ref":"#/$defs/hashRecord"},{"properties":{"scope":{"const":"source_bundle"}},"required":["scope"]}]},"canonicalPayloadHashRecord":{"allOf":[{"$ref":"#/$defs/hashRecord"},{"properties":{"scope":{"const":"payload"}},"required":["scope"]}]},"sourceProvenance":{"type":"object","required":["kind"],"properties":{"kind":{"type":"string","minLength":1}},"additionalProperties":true,"minProperties":1},"producerIdentity":{"type":"object","required":["tool"],"properties":{"tool":{"type":"string","minLength":1}},"additionalProperties":true,"minProperties":1}}}
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ev4.local/schemas/transition-result/transition-result.v1.schema.json",
+  "title": "EV4 Project Gate Validation Result v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "result_type", "status", "source_stage", "diagnostics", "hashes", "provenance", "output"],
+  "properties": {
+    "schema_version": {"const": "transition-result.v1"},
+    "result_type": {"const": "stage_bundle_validation"},
+    "status": {"type": "string", "enum": ["accepted", "valid", "repair_needed", "insufficient_evidence", "invalid"]},
+    "source_stage": {"type": ["string", "null"], "enum": ["architect", "ce", "builder", "responsive", null]},
+    "diagnostics": {"type": "array", "items": {"$ref": "#/$defs/diagnostic"}},
+    "hashes": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["source_bundle_hash", "canonical_payload_hash"],
+      "properties": {
+        "source_bundle_hash": {"anyOf": [{"$ref": "#/$defs/hashRecord"}, {"type": "null"}]},
+        "canonical_payload_hash": {"anyOf": [{"$ref": "#/$defs/hashRecord"}, {"type": "null"}]}
+      }
+    },
+    "provenance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["source_provenance", "produced_by"],
+      "properties": {
+        "source_provenance": {"type": ["object", "null"], "additionalProperties": true},
+        "produced_by": {"type": ["object", "null"], "additionalProperties": true}
+      }
+    },
+    "output": {"type": "null"}
+  },
+  "allOf": [
+    {
+      "if": {"properties": {"status": {"const": "accepted"}}, "required": ["status"]},
+      "then": {
+        "properties": {
+          "source_stage": {"type": "string", "enum": ["architect", "ce", "builder", "responsive"]},
+          "diagnostics": {"items": {"$ref": "#/$defs/infoDiagnostic"}},
+          "hashes": {
+            "properties": {
+              "source_bundle_hash": {"$ref": "#/$defs/sourceBundleHashRecord"},
+              "canonical_payload_hash": {"$ref": "#/$defs/canonicalPayloadHashRecord"}
+            }
+          },
+          "provenance": {
+            "properties": {
+              "source_provenance": {"$ref": "#/$defs/sourceProvenance"},
+              "produced_by": {"$ref": "#/$defs/producerIdentity"}
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {"properties": {"status": {"const": "valid"}}, "required": ["status"]},
+      "then": {"properties": {"diagnostics": {"items": {"$ref": "#/$defs/legacyValidDiagnostic"}}}}
+    },
+    {
+      "if": {"properties": {"status": {"const": "repair_needed"}}, "required": ["status"]},
+      "then": {
+        "properties": {
+          "diagnostics": {
+            "minItems": 1,
+            "contains": {"$ref": "#/$defs/warningDiagnostic"},
+            "not": {"contains": {"anyOf": [{"$ref": "#/$defs/errorDiagnostic"}, {"$ref": "#/$defs/insufficientEvidenceDiagnostic"}]}}
+          }
+        }
+      }
+    },
+    {
+      "if": {"properties": {"status": {"const": "insufficient_evidence"}}, "required": ["status"]},
+      "then": {
+        "properties": {
+          "diagnostics": {
+            "minItems": 1,
+            "contains": {"$ref": "#/$defs/insufficientEvidenceDiagnostic"},
+            "not": {"contains": {"$ref": "#/$defs/errorDiagnostic"}}
+          }
+        }
+      }
+    },
+    {
+      "if": {"properties": {"status": {"const": "invalid"}}, "required": ["status"]},
+      "then": {
+        "properties": {
+          "diagnostics": {
+            "minItems": 1,
+            "contains": {"$ref": "#/$defs/errorDiagnostic"}
+          }
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "diagnostic": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["code", "severity", "message", "path"],
+      "properties": {
+        "code": {"type": "string", "pattern": "^[A-Z0-9_]+(?:\\.[A-Z0-9_]+)*$"},
+        "severity": {"type": "string", "enum": ["error", "warning", "info", "insufficient_evidence"]},
+        "message": {"type": "string", "minLength": 1},
+        "path": {"type": "string", "minLength": 1},
+        "details": {"type": "object", "additionalProperties": true}
+      }
+    },
+    "infoDiagnostic": {"allOf": [{"$ref": "#/$defs/diagnostic"}, {"properties": {"severity": {"const": "info"}}, "required": ["severity"]}]},
+    "warningDiagnostic": {"allOf": [{"$ref": "#/$defs/diagnostic"}, {"properties": {"severity": {"const": "warning"}}, "required": ["severity"]}]},
+    "legacyValidDiagnostic": {"allOf": [{"$ref": "#/$defs/diagnostic"}, {"properties": {"severity": {"enum": ["info", "warning"]}}, "required": ["severity"]}]},
+    "errorDiagnostic": {"allOf": [{"$ref": "#/$defs/diagnostic"}, {"properties": {"severity": {"const": "error"}}, "required": ["severity"]}]},
+    "insufficientEvidenceDiagnostic": {"allOf": [{"$ref": "#/$defs/diagnostic"}, {"properties": {"severity": {"const": "insufficient_evidence"}}, "required": ["severity"]}]},
+    "hashRecord": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["algorithm", "canonicalization", "scope", "value"],
+      "properties": {
+        "algorithm": {"const": "sha256"},
+        "canonicalization": {"const": "ev4-canonical-json.v1"},
+        "scope": {"type": "string", "enum": ["source_bundle", "payload"]},
+        "value": {"type": "string", "pattern": "^[a-f0-9]{64}$"}
+      }
+    },
+    "sourceBundleHashRecord": {"allOf": [{"$ref": "#/$defs/hashRecord"}, {"properties": {"scope": {"const": "source_bundle"}}, "required": ["scope"]}]},
+    "canonicalPayloadHashRecord": {"allOf": [{"$ref": "#/$defs/hashRecord"}, {"properties": {"scope": {"const": "payload"}}, "required": ["scope"]}]},
+    "sourceProvenance": {
+      "type": "object",
+      "required": ["kind"],
+      "properties": {"kind": {"type": "string", "minLength": 1}},
+      "additionalProperties": true,
+      "minProperties": 1
+    },
+    "producerIdentity": {
+      "type": "object",
+      "required": ["tool"],
+      "properties": {"tool": {"type": "string", "minLength": 1}},
+      "additionalProperties": true,
+      "minProperties": 1
+    }
+  }
+}

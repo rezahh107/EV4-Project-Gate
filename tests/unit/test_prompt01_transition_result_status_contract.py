@@ -15,6 +15,10 @@ def diagnostic(severity: str) -> dict:
     return {"code": f"TEST_{severity.upper()}", "severity": severity, "message": f"test {severity}", "path": "$"}
 
 
+def dotted_diagnostic(severity: str) -> dict:
+    return {"code": f"PG.RUNNER.TEST_{severity.upper()}", "severity": severity, "message": f"test {severity}", "path": "$"}
+
+
 def hash_record(scope: str) -> dict:
     return {"algorithm": "sha256", "canonicalization": "ev4-canonical-json.v1", "scope": scope, "value": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"}
 
@@ -43,6 +47,12 @@ def assert_invalid(payload: dict) -> None:
 def test_accepted_allows_empty_or_info_diagnostics_with_explicit_evidence():
     assert_valid(base_result("accepted"))
     assert_valid(base_result("accepted", [diagnostic("info")]))
+
+
+def test_dotted_project_gate_diagnostic_codes_validate():
+    assert_valid(base_result("accepted", [dotted_diagnostic("info")]))
+    assert_valid(base_result("insufficient_evidence", [dotted_diagnostic("insufficient_evidence")]))
+    assert_valid(base_result("invalid", [dotted_diagnostic("error")]))
 
 
 def test_accepted_rejects_blocking_diagnostics():
