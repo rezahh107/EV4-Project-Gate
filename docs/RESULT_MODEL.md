@@ -1,16 +1,19 @@
 # EV4 Project Gate Result Model
 
-Status: `PROMPT-03` runner boundary infrastructure added on branch `project-gate-prompt-03-runner-boundary`.
+Status: Closure audit after `PROMPT-06`. Result carriers, runner execution records, Builder→Responsive/Final Gate result schemas, Persian report rendering, and atomic output writing are documented without changing deterministic transition decisions.
 
 ## Scope
 
-This document describes Project Gate-owned result envelopes. It does not define any Architect, CE, Builder, or Responsive specialist payload semantics.
+This document describes Project Gate-owned result envelopes and report behavior. It does not define any Architect, CE, Builder, or Responsive specialist payload semantics.
 
 ## Result schemas
 
 ```text
 schemas/transition-result/transition-result.v1.schema.json
 schemas/architect-to-ce-transition-result/architect-to-ce-transition-result.v1.schema.json
+schemas/ce-to-builder-transition-result/ce-to-builder-transition-result.v1.schema.json
+schemas/builder-to-responsive-transition-result/builder-to-responsive-transition-result.v1.schema.json
+schemas/final-gate-result/final-gate-result.v1.schema.json
 schemas/diagnostic/diagnostic.v1.schema.json
 ```
 
@@ -63,6 +66,8 @@ invalid:
   diagnostics: at least one error
 ```
 
+Transition-specific result schemas add stricter `accepted_requires` and evidence interpretation rules. They must fail closed when evidence, validator execution, schema identity, or lock/hash verification is missing or contradictory.
+
 ## Diagnostic ordering
 
 Diagnostics must be deterministic. Current ordering is:
@@ -100,7 +105,7 @@ Progress/runtime state must not be appended after final result schema validation
 
 ## Official tool execution record
 
-`PROMPT-03` adds Project Gate-owned execution-record infrastructure under `src/ev4_transition/runners/`. Execution records are runtime evidence metadata for official specialist validators/adapters. They are not specialist schemas and do not encode specialist business rules.
+Project Gate-owned execution-record infrastructure lives under `src/ev4_transition/runners/`. Execution records are runtime evidence metadata for official specialist validators/adapters. They are not specialist schemas and do not encode specialist business rules.
 
 Validator execution record minimum children:
 
@@ -176,6 +181,27 @@ adapter_command_path_mismatch:
 
 Raw stdout/stderr are not stored in execution records. Only `stdout_hash` and `stderr_hash` are retained.
 
+## Report rendering record
+
+Persian report rendering is a presentation layer over already-computed Project Gate results:
+
+```yaml
+allowed:
+  - deep copy result payload before rendering
+  - map status to icon/text/tone/exit metadata
+  - isolate technical fragments as LTR/copyable text
+  - compute report-only hash excluding UI/progress-only events
+forbidden:
+  - mutate transition result object
+  - change status
+  - add diagnostics after final validation
+  - repair missing evidence
+  - normalize specialist output
+  - include progress events in canonical final result hash
+```
+
+Output-write records must not report success/download availability unless atomic write has completed and the final path exists.
+
 ## Progress events
 
 Progress events are runtime/UI artifacts only. They must not be included in canonical final result hashes.
@@ -194,4 +220,4 @@ By default, paths in progress events are converted to repo-relative paths when a
 
 ## Evidence rule
 
-No result may be presented as `accepted` unless the required evidence for that result scope is explicit. Missing, empty, swapped, or unresolved evidence must remain `insufficient_evidence` or `invalid` according to the diagnostic set.
+No result may be presented as `accepted` unless the required evidence for that result scope is explicit. Missing, empty, swapped, synthetic-only, unresolved, or unverified evidence must remain `insufficient_evidence` or `invalid` according to the diagnostic set.
