@@ -1,0 +1,25 @@
+{
+  "builder_evidence": {
+    "action_batch_ref": "action-batch.json",
+    "completion_gate_ref": "completion-gate.json",
+    "execution_evidence_ref": "execution-evidence.json",
+    "layout_check_ref": "layout-check.json"
+  },
+  "claim": "production_ready",
+  "real_evidence": true,
+  "responsive_intake_decision": {
+    "intake_allowed": true
+  },
+  "schema": "ev4-builder-responsive-input@0.1.0",
+  "viewport_evidence": {
+    "desktop": {
+      "evidence_ref": "desktop.json"
+    },
+    "mobile": {
+      "evidence_ref": "mobile.json"
+    },
+    "tablet": {
+      "evidence_ref": "tablet.json"
+    }
+  }
+}
