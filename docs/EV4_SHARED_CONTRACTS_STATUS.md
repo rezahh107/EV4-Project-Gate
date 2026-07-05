@@ -48,7 +48,7 @@ The exact automatic post-merge `main` head audited after this merge was `dca39ed
 | PR #6 merge commit | `27a4fab5ea33cd72ade1c626f674ae3166ae3a09` |
 | PR #6 `Skeleton Health` | `CI_PASSED` |
 | PR #7 title | `Automate status file merge ledger updates` |
-| PR #7 head commit | `96548866ec544009645d4b501b00689e4dcc26dc2c9` |
+| PR #7 head commit | `96548866ec544009645d4b501fba7eb617d666ad` |
 | PR #7 merge commit | `4b48422bf7f95cc4682c0c4a871d441cef1a17a4` |
 | Canonical migration | `blocked` |
 
@@ -70,7 +70,7 @@ This section is updated by GitHub Actions after a pull request is merged. It rec
 | `#10` | `Document the EV4 Project Gate workflow` | `docs/project-gate-workflow` | `127f04e7e996eeb7bfc162ed9994a46a58a02491` | `9f24400b4e96b30d728d704e5221d5899facddd7` | `CI_PASSED` | `rezahh107 on rezahh107/EV4-Project-Gate` |
 | `#9` | `Redefine repository as compatibility gate` | `docs/compatibility-gate-role` | `f9c4a9df205f9044ecd4b5708b9ae2f4e0dd24d1` | `bea674e033935da5a60a94dc4b78cb634c0491f1` | `CI_PASSED` | `rezahh107 on rezahh107/EV4-Shared-Contracts` |
 | `#8` | `Fully automate post-merge status finalization` | `automation/finalize-status-after-merge` | `4f9ee4b1e25bb182f50e1431d0c5260df33a146d` | `e70650453879ac72b04cc38bfeafd5bfa813cdf8` | `CI_PASSED` | `rezahh107 on rezahh107/EV4-Shared-Contracts` |
-| `#7` | `Automate status file merge ledger updates` | `automation/status-after-merge` | `96548866ec544009645d4b501b00689e4dcc26dc2c9` | `4b48422bf7f95cc4682c0c4a871d441cef1a17a4` | `CI_NOT_VERIFIED` | `rezahh107 on rezahh107/EV4-Shared-Contracts` |
+| `#7` | `Automate status file merge ledger updates` | `automation/status-after-merge` | `96548866ec544009645d4b501fba7eb617d666ad` | `4b48422bf7f95cc4682c0c4a871d441cef1a17a4` | `CI_NOT_VERIFIED` | `rezahh107 on rezahh107/EV4-Shared-Contracts` |
 
 ## Current Startup Map
 
