@@ -207,8 +207,7 @@ def _run_builder_output_validator(config: CeToBuilderTransitionConfig, builder_c
 
 
 def _missing_local_root(kind: str, root_name: str, path: str, owner_repo: str, owner_commit: str):
-    from ev4_transition.runners.records import TimeoutPolicy, build_adapter_execution_record, build_validator_execution_record
-    from ev4_transition.runners.records import ToolExecutionOutcome
+    from ev4_transition.runners.records import TimeoutPolicy, ToolExecutionOutcome, build_adapter_execution_record, build_validator_execution_record
 
     code = "PG.VALIDATOR.MISSING" if kind == "validator" else "PG.ADAPTER.MISSING"
     diag = diagnostic(code, "insufficient_evidence", f"Local {root_name} checkout is required for official CE→Builder tool execution.", "$", root=root_name, tool_path=path)
@@ -276,3 +275,72 @@ def _result(original_input: Any, source_bundle: dict[str, Any] | None, ce_packag
     if not _has_blocking(local) and missing:
         local.append(diagnostic("PG.C2B.ACCEPTED_REQUIRES_MISSING", "insufficient_evidence", "CE→Builder transition cannot be accepted until every accepted_requires item is true.", "$.accepted_requires", missing_requires=missing))
     ordered = sort_diagnostics(local)
+    status = project_gate_status_from_diagnostics(ordered)
+    result = {
+        "schema_version": "ce-to-builder-transition-result.v1",
+        "result_type": "ce_to_builder_transition",
+        "transition": {"id": TRANSITION_ID, "version": TRANSITION_VERSION, "source_payload_schema": CE_PACKAGE_SCHEMA, "target_payload_schema": BUILDER_CONTEXT_SCHEMA},
+        "status": status,
+        "source_stage": "ce",
+        "target_stage": "builder",
+        "accepted_requires": accepted_requires,
+        "diagnostics": [item.to_dict() for item in ordered],
+        "hashes": {"input": _hash_or_none(original_input, "input"), "source_bundle": _hash_or_none(source_bundle, "source_bundle"), "ce_package": _hash_or_none(ce_package, "ce_package"), "builder_context_package": _hash_or_none(builder_context_package, "builder_context_package"), "external_contract_lock": {"algorithm": "sha256", "canonicalization": CANONICAL_JSON_VERSION, "scope": "external_contract_lock", "value": canonical_sha256(config.lock)}},
+        "execution_records": execution_records,
+        "provenance": {"producer_repository": PG_REPO, "source_bundle_id": source_bundle.get("bundle_id") if isinstance(source_bundle, dict) else None, "transition_id": TRANSITION_ID, "verification_state": "live_owner_tools_required"},
+        "output": builder_context_package if status == "accepted" else None,
+    }
+    _validate_transition_result(result, config.schema_root)
+    return result
+
+
+def _validate_transition_result(result: dict[str, Any], schema_root: Path) -> None:
+    schema = load_json_file(schema_root / "ce-to-builder-transition-result" / "ce-to-builder-transition-result.v1.schema.json")
+    errors = sorted(Draft202012Validator(schema).iter_errors(result), key=lambda e: (_json_path(list(e.path)), e.message))
+    if errors:
+        raise ResultValidationError("; ".join(f"{_json_path(list(err.path))}: {err.message}" for err in errors))
+
+
+def _hash_or_none(value: Any, scope: str) -> dict[str, str] | None:
+    if value is None:
+        return None
+    try:
+        return {"algorithm": "sha256", "canonicalization": CANONICAL_JSON_VERSION, "scope": scope, "value": canonical_sha256(value)}
+    except CanonicalJsonError:
+        return None
+
+
+def _import_diags(items: list[dict[str, Any]]) -> list[Diagnostic]:
+    return [diagnostic(str(item.get("code", "SCHEMA_VALIDATION_FAILED")), str(item.get("severity", "error")), str(item.get("message", "Imported Project Gate diagnostic.")), str(item.get("path", "$")), **(item.get("details") if isinstance(item.get("details"), dict) else {})) for item in items]
+
+
+def _has_error(items: list[Diagnostic]) -> bool:
+    return any(item.severity == "error" for item in items)
+
+
+def _has_insufficient(items: list[Diagnostic]) -> bool:
+    return any(item.severity == "insufficient_evidence" for item in items)
+
+
+def _has_blocking(items: list[Diagnostic]) -> bool:
+    return _has_error(items) or _has_insufficient(items)
+
+
+def _has_forbidden_claim(ce_package: dict[str, Any] | None, builder_context_package: dict[str, Any] | None) -> bool:
+    forbidden_keys = {"production_ready", "builder_runtime_authorized", "production_ready_allowed"}
+
+    def scan(value: Any) -> bool:
+        if isinstance(value, dict):
+            return any((key in forbidden_keys and item is True) or scan(item) for key, item in value.items())
+        if isinstance(value, list):
+            return any(scan(item) for item in value)
+        return False
+
+    return scan(ce_package) or scan(builder_context_package)
+
+
+def _json_path(parts: list[Any]) -> str:
+    out = "$"
+    for part in parts:
+        out += f"[{part}]" if isinstance(part, int) else f".{part}"
+    return out
