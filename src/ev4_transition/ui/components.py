@@ -24,16 +24,16 @@ def status_summary_markdown(result: dict[str, Any]) -> str:
     presentation = presentation_for_status(status)
     meaning = STATUS_MEANINGS_FA[status]
     next_action = STATUS_NEXT_ACTION_FA[status]
-    raw_status = str(result.get("status", status))
+    original_status = str(result.get("status", status))
+    status_line = f"/ status: {markdown_code_ltr(status)} / semantic tone: {markdown_code_ltr(presentation.tone)}"
+    if original_status != status:
+        status_line += f" / engine status: {markdown_code_ltr(original_status)}"
 
     return "\n".join(
         [
             '<section lang="fa" dir="rtl">',
             "### نتیجه بررسی",
-            (
-                f"<p>{presentation.icon} <strong>وضعیت: {escape(presentation.persian_label)}</strong> "
-                f"/ status: {markdown_code_ltr(raw_status)} / semantic tone: {markdown_code_ltr(presentation.tone)}</p>"
-            ),
+            f"<p>{presentation.icon} <strong>وضعیت: {escape(presentation.persian_label)}</strong> {status_line}</p>",
             f"<p><strong>معنی:</strong> {escape(meaning)}</p>",
             f"<p><strong>اقدام بعدی:</strong> {escape(next_action)}</p>",
             (
@@ -129,6 +129,6 @@ def capability_rows_from_payload(payload: dict[str, Any]) -> list[list[str]]:
             ltr_token("not a public CLI transition"),
             ltr_token(ui.get("status", "unknown")),
             ltr_token("local operator panel"),
-            "این ردیف فقط وضعیت پنل محلی را توضیح می‌دهد و فایل capability را تغییر نمی‌دهد.",
+            "این ردیف فقط وضعیت پنل محلی را توضیح می‌دهد و capability inspector در زمان اجرا فایل را تغییر نمی‌دهد.",
         ],
     ]
