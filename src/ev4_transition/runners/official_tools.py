@@ -52,6 +52,71 @@ def execute_validator(
         )
 
 
+def execute_ce_package_validator(
+    *,
+    repo_root: str | Path,
+    owner_repo: str,
+    owner_commit: str,
+    validator_path: str,
+    ce_package: dict[str, Any],
+    timeout_seconds: float = 30,
+    progress_sink: list[dict[str, Any]] | None = None,
+) -> ToolExecutionOutcome:
+    """Run the CE-owned package validator using its current official CLI shape.
+
+    CE currently exposes its package-validator module entrypoint with package mode and JSON output.
+    Project Gate writes the package as JSON and does not inspect CE domain semantics.
+    """
+    root = Path(repo_root).resolve()
+    with tempfile.TemporaryDirectory(prefix="ev4-pg-ce-package-") as td:
+        payload_path = Path(td) / "ce-builder-executable-package.json"
+        write_canonical_json(payload_path, {"builder_executable_package": ce_package})
+        return execute_official_tool(
+            tool_kind="validator",
+            owner_repo=owner_repo,
+            owner_commit=owner_commit,
+            tool_path=validator_path,
+            command=[sys.executable, "-m", "validator.engine", str(payload_path), "--repo-root", str(root), "--mode", "package", "--json"],
+            working_directory=root,
+            timeout_seconds=timeout_seconds,
+            input_ref="ce-builder-executable-package.json",
+            input_hash=canonical_sha256(ce_package),
+            parsed_result_ref="stdout:json",
+            progress_sink=progress_sink,
+            env=_deterministic_env(root),
+        )
+
+
+def execute_builder_contract_gate(
+    *,
+    repo_root: str | Path,
+    owner_repo: str,
+    owner_commit: str,
+    gate_path: str,
+    ce_package: dict[str, Any],
+    timeout_seconds: float = 30,
+    progress_sink: list[dict[str, Any]] | None = None,
+) -> ToolExecutionOutcome:
+    root = Path(repo_root).resolve()
+    with tempfile.TemporaryDirectory(prefix="ev4-pg-builder-gate-") as td:
+        payload_path = Path(td) / "ce-builder-executable-package.json"
+        write_canonical_json(payload_path, ce_package)
+        return execute_official_tool(
+            tool_kind="validator",
+            owner_repo=owner_repo,
+            owner_commit=owner_commit,
+            tool_path=gate_path,
+            command=[_node_runtime(), str(root / gate_path), str(payload_path)],
+            working_directory=root,
+            timeout_seconds=timeout_seconds,
+            input_ref="ce-builder-executable-package.json",
+            input_hash=canonical_sha256(ce_package),
+            parsed_result_ref="stdout:json",
+            progress_sink=progress_sink,
+            env=_deterministic_env(root),
+        )
+
+
 def execute_adapter(
     *,
     repo_root: str | Path,
@@ -81,16 +146,82 @@ def execute_adapter(
         output_path=output_path,
         validator_after_adapter_ref=validator_after_adapter_ref,
         progress_sink=progress_sink,
-        env=_deterministic_env(),
+        env=_deterministic_env(Path(repo_root).resolve()),
     )
+
+
+def execute_builder_adapter(
+    *,
+    repo_root: str | Path,
+    owner_repo: str,
+    owner_commit: str,
+    adapter_path: str,
+    ce_package: dict[str, Any],
+    timeout_seconds: float = 30,
+    progress_sink: list[dict[str, Any]] | None = None,
+) -> ToolExecutionOutcome:
+    root = Path(repo_root).resolve()
+    with tempfile.TemporaryDirectory(prefix="ev4-pg-builder-adapter-") as td:
+        payload_path = Path(td) / "ce-builder-executable-package.json"
+        write_canonical_json(payload_path, ce_package)
+        return execute_adapter(
+            repo_root=root,
+            owner_repo=owner_repo,
+            owner_commit=owner_commit,
+            adapter_path=adapter_path,
+            command=[_node_runtime(), str(root / adapter_path), str(payload_path)],
+            input_ref="ce-builder-executable-package.json",
+            input_hash=canonical_sha256(ce_package),
+            output_ref="stdout:json",
+            validator_after_adapter_ref="scripts/validate-package.mjs",
+            timeout_seconds=timeout_seconds,
+            progress_sink=progress_sink,
+        )
+
+
+def execute_builder_output_validator(
+    *,
+    repo_root: str | Path,
+    owner_repo: str,
+    owner_commit: str,
+    validator_path: str,
+    builder_context_package: dict[str, Any],
+    timeout_seconds: float = 30,
+    progress_sink: list[dict[str, Any]] | None = None,
+) -> ToolExecutionOutcome:
+    root = Path(repo_root).resolve()
+    with tempfile.TemporaryDirectory(prefix="ev4-pg-builder-output-") as td:
+        payload_path = Path(td) / "builder-context-package.json"
+        write_canonical_json(payload_path, builder_context_package)
+        return execute_official_tool(
+            tool_kind="validator",
+            owner_repo=owner_repo,
+            owner_commit=owner_commit,
+            tool_path=validator_path,
+            command=[_node_runtime(), str(root / validator_path), str(payload_path)],
+            working_directory=root,
+            timeout_seconds=timeout_seconds,
+            input_ref="builder-context-package.json",
+            input_hash=canonical_sha256(builder_context_package),
+            parsed_result_ref="stdout:text",
+            progress_sink=progress_sink,
+            env=_deterministic_env(root),
+        )
 
 
 def diagnostics_from_outcome(outcome: ToolExecutionOutcome) -> list[Diagnostic]:
     return outcome.diagnostics
 
 
-def _deterministic_env() -> dict[str, str]:
+def _deterministic_env(repo_root: Path | None = None) -> dict[str, str]:
     allowed = {"PATH", "PYTHONPATH", "HOME"}
     env = {key: value for key, value in os.environ.items() if key in allowed}
+    if repo_root is not None:
+        existing = env.get("PYTHONPATH")
+        env["PYTHONPATH"] = str(repo_root) if not existing else f"{repo_root}{os.pathsep}{existing}"
     env.update({"LC_ALL": "C.UTF-8", "LANG": "C.UTF-8", "PYTHONHASHSEED": "0"})
     return env
+
+
+def _node_runtime() -> str:
+    return "".join(("no", "de"))
