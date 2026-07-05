@@ -226,6 +226,25 @@ jobs:
           EV4_CE_REPO: ${{ github.workspace }}/EV4-Constructability-Engineer-Repo
         run: python scripts/verify-architect-to-ce-lock.py --architect-repo "$EV4_ARCHITECT_REPO" --ce-repo "$EV4_CE_REPO"
 
+      - name: Compute CE-to-Builder lock hashes
+        working-directory: EV4-Project-Gate
+        env:
+          EV4_CE_REPO_PROMPT04: ${{ github.workspace }}/EV4-Constructability-Engineer-Repo-Prompt04
+          EV4_BUILDER_REPO_PROMPT04: ${{ github.workspace }}/EV4-Builder-Assistant-Repo-Prompt04
+        run: |
+          python scripts/compute-ce-to-builder-lock.py \
+            --ce-repo "$EV4_CE_REPO_PROMPT04" \
+            --builder-repo "$EV4_BUILDER_REPO_PROMPT04" \
+            --output c2b-lock-computed.json
+
+      - name: Upload CE-to-Builder computed lock
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: c2b-lock-computed
+          path: EV4-Project-Gate/c2b-lock-computed.json
+          if-no-files-found: ignore
+
       - name: CE-to-Builder lock verification
         working-directory: EV4-Project-Gate
         env:
