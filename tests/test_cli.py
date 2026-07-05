@@ -52,10 +52,27 @@ def test_cli_persian_insufficient_evidence_output():
     assert "شواهد کافی نیست" in completed.stdout
 
 
-def test_cli_inspect_json():
+def test_cli_inspect_reports_layered_ce_to_builder_truth():
     completed = run_cli("inspect")
     assert completed.returncode == 0
     payload = json.loads(completed.stdout)
     assert "stage_bundle_validation" in payload["implemented"]
     assert "architect-to-ce transition" in payload["implemented"]
-    assert "ce-to-builder transition" in payload["not_implemented"]
+    ce_to_builder = payload["capabilities"]["ce_to_builder"]
+    assert ce_to_builder == {
+        "orchestration_baseline": "implemented",
+        "cli_exposure": "not_implemented",
+        "owner_fixture_integration": "verified",
+        "real_non_synthetic_handoff": "insufficient_evidence",
+    }
+    assert "ce-to-builder transition" not in payload["not_implemented"]
+    assert "ce-to-builder public CLI exposure" in payload["not_implemented"]
+    assert "ce-to-builder" not in payload["public_cli_transitions"]
+
+
+def test_cli_inspect_does_not_overclaim_real_ce_to_builder_handoff():
+    completed = run_cli("inspect")
+    assert completed.returncode == 0
+    payload = json.loads(completed.stdout)
+    assert payload["capabilities"]["ce_to_builder"]["real_non_synthetic_handoff"] == "insufficient_evidence"
+    assert payload["evidence"]["current_main_head_ci"]["status"] == "insufficient_evidence"
