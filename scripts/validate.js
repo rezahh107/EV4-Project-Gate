@@ -18,6 +18,8 @@ const requiredFiles = [
   'scripts/README.md',
   'scripts/update-status-after-merge.js',
   'scripts/check-github-action-pinning.py',
+  'scripts/check-capability-truth.py',
+  'scripts/check-workflow-permissions.py',
   'src/ev4_transition/data/capability-status.v1.json',
   '.github/workflows/status-after-merge.yml'
 ];
@@ -96,14 +98,19 @@ if (syntaxCheck.status !== 0) {
 }
 
 const pythonCmd = process.platform === 'win32' ? 'python' : 'python3';
-const pinCheck = spawnSync(pythonCmd, ['scripts/check-github-action-pinning.py'], {
-  encoding: 'utf8'
-});
+const pythonChecks = [
+  'scripts/check-capability-truth.py',
+  'scripts/check-workflow-permissions.py',
+  'scripts/check-github-action-pinning.py'
+];
 
-if (pinCheck.status !== 0) {
-  process.stderr.write(pinCheck.stderr || pinCheck.stdout);
-  process.exit(pinCheck.status || 1);
+for (const script of pythonChecks) {
+  const completed = spawnSync(pythonCmd, [script], { encoding: 'utf8' });
+  if (completed.status !== 0) {
+    process.stderr.write(completed.stderr || completed.stdout);
+    process.exit(completed.status || 1);
+  }
+  process.stdout.write(completed.stdout);
 }
 
-process.stdout.write(pinCheck.stdout);
-console.log('Project Gate capability truth, historical ledger automation, and workflow action pins are valid.');
+console.log('Project Gate capability truth, workflow permissions, historical ledger automation, and workflow action pins are valid.');
