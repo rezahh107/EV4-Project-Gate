@@ -1,9 +1,6 @@
 name: Bootstrap Prompt 05 Repair
 
 on:
-  push:
-    branches:
-      - fix/prompt-05-foundation-reconciliation
   pull_request:
     branches:
       - main
@@ -21,7 +18,7 @@ jobs:
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
         with:
           fetch-depth: 0
-          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          ref: ${{ github.event.pull_request.head.sha }}
 
       - name: Restore merged PR21 foundation content
         run: |
@@ -126,6 +123,7 @@ jobs:
       - name: Commit non-circular Builder to Responsive foundation
         id: stage1
         run: |
+          rm -rf .owner
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add -A
@@ -138,8 +136,12 @@ jobs:
           python scripts/bootstrap-prompt05-repair.py --finalize-commit "${{ steps.stage1.outputs.sha }}"
           python scripts/compute-final-gate-lock.py \
             --project-gate-repo . \
-            --responsive-repo .owner/EV4-Responsive-Architect \
+            --responsive-repo "$RUNNER_TEMP/EV4-Responsive-Architect" \
             --output contracts/locks/final-gate.v1.lock.json
+
+      - name: Restore pinned Responsive checkout for final lock
+        if: false
+        run: echo not-used
 
       - name: Remove bootstrap surfaces
         run: rm scripts/bootstrap-prompt05-repair.py .github/workflows/bootstrap-prompt05-repair.yml .github/workflows/diagnose-prompt05-cli.yml
