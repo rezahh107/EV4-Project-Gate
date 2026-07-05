@@ -1,0 +1,42 @@
+name: Prompt 06 Report UX
+
+on:
+  pull_request:
+  push:
+    branches:
+      - project-gate-prompt-06-ux
+
+jobs:
+  report-ux:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+
+      - name: Setup Python
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
+        with:
+          python-version: '3.11'
+
+      - name: Install package
+        run: python -m pip install -e '.[dev]'
+
+      - name: Report UX acceptance tests
+        run: pytest tests/ux_acceptance
+
+      - name: Typography acceptance tests
+        run: pytest tests/typography_acceptance
+
+      - name: Theme acceptance tests
+        run: pytest tests/theme_acceptance
+
+      - name: Reporting tests
+        run: pytest tests/reporting
+
+      - name: Atomic writer tests
+        run: pytest tests/reporting/test_output_writer.py
+
+      - name: Behavioral coverage validator
+        run: |
+          python scripts/validate-behavioral-rule-coverage.py docs/BEHAVIORAL_RULE_COVERAGE.md
+          ev4-transition coverage validate docs/BEHAVIORAL_RULE_COVERAGE.md
