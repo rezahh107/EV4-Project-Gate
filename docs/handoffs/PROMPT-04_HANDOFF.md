@@ -42,7 +42,7 @@ latest_green_ci_evidence_before_final_docs_refresh:
     Official CE validator fixture suite: success
   note: Documentation-only refresh commits after this green run may trigger newer runs; verify latest PR head before merge.
 
-commit_ledger_note: Full continuation commit history is available in PR #20. Key green-evidence code head is 87a4a84640c999cee049a0d40865c25efabeafb0; latest handoff-only refresh commit before final response is 870cf9b3d10965685f12f07f47688752bf949ea4.
+commit_ledger_note: Full continuation commit history is available in PR #20. Key green-evidence code head is 87a4a84640c999cee049a0d40865c25efabeafb0; latest handoff-only refresh commit before final response is fe4a157d9962507d545a7f55899146899eff4596.
 
 files_changed_relevant_to_continuation:
   - .github/workflows/validate.yml
