@@ -5,7 +5,7 @@ prompt_id: PROMPT-06
 branch: project-gate-prompt-06-ux
 pull_request: 24
 base_branch: main
-latest_head_sha_recorded: 5436edcace1e1908e4fdc8528868ddba41cbd04a
+latest_head_sha_recorded: dbdab5239085aadf015ec4ec8dd03606f11d712d
 review_repair_source:
   review_package: review-package.json
   original_review_status: RED_DO_NOT_MERGE
@@ -27,6 +27,7 @@ commits:
     - 17dc19f323ddae10c64cd4baf80ad56c7db96b59
     - 5b0855b4c8b8724d5a3a1c14a6d10d9bdc01e383
     - 5436edcace1e1908e4fdc8528868ddba41cbd04a
+    - dbdab5239085aadf015ec4ec8dd03606f11d712d
 files_changed:
   - .github/workflows/prompt-06.yml
   - docs/BEHAVIORAL_RULE_COVERAGE.md
@@ -49,14 +50,14 @@ files_changed:
   - tests/ux_acceptance/test_report_status_ux.py
 tests_run:
   - local limited prototype before repository writes: PYTHONPATH=src pytest -q tests/ux_acceptance tests/typography_acceptance tests/theme_acceptance tests/reporting
-  - GitHub Actions on head 5436edcace1e1908e4fdc8528868ddba41cbd04a: Prompt 06 Report UX
-  - GitHub Actions on head 5436edcace1e1908e4fdc8528868ddba41cbd04a: Prompt 05 Builder Responsive Final Gate
-  - GitHub Actions on head 5436edcace1e1908e4fdc8528868ddba41cbd04a: Skeleton Health
+  - GitHub Actions on head dbdab5239085aadf015ec4ec8dd03606f11d712d: Prompt 06 Report UX
+  - GitHub Actions on head dbdab5239085aadf015ec4ec8dd03606f11d712d: Prompt 05 Builder Responsive Final Gate
+  - GitHub Actions on head dbdab5239085aadf015ec4ec8dd03606f11d712d: Skeleton Health
 tests_passed:
   - local limited prototype before repository writes: 19 passed in 0.19s
-  - Prompt 06 Report UX run 28752323650: success
-  - Prompt 05 Builder Responsive Final Gate run 28752323655: success
-  - Skeleton Health run 28752323631: success
+  - Prompt 06 Report UX run 28752370265: success
+  - Prompt 05 Builder Responsive Final Gate run 28752370270: success
+  - Skeleton Health run 28752370274: success
 tests_failed: []
 tests_not_run:
   - full local live-checkout pytest from this environment: unavailable because github.com DNS resolution failed earlier
