@@ -62,7 +62,7 @@ sys.exit(0 if %s else 1)
     for path, marker in builder_markers.items():
         _write(builder / path, marker)
     _write(builder / "scripts/validate-ce-to-builder-contract-gate.mjs", "const ok=%s; console.log(JSON.stringify({result: ok?'pass':'fail', blocking:!ok, gate:'ce_to_builder_contract_gate'})); process.exit(ok?0:1);" % str(gate_ok).lower())
-    _write(builder / "scripts/normalize-ce-builder-executable-package.mjs", "// normalizeCeBuilderExecutablePackage\nconst ok=%s; if(!ok) process.exit(1); console.log(JSON.stringify(%s));" % (str(adapter_ok).lower(), json.dumps(_builder_package())))
+    _write(builder / "scripts/normalize-ce-builder-executable-package.mjs", "// CE_BUILDER_PACKAGE_TRANSFORM_IDS\nconst ok=%s; if(!ok) process.exit(1); console.log(JSON.stringify(%s));" % (str(adapter_ok).lower(), json.dumps(_builder_package())))
     _write(builder / "scripts/validate-package.mjs", "// validateReferenceParadigmGate\nconst ok=%s; console.log(ok?'Cross-field validation passed':'Cross-field validation failed'); process.exit(ok?0:1);" % str(output_ok).lower())
     roots = {CE_REPO: ce, BUILDER_REPO: builder}
     lock = {"schema_version": LOCK_SCHEMA_VERSION, "transition_id": TRANSITION_ID, "files": []}
