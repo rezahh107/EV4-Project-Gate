@@ -103,7 +103,7 @@ def _fsync_directory_best_effort(directory: Path) -> None:
     if os.name == "nt":
         return
     try:
-        fd = os.open(directory, os.O_RDONLY)
+        fd = _open_directory_fd(directory)
     except OSError:
         return
     try:
@@ -112,3 +112,7 @@ def _fsync_directory_best_effort(directory: Path) -> None:
         return
     finally:
         os.close(fd)
+
+
+def _open_directory_fd(directory: Path) -> int:
+    return os.open(directory, os.O_RDONLY)
