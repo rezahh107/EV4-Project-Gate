@@ -1,6 +1,6 @@
 # EV4 Transition Boundary Map
 
-Status: `PROMPT-04` continuation for PR `#20`. This map records Project Gate-owned orchestration boundaries. Specialist schemas and runtime logic remain owner-repository artifacts; Project Gate pins, hashes, validates, calls official tools, and emits diagnostics/results only.
+Status: `PROMPT-04` CE→Builder baseline is CI-evidenced on PR `#20` head `87a4a84640c999cee049a0d40865c25efabeafb0`. This map records Project Gate-owned orchestration boundaries. Specialist schemas and runtime logic remain owner-repository artifacts; Project Gate pins, hashes, validates, calls official tools, and emits diagnostics/results only.
 
 ## Status vocabulary
 
@@ -50,7 +50,7 @@ Forbidden Project Gate behavior:
 
 ```yaml
 transition_id: ev4-ce-to-builder-transition@1.0.0
-project_gate_status: implementation_in_progress_fail_closed
+project_gate_status: ci_evidenced_baseline_with_synthetic_owner_fixture_smoke
 source_repository: rezahh107/EV4-Constructability-Engineer-Repo
 source_commit: cfceec5c20269c75a1cc19b2675d7087cede4599
 consumer_repository: rezahh107/EV4-Builder-Assistant-Repo
@@ -60,9 +60,11 @@ project_gate_result_schema: schemas/ce-to-builder-transition-result/ce-to-builde
 project_gate_transition_module: src/ev4_transition/transitions/ce_to_builder.py
 ci_lock_verifier: scripts/verify-ce-to-builder-lock.py
 ci_smoke: scripts/ce-to-builder-smoke.py
+latest_checked_ci_run: 28741498875
+latest_checked_ci_head: 87a4a84640c999cee049a0d40865c25efabeafb0
 ```
 
-Current intended boundary:
+Current boundary:
 
 ```text
 CE Builder Executable Package
@@ -103,8 +105,9 @@ Project Gate must not:
 Important current limitation:
 
 ```yaml
-lock_hash_state: pending_exact_file_byte_sha256_until_CI_or_local_checkout_replaces_placeholders
-merge_state: blocked_until_CI_and_lock_verification_pass
+lock_hash_state: exact_file_byte_sha256_values_committed_from_pinned_owner_ci_checkouts
+merge_state: ci_green_but_pr_kept_draft_pending_review
+real_handoff_evidence_state: not_proven_by_PROMPT_04_smoke
 ```
 
 ## Builder → Responsive
