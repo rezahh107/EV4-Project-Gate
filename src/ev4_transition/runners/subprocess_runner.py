@@ -8,11 +8,12 @@ from typing import Any, Literal
 from ev4_transition.canonical_json import bytes_sha256, file_sha256
 from ev4_transition.progress import ProgressEvent, emit_progress_event
 
-from .failure_mapping import command_not_found, execution_failed, fallback_adapter_forbidden, map_structured_nonzero, map_zero_exit, missing_tool, timeout, unparseable_output
+from .failure_mapping import adapter_command_mismatch, command_not_found, execution_failed, fallback_adapter_forbidden, map_structured_nonzero, map_zero_exit, missing_tool, timeout, unparseable_output
 from .records import TimeoutPolicy, ToolExecutionOutcome, build_adapter_execution_record, build_validator_execution_record, repo_relative
 
 ToolKind = Literal["validator", "adapter"]
 EMPTY_SHA256 = bytes_sha256(b"")
+TRUSTED_INTERPRETER_NAMES = {"python", "python3", "node"}
 
 
 def execute_official_tool(
@@ -73,6 +74,30 @@ def execute_official_tool(
 
     if not resolved_tool.exists():
         status, diag = missing_tool(tool_kind, tool_path_ref)
+        record = _record(
+            tool_kind=tool_kind,
+            owner_repo=owner_repo,
+            owner_commit=owner_commit,
+            tool_path_ref=tool_path_ref,
+            command=command,
+            working_directory=root.name,
+            exit_code=None,
+            stdout_hash=EMPTY_SHA256,
+            stderr_hash=EMPTY_SHA256,
+            started_by=started_by,
+            timeout_policy=timeout_policy,
+            parsed_result_ref=parsed_result_ref,
+            input_ref=input_ref,
+            input_hash=input_hash,
+            output_ref=output_ref,
+            output_hash=None,
+            validator_after_adapter_ref=validator_after_adapter_ref,
+            failure_code=diag.code,
+        )
+        return ToolExecutionOutcome(status, [diag], record, None, EMPTY_SHA256, EMPTY_SHA256)
+
+    if tool_kind == "adapter" and not _command_invokes_declared_tool(command, resolved_tool):
+        status, diag = adapter_command_mismatch(tool_path_ref, command)
         record = _record(
             tool_kind=tool_kind,
             owner_repo=owner_repo,
@@ -252,3 +277,22 @@ def _partial_bytes(value: bytes | str | None) -> bytes:
 def _looks_like_fallback_adapter(adapter_path: str, command: list[str]) -> bool:
     text = " ".join([adapter_path, *command]).lower()
     return "fallback" in text
+
+
+def _command_invokes_declared_tool(command: list[str], resolved_tool: Path) -> bool:
+    if not command:
+        return False
+    expected = resolved_tool.resolve()
+    if _same_path(command[0], expected):
+        return True
+    executable = Path(command[0]).name.lower()
+    if executable in TRUSTED_INTERPRETER_NAMES or executable.startswith("python"):
+        return len(command) >= 2 and _same_path(command[1], expected)
+    return False
+
+
+def _same_path(value: str, expected: Path) -> bool:
+    try:
+        return Path(value).resolve() == expected
+    except OSError:
+        return False
