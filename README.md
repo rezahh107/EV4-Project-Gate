@@ -1,6 +1,6 @@
 # EV4 Project Gate
 
-Status: Python deterministic foundation and `ev4-architect-to-ce-transition@1.0.0` are implemented. The `ev4-ce-to-builder-transition@1.0.0` orchestration baseline is implemented and owner-fixture integration is verified; general CLI exposure is not implemented and real non-synthetic handoff evidence remains insufficient. The user interface is not implemented.
+Status: The deterministic Python foundation and the `ev4-architect-to-ce-transition@1.0.0`, `ev4-ce-to-builder-transition@1.0.0`, `ev4-builder-to-responsive-transition@1.0.0`, and `ev4-final-evidence-gate@1.0.0` orchestration baselines are implemented at their documented scopes. Only Architect → CE is exposed through the public CLI. Real non-synthetic handoff evidence remains insufficient, and the user interface is not implemented.
 
 ## Purpose
 
@@ -82,8 +82,11 @@ real_elementor_validation: not_available
 The following remain intentionally out of scope:
 
 - CE-to-Builder general public CLI exposure
+- Builder-to-Responsive general public CLI exposure
+- Final Evidence Gate general public CLI exposure
 - real non-synthetic CE-to-Builder handoff verification
-- `builder-to-responsive`
+- real non-synthetic Builder-to-Responsive handoff verification
+- real non-synthetic final evidence verification
 - CE constructability execution
 - implementation strategy selection
 - Builder authorization
@@ -91,9 +94,9 @@ The following remain intentionally out of scope:
 - UI/upload-download application
 - legacy Node retirement
 
-The CE-to-Builder orchestration baseline, result schema, lock verification, runner integration, and owner-fixture tests exist in the repository. `ev4-transition inspect` reports the layered status from `src/ev4_transition/data/capability-status.v1.json`.
+The CE-to-Builder, Builder-to-Responsive, and Final Evidence Gate orchestration baselines, result schemas, lock verification, runner integration, and scoped tests exist in the repository. `ev4-transition inspect` reports the layered status from `src/ev4_transition/data/capability-status.v1.json`.
 
-Do not claim real EV4 end-to-end compatibility from synthetic transition fixtures or owner-fixture integration.
+Do not claim real EV4 end-to-end compatibility from synthetic transition fixtures, owner-fixture integration, or pinned-owner validator execution.
 
 ## CLI
 
@@ -195,6 +198,8 @@ Python checks:
 ```bash
 python -m pip install -e '.[dev]'
 pytest
+python scripts/check-capability-truth.py
+python scripts/check-workflow-permissions.py
 ev4-transition validate fixtures/valid/architect-stage-bundle.v1.json
 ev4-transition validate fixtures/invalid/array-input.v1.json
 ev4-transition validate fixtures/insufficient-evidence/architect-stage-bundle.v1.json --format persian
@@ -217,19 +222,41 @@ npm run validate
 
 ```yaml
 repository_role: project_workflow_control_center
+capabilities:
+  architect_to_ce:
+    cli_exposure: implemented
+    orchestration_baseline: implemented
+    real_non_synthetic_handoff: insufficient_evidence
+    verification_state: synthetic_fixture_only
+  builder_to_responsive:
+    cli_exposure: not_implemented
+    official_responsive_validator_integration: implemented
+    orchestration_baseline: implemented
+    owner_contract_lock: computed_from_pinned_owner_file_bytes
+    real_non_synthetic_handoff: insufficient_evidence
+    verification_state: verified_by_exact_head_ci
+  ce_to_builder:
+    cli_exposure: not_implemented
+    orchestration_baseline: implemented
+    owner_fixture_integration: verified
+    real_non_synthetic_handoff: insufficient_evidence
+  final_evidence_gate:
+    cli_exposure: not_implemented
+    official_responsive_validator_integration: implemented
+    orchestration_baseline: implemented
+    prior_lock_chain: pinned_to_immutable_project_gate_commit
+    real_non_synthetic_evidence: insufficient_evidence
+    verification_state: verified_by_exact_head_ci
+  user_interface:
+    status: not_implemented
+public_cli_transitions:
+  - architect-to-ce
 python_deterministic_core: implemented_initial_v1
 stage_bundle_validation: implemented_initial_v1
-architect_to_ce_transition: implemented_v1_ce_intake_v1_1_synthetic_verified
-ce_to_builder:
-  orchestration_baseline: implemented
-  cli_exposure: not_implemented
-  owner_fixture_integration: verified
-  real_non_synthetic_handoff: insufficient_evidence
 structured_diagnostics: implemented_initial_v1
 canonical_json_sha256: implemented_initial_v1
 real_cross_repository_validation: not_available
 current_main_head_ci: insufficient_evidence
-user_interface: not_implemented
 canonical_schema_owner: false
 node_skeleton: preserved_temporarily
 ```
