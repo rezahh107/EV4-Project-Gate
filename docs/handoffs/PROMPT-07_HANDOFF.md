@@ -14,7 +14,8 @@ commits:
   - 531960f76f1ca0f09b948b69578dbb968e464ff6 docs: record prompt 07 PR check repair
   - f5eded165ea56021f751cb2b8bab044beed29034 docs: record prompt 07 exact-head ci success
   - eac982699cd4b10e4a04331ba12e2962e883e9c1 docs: refresh closure audit ci evidence
-  - self_reference: docs: update prompt 07 handoff ci evidence; exact commit SHA is reported in the final response after creation.
+  - 98101dbfac740d32c566d656a94922a03bf72cf4 docs: update prompt 07 handoff ci evidence
+  - self_reference: docs: replace prompt 07 handoff self reference; exact commit SHA is reported in the final response after creation.
 files_changed:
   - docs/ARCHITECTURE.md
   - docs/ROLE_BOUNDARY_MAP.md
