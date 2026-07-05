@@ -189,7 +189,17 @@ jobs:
 
       - name: CE-to-Builder transition pytest
         working-directory: EV4-Project-Gate
-        run: pytest tests/transitions/test_ce_to_builder.py
+        run: |
+          set -o pipefail
+          pytest -vv --tb=short --maxfail=1 tests/transitions/test_ce_to_builder.py 2>&1 | tee c2b-pytest.log
+
+      - name: Upload CE-to-Builder pytest log
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: c2b-pytest-log
+          path: EV4-Project-Gate/c2b-pytest.log
+          if-no-files-found: ignore
 
       - name: Progress tests
         working-directory: EV4-Project-Gate
