@@ -2,6 +2,9 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
+from typing import Callable
+
+import pytest
 
 from ev4_transition.canonical_json import bytes_sha256
 from ev4_transition.contract_source import LocalCheckoutContractSource
@@ -78,6 +81,74 @@ def _source(ce: Path, builder: Path):
 
 def _config(ce: Path, builder: Path, lock: dict, *, real=False):
     return CeToBuilderTransitionConfig(Path("schemas"), lock, ce, builder, 5, real)
+
+
+def _entry(lock: dict, role: str) -> dict:
+    return next(item for item in lock["files"] if item["role"] == role)
+
+
+def _flag_for_role(role: str) -> str:
+    dep = EXPECTED_CE_TO_BUILDER_DEPENDENCIES[role]
+    return "ce_producer_pin_hash_matches" if dep.repository == CE_REPO else "builder_consumer_pin_hash_matches"
+
+
+def _root_for_role(ce: Path, builder: Path, role: str) -> Path:
+    dep = EXPECTED_CE_TO_BUILDER_DEPENDENCIES[role]
+    return ce if dep.repository == CE_REPO else builder
+
+
+def _assert_lock_failure_marks_relevant_acceptance_false(tmp_path: Path, role: str, code: str, mutate: Callable[[Path, Path, dict], None]) -> None:
+    ce, builder, lock = _repos(tmp_path)
+    mutate(ce, builder, lock)
+    result = transition_ce_to_builder(_ce_package(), _source(ce, builder), _config(ce, builder, lock))
+    expected_repo = EXPECTED_CE_TO_BUILDER_DEPENDENCIES[role].repository
+    assert result["status"] == "invalid"
+    assert result["accepted_requires"][_flag_for_role(role)] is False
+    assert any(d["code"] == code and d["details"].get("repository") == expected_repo for d in result["diagnostics"])
+
+
+def _duplicate_role(role: str):
+    def mutate(_ce: Path, _builder: Path, lock: dict) -> None:
+        lock["files"].append(dict(_entry(lock, role)))
+    return mutate
+
+
+def _field_mismatch(role: str, field: str, value: str):
+    def mutate(_ce: Path, _builder: Path, lock: dict) -> None:
+        _entry(lock, role)[field] = value
+    return mutate
+
+
+def _hash_mismatch(role: str):
+    def mutate(_ce: Path, _builder: Path, lock: dict) -> None:
+        _entry(lock, role)["sha256_file_bytes"] = "0" * 64
+    return mutate
+
+
+def _identity_mismatch(role: str):
+    def mutate(ce: Path, builder: Path, lock: dict) -> None:
+        dep = EXPECTED_CE_TO_BUILDER_DEPENDENCIES[role]
+        replacement = b"owner file without expected identity marker"
+        (_root_for_role(ce, builder, role) / dep.path).write_bytes(replacement)
+        _entry(lock, role)["sha256_file_bytes"] = bytes_sha256(replacement)
+    return mutate
+
+
+@pytest.mark.parametrize("role", ["ce_producer_contract", "builder_input_contract"])
+@pytest.mark.parametrize(
+    ("case_name", "code", "mutator_factory"),
+    [
+        ("duplicate", "PG.C2B.LOCK_ROLE_DUPLICATE", lambda role: _duplicate_role(role)),
+        ("repository", "PG.C2B.LOCK_REPOSITORY_MISMATCH", lambda role: _field_mismatch(role, "repository", "wrong/repository")),
+        ("commit", "PG.C2B.LOCK_COMMIT_MISMATCH", lambda role: _field_mismatch(role, "accepted_commit", "a" * 40)),
+        ("path", "PG.C2B.LOCK_PATH_MISMATCH", lambda role: _field_mismatch(role, "path", "wrong/path.md")),
+        ("id", "PG.C2B.LOCK_IDENTITY_MISMATCH", lambda role: _field_mismatch(role, "contract_or_schema_id", "wrong-contract-id")),
+        ("hash", "PG.C2B.EXTERNAL_HASH_MISMATCH", lambda role: _hash_mismatch(role)),
+        ("identity", "PG.C2B.EXTERNAL_IDENTITY_MISMATCH", lambda role: _identity_mismatch(role)),
+    ],
+)
+def test_ce_to_builder_lock_failures_mark_relevant_accepted_requires_false(tmp_path, role, case_name, code, mutator_factory):
+    _assert_lock_failure_marks_relevant_acceptance_false(tmp_path, role, code, mutator_factory(role))
 
 
 def test_ce_to_builder_lock_verification_passes_with_pinned_files(tmp_path):
