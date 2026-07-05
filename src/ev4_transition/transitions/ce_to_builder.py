@@ -123,9 +123,9 @@ def transition_ce_to_builder(ce_input: Any, contract_source: ContractSource, tra
         return _result(ce_input, source_bundle, ce_package, None, diagnostics, accepted_requires, execution_records, transition_config)
     diagnostics.extend(_ce_package_identity_diagnostics(ce_package))
     accepted_requires["ce_package_identity_verified"] = not _has_error(diagnostics)
-    diagnostics.extend(_synthetic_evidence_diagnostics(source_bundle, transition_config.require_real_evidence))
-    accepted_requires["synthetic_only_evidence_not_used_as_real_evidence"] = not _has_insufficient(diagnostics)
-    accepted_requires["required_evidence_present"] = not _has_insufficient(diagnostics)
+    diagnostics.extend(_real_evidence_diagnostics(source_bundle, transition_config.require_real_evidence))
+    accepted_requires["synthetic_only_evidence_not_used_as_real_evidence"] = not any(d.code == "PG.C2B.SYNTHETIC_ONLY_EVIDENCE" for d in diagnostics)
+    accepted_requires["required_evidence_present"] = not any(d.code in {"PG.C2B.REAL_EVIDENCE_REQUIRED", "PG.C2B.SYNTHETIC_ONLY_EVIDENCE"} for d in diagnostics)
     if _has_blocking(diagnostics):
         return _result(ce_input, source_bundle, ce_package, None, diagnostics, accepted_requires, execution_records, transition_config)
     lock_diags = verify_ce_to_builder_lock(transition_config.lock, contract_source)
@@ -238,8 +238,12 @@ def _ce_package_identity_diagnostics(ce_package: dict[str, Any] | None) -> list[
     return []
 
 
-def _synthetic_evidence_diagnostics(source_bundle: dict[str, Any] | None, require_real_evidence: bool) -> list[Diagnostic]:
-    if require_real_evidence and isinstance(source_bundle, dict) and source_bundle.get("synthetic") is True:
+def _real_evidence_diagnostics(source_bundle: dict[str, Any] | None, require_real_evidence: bool) -> list[Diagnostic]:
+    if not require_real_evidence:
+        return []
+    if source_bundle is None:
+        return [diagnostic("PG.C2B.REAL_EVIDENCE_REQUIRED", "insufficient_evidence", "Raw CE package input cannot count as real CE→Builder handoff evidence; provide a non-synthetic Stage Evidence Bundle.", "$")]
+    if source_bundle.get("synthetic") is True:
         return [diagnostic("PG.C2B.SYNTHETIC_ONLY_EVIDENCE", "insufficient_evidence", "Synthetic CE fixture cannot count as real CE→Builder transition evidence.", "$.synthetic")]
     return []
 
@@ -304,12 +308,14 @@ def _has_blocking(items: list[Diagnostic]) -> bool:
 
 def _has_forbidden_claim(ce_package: dict[str, Any] | None, builder_context_package: dict[str, Any] | None) -> bool:
     forbidden_keys = {"production_ready", "builder_runtime_authorized", "production_ready_allowed"}
+
     def scan(value: Any) -> bool:
         if isinstance(value, dict):
             return any((key in forbidden_keys and item is True) or scan(item) for key, item in value.items())
         if isinstance(value, list):
             return any(scan(item) for item in value)
         return False
+
     return scan(ce_package) or scan(builder_context_package)
 
 
