@@ -1,55 +1,64 @@
-prompt_id: PROMPT-05
-branch: project-gate-prompt-05-builder-responsive-final-gate
-status: draft_pr_baseline_pending_ci
-main_head_at_start: dca39ed177d5660d96df04a05fff0a0314c6c339
+schema_version: ev4-project-gate-implementation-status.v1
+updated_at: 2026-07-05
+status_authority: active_capability_truth
+capability_truth_source: src/ev4_transition/data/capability-status.v1.json
+historical_merge_ledger: docs/EV4_SHARED_CONTRACTS_STATUS.md
 
-implemented:
-  builder_to_responsive_transition:
-    module: src/ev4_transition/transitions/builder_to_responsive.py
-    result_schema: schemas/builder-to-responsive-transition-result/builder-to-responsive-transition-result.v1.schema.json
-    lock: contracts/locks/builder-to-responsive-transition.v1.lock.json
-    status: fail_closed_baseline
+repository:
+  name: rezahh107/EV4-Project-Gate
+  default_branch: main
+  audited_main_head: dca39ed177d5660d96df04a05fff0a0314c6c339
+  current_main_head_ci:
+    status: insufficient_evidence
+    reason: no_visible_workflow_run_for_exact_automatic_post_merge_head
+  pull_request_20:
+    state: merged
+    head_sha: 42bfa484481c585f589d86c40424660c70b038a0
+    merge_commit_sha: 34b08240ad4deaf017a8f79236d0b8e214530dec
+    workflow_run_id: 28744810186
+    workflow_result: success
+
+capabilities:
+  architect_to_ce:
+    orchestration_baseline: implemented
+    cli_exposure: implemented
+    verification_state: synthetic_fixture_only
+    real_non_synthetic_handoff: insufficient_evidence
+  ce_to_builder:
+    transition_id: ev4-ce-to-builder-transition@1.0.0
+    orchestration_baseline: implemented
+    cli_exposure: not_implemented
+    owner_fixture_integration: verified
+    real_non_synthetic_handoff: insufficient_evidence
+    source_repository: rezahh107/EV4-Constructability-Engineer-Repo
+    source_commit: cfceec5c20269c75a1cc19b2675d7087cede4599
+    consumer_repository: rezahh107/EV4-Builder-Assistant-Repo
+    consumer_commit: 69a2c61edf6d06b4418ad770fcefbfdffcf275d6
+    result_schema: schemas/ce-to-builder-transition-result/ce-to-builder-transition-result.v1.schema.json
+    lock_manifest: contracts/locks/ce-to-builder-transition.v1.lock.json
+  builder_to_responsive:
+    orchestration_baseline: not_implemented
+    cli_exposure: not_implemented
   final_evidence_gate:
-    module: src/ev4_transition/transitions/final_gate.py
-    result_schema: schemas/final-gate-result/final-gate-result.v1.schema.json
-    lock: contracts/locks/final-gate.v1.lock.json
-    status: fail_closed_baseline
-  runner_progress_import_fix:
-    file: src/ev4_transition/progress.py
-    reason: current runner imports ev4_transition.progress
+    orchestration_baseline: not_implemented
+    cli_exposure: not_implemented
+  user_interface:
+    status: not_implemented
 
-verified_live_owner_boundary_samples:
-  builder:
-    repository: rezahh107/EV4-Builder-Assistant-Repo
-    observed_file: docs/BUILDER_TO_RESPONSIVE_HANDOFF_BOUNDARY.md
-    observed_blob_sha: ab84b50ffacc2e73e398a8da9c9a861fb9c473b7
-  responsive:
-    repository: rezahh107/EV4-Responsive-Architect
-    observed_schema: schemas/ev4-builder-responsive-input.schema.json
-    observed_schema_blob_sha: 98dcdec4d06b083ce4e360bf24cca3b58e6af597
-    observed_validator: validation/e2e/run_builder_responsive_input_boundary_check.py
-    observed_validator_blob_sha: bcacaf4c991f30c628eb022a4f4575caefff4fdd
-
-lock_state:
-  builder_to_responsive: placeholder_not_refreshed_from_owner_checkouts
-  final_gate: placeholder_not_refreshed_from_owner_checkouts
-  accepted_live_verification: blocked_until_exact_hash_refresh
-
-tests_declared:
-  - tests/transitions/test_builder_to_responsive.py
-  - tests/transitions/test_final_gate.py
-  - tests/fixture_matrix/builder_to_responsive
-
-ci:
-  local_sandbox_py_compile: passed_for_new_python_files
-  local_sandbox_json_parse: passed_for_new_json_files
-  local_sandbox_pytest: not_claimed_full_repo_unavailable
-  branch_ci: pending_after_draft_pr
+verification:
+  ce_to_builder_owner_fixture_integration:
+    state: verified
+    evidence_type: pinned_owner_fixture_integration
+    workflow_run_id: 28744810186
+    workflow_head_sha: 42bfa484481c585f589d86c40424660c70b038a0
+    scope_limit: not_real_non_synthetic_handoff
+  behavioral_coverage:
+    PG-C2B-001: validator_backed
+    PG-C2B-002: validator_backed
+    PG-DOWNSTREAM-001: fixture_tested
 
 remaining_insufficient_evidence:
-  - prompt_05_exact_owner_file_byte_hash_refresh
-  - prompt_05_branch_ci_green_on_latest_head
+  - exact_current_main_head_ci_result
   - real_non_synthetic_CE_to_Builder_transition_evidence
-  - real_Builder_execution_evidence_bundle
-  - real_Responsive_output_evidence_bundle
-  - downstream_rejection_evidence_not_claimed
+  - Builder_to_Responsive_Project_Gate_transition
+  - final_evidence_gate
