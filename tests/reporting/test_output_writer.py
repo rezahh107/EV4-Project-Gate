@@ -35,7 +35,7 @@ def test_directory_fsync_error_after_replace_is_best_effort(tmp_path, monkeypatc
     real_fsync = os.fsync
     real_close = os.close
 
-    monkeypatch.setattr(atomic_writer.os, "open", lambda *_args, **_kwargs: sentinel_directory_fd)
+    monkeypatch.setattr(atomic_writer, "_open_directory_fd", lambda _directory: sentinel_directory_fd)
 
     def fsync_or_raise(fd):
         if fd == sentinel_directory_fd:
