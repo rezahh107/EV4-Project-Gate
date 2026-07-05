@@ -46,7 +46,7 @@ def atomic_write_bytes(final_path: str | Path, content: bytes, *, validate: Vali
         if validate is not None:
             validate(tmp_path)
         os.replace(tmp_path, destination)
-        _fsync_directory(destination.parent)
+        _fsync_directory_best_effort(destination.parent)
         if not destination.exists():
             raise AtomicWriteError(f"Atomic write finished but final path does not exist: {destination}")
         return AtomicWriteResult(
@@ -99,7 +99,7 @@ def try_atomic_write_text(final_path: str | Path, content: str, *, validate: Val
         )
 
 
-def _fsync_directory(directory: Path) -> None:
+def _fsync_directory_best_effort(directory: Path) -> None:
     if os.name == "nt":
         return
     try:
@@ -108,5 +108,7 @@ def _fsync_directory(directory: Path) -> None:
         return
     try:
         os.fsync(fd)
+    except OSError:
+        return
     finally:
         os.close(fd)
