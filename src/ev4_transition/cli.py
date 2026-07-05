@@ -9,8 +9,8 @@ from .architect_to_ce import TransitionValidatorHooks, transition_from_local_pat
 from .behavioral_coverage import CoverageSourceError, inspect_coverage_source, validate_coverage_source
 from .bundle_validator import BundleValidator, ResultValidationError
 from .canonical_json import canonical_dumps, load_json_file
-from .diagnostics import persian_summary
 from .presentation.status_mapping import exit_code_for_status
+from .reports import render_plain_summary
 from .validator_runner import run_architect_validator, run_ce_validator
 
 _CAPABILITY_STATUS_PATH = Path(__file__).resolve().parent / "data" / "capability-status.v1.json"
@@ -139,7 +139,7 @@ def _exit_for_status(status: str) -> int:
 def _emit(payload: dict[str, Any], fmt: str) -> None:
     if fmt == "persian":
         if "status" in payload:
-            print(persian_summary(payload["status"]))
+            print(render_plain_summary(payload), end="")
         else:
             print("هسته قطعی و Architect → CE در CLI فعال‌اند؛ خط مبنای orchestration برای CE → Builder پیاده‌سازی شده، اما CLI عمومی و شواهد handoff واقعی آن هنوز موجود نیست.")
         return
