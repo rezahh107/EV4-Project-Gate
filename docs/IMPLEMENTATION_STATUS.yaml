@@ -1,83 +1,64 @@
-prompt_id: PROMPT-04
-status: ce_to_builder_repository_aware_lock_patch_pending_ci
+schema_version: ev4-project-gate-implementation-status.v1
 updated_at: 2026-07-05
-scope: continue_PR_20_after_PR_Inspector_YELLOW_HANDOFF
-
-capability_handshake:
-  github_read: AVAILABLE
-  github_write: AVAILABLE
-  branch: project-gate-prompt-04-ce-to-builder
-  pull_request: 20
-  codex: UNKNOWN
-  local_test_runner: UNAVAILABLE_FOR_REPO_CHECKOUT
-  github_actions_status: PENDING_AFTER_REPOSITORY_AWARE_LOCK_PATCH
-  external_owner_checkout_in_ci: PENDING_AFTER_REPOSITORY_AWARE_LOCK_PATCH
+status_authority: active_capability_truth
+capability_truth_source: src/ev4_transition/data/capability-status.v1.json
+historical_merge_ledger: docs/EV4_SHARED_CONTRACTS_STATUS.md
 
 repository:
   name: rezahh107/EV4-Project-Gate
   default_branch: main
-  direct_commit_to_main: false
-  pr_draft: true
-  merged_to_main: false
+  audited_main_head: dca39ed177d5660d96df04a05fff0a0314c6c339
+  current_main_head_ci:
+    status: insufficient_evidence
+    reason: no_visible_workflow_run_for_exact_automatic_post_merge_head
+  pull_request_20:
+    state: merged
+    head_sha: 42bfa484481c585f589d86c40424660c70b038a0
+    merge_commit_sha: 34b08240ad4deaf017a8f79236d0b8e214530dec
+    workflow_run_id: 28744810186
+    workflow_result: success
 
-implementation_summary:
-  python_package: implemented_initial_v1
-  package_path: src/ev4_transition
-  package_generation:
-    architect_to_ce: implemented_synthetic_verified
-    ce_to_builder: repository_aware_lock_patch_pending_ci
-    builder_to_responsive: not_implemented
-    final_evidence_gate: not_implemented
-
-active_transitions:
+capabilities:
+  architect_to_ce:
+    orchestration_baseline: implemented
+    cli_exposure: implemented
+    verification_state: synthetic_fixture_only
+    real_non_synthetic_handoff: insufficient_evidence
   ce_to_builder:
     transition_id: ev4-ce-to-builder-transition@1.0.0
-    status: repository_aware_lock_patch_pending_ci
+    orchestration_baseline: implemented
+    cli_exposure: not_implemented
+    owner_fixture_integration: verified
+    real_non_synthetic_handoff: insufficient_evidence
     source_repository: rezahh107/EV4-Constructability-Engineer-Repo
     source_commit: cfceec5c20269c75a1cc19b2675d7087cede4599
     consumer_repository: rezahh107/EV4-Builder-Assistant-Repo
     consumer_commit: 69a2c61edf6d06b4418ad770fcefbfdffcf275d6
     result_schema: schemas/ce-to-builder-transition-result/ce-to-builder-transition-result.v1.schema.json
     lock_manifest: contracts/locks/ce-to-builder-transition.v1.lock.json
-    followup_fixes:
-      immutable_action_sha_pinning: applied
-      action_pinning_static_guard: applied
-      raw_no_source_real_evidence_fail_closed: applied
-      raw_no_source_negative_test: applied
-      handoff_coverage_status_consistency: applied
-      repository_aware_lock_diagnostics: applied
-      accepted_requires_lock_mismatch_matrix_tests: applied
-    behavioral_coverage_status:
-      PG-C2B-001: validator_backed
-      PG-C2B-002: validator_backed
-      PG-DOWNSTREAM-001: fixture_tested
-    acceptance_state: integration_smoke_only_not_real_handoff_evidence
+  builder_to_responsive:
+    orchestration_baseline: not_implemented
+    cli_exposure: not_implemented
+  final_evidence_gate:
+    orchestration_baseline: not_implemented
+    cli_exposure: not_implemented
+  user_interface:
+    status: not_implemented
 
-ci_baseline:
-  workflow: .github/workflows/validate.yml
-  historical_green_before_repository_aware_patch:
-    head_sha: d613dd21d644b18fad6eb869b7c229b4567e4ffa
-    run_id: 28743697368
-    result: success
-  current_repository_aware_patch:
-    status: pending_ci_on_latest_pr_head
-    note: Verify current PR head and GitHub Actions result after this status update before merge.
-
-critical_or_high_gaps:
-  - id: GAP-C2B-REAL-EVIDENCE
-    severity: high
-    description: Live owner smoke uses an owner fixture and is integration evidence only; it is not a real non-synthetic CE handoff package.
-  - id: GAP-BUILDER-RESPONSIVE-PG
-    severity: critical
-    description: Builder-to-Responsive Project Gate transition remains not implemented.
-  - id: GAP-FINAL-EVIDENCE
-    severity: critical
-    description: Final evidence gate remains not implemented.
+verification:
+  ce_to_builder_owner_fixture_integration:
+    state: verified
+    evidence_type: pinned_owner_fixture_integration
+    workflow_run_id: 28744810186
+    workflow_head_sha: 42bfa484481c585f589d86c40424660c70b038a0
+    scope_limit: not_real_non_synthetic_handoff
+  behavioral_coverage:
+    PG-C2B-001: validator_backed
+    PG-C2B-002: validator_backed
+    PG-DOWNSTREAM-001: fixture_tested
 
 remaining_insufficient_evidence:
-  - post_repository_aware_patch_green_ci_on_latest_head
+  - exact_current_main_head_ci_result
   - real_non_synthetic_CE_to_Builder_transition_evidence
   - Builder_to_Responsive_Project_Gate_transition
   - final_evidence_gate
-
-next_allowed_prompt: verify_CI_and_PR_Inspector_review_on_latest_head
