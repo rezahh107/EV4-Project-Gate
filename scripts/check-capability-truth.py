@@ -3,7 +3,6 @@ from __future__ import annotations
 
 import argparse
 import json
-import re
 from pathlib import Path
 from typing import Any
 
@@ -12,10 +11,9 @@ import yaml
 CAPABILITY_PATH = Path("src/ev4_transition/data/capability-status.v1.json")
 IMPLEMENTATION_STATUS_PATH = Path("docs/IMPLEMENTATION_STATUS.yaml")
 ACTIVE_STATUS_DOCS = (Path("README.md"), Path("AGENTS.md"))
-CURRENT_STATUS_RE = re.compile(
-    r"^## Current Status\s*$.*?^```yaml\s*$\n(?P<yaml>.*?)^```\s*$",
-    re.MULTILINE | re.DOTALL,
-)
+CURRENT_STATUS_HEADING = "## Current Status"
+YAML_FENCE = "```yaml"
+CLOSING_FENCE = "```"
 
 
 def _load_json(path: Path) -> dict[str, Any]:
@@ -33,11 +31,27 @@ def _load_yaml(path: Path) -> dict[str, Any]:
 
 
 def _load_current_status(path: Path) -> dict[str, Any]:
-    text = path.read_text(encoding="utf-8")
-    match = CURRENT_STATUS_RE.search(text)
-    if match is None:
-        raise ValueError(f"{path}: missing '## Current Status' YAML block")
-    value = yaml.safe_load(match.group("yaml"))
+    lines = path.read_text(encoding="utf-8").splitlines()
+    try:
+        heading_index = lines.index(CURRENT_STATUS_HEADING)
+    except ValueError as exc:
+        raise ValueError(f"{path}: missing {CURRENT_STATUS_HEADING!r} heading") from exc
+
+    fence_index = next(
+        (index for index in range(heading_index + 1, len(lines)) if lines[index] == YAML_FENCE),
+        None,
+    )
+    if fence_index is None:
+        raise ValueError(f"{path}: missing YAML fence after {CURRENT_STATUS_HEADING!r}")
+
+    closing_index = next(
+        (index for index in range(fence_index + 1, len(lines)) if lines[index] == CLOSING_FENCE),
+        None,
+    )
+    if closing_index is None:
+        raise ValueError(f"{path}: missing closing fence for Current Status YAML")
+
+    value = yaml.safe_load("\n".join(lines[fence_index + 1 : closing_index]))
     if not isinstance(value, dict):
         raise ValueError(f"{path}: Current Status YAML must be a mapping")
     return value
