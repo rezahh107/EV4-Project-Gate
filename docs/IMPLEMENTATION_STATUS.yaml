@@ -1,7 +1,7 @@
 prompt_id: PROMPT-04
-status: ce_to_builder_followup_fixes_ci_evidenced_pr_draft
+status: ce_to_builder_repository_aware_lock_patch_pending_ci
 updated_at: 2026-07-05
-scope: continue_PR_20_after_PR_Inspector_RED_DO_NOT_MERGE
+scope: continue_PR_20_after_PR_Inspector_YELLOW_HANDOFF
 
 capability_handshake:
   github_read: AVAILABLE
@@ -10,8 +10,8 @@ capability_handshake:
   pull_request: 20
   codex: UNKNOWN
   local_test_runner: UNAVAILABLE_FOR_REPO_CHECKOUT
-  github_actions_status: AVAILABLE_SUCCESS_ON_CONFIRMED_FOLLOWUP_HEAD
-  external_owner_checkout_in_ci: AVAILABLE_SUCCESS_ON_CONFIRMED_FOLLOWUP_HEAD
+  github_actions_status: PENDING_AFTER_REPOSITORY_AWARE_LOCK_PATCH
+  external_owner_checkout_in_ci: PENDING_AFTER_REPOSITORY_AWARE_LOCK_PATCH
 
 repository:
   name: rezahh107/EV4-Project-Gate
@@ -25,14 +25,14 @@ implementation_summary:
   package_path: src/ev4_transition
   package_generation:
     architect_to_ce: implemented_synthetic_verified
-    ce_to_builder: followup_fixes_ci_evidenced
+    ce_to_builder: repository_aware_lock_patch_pending_ci
     builder_to_responsive: not_implemented
     final_evidence_gate: not_implemented
 
 active_transitions:
   ce_to_builder:
     transition_id: ev4-ce-to-builder-transition@1.0.0
-    status: followup_fixes_ci_evidenced
+    status: repository_aware_lock_patch_pending_ci
     source_repository: rezahh107/EV4-Constructability-Engineer-Repo
     source_commit: cfceec5c20269c75a1cc19b2675d7087cede4599
     consumer_repository: rezahh107/EV4-Builder-Assistant-Repo
@@ -45,6 +45,8 @@ active_transitions:
       raw_no_source_real_evidence_fail_closed: applied
       raw_no_source_negative_test: applied
       handoff_coverage_status_consistency: applied
+      repository_aware_lock_diagnostics: applied
+      accepted_requires_lock_mismatch_matrix_tests: applied
     behavioral_coverage_status:
       PG-C2B-001: validator_backed
       PG-C2B-002: validator_backed
@@ -53,21 +55,13 @@ active_transitions:
 
 ci_baseline:
   workflow: .github/workflows/validate.yml
-  confirmed_followup_green:
-    head_sha: 9ca2bbdbd6448e13ce49ee6dac532449808444ce
-    run_id: 28743548242
-    run_number: 359
+  historical_green_before_repository_aware_patch:
+    head_sha: d613dd21d644b18fad6eb869b7c229b4567e4ffa
+    run_id: 28743697368
     result: success
-    jobs:
-      skeleton: success
-      python-core: success
-    important_steps:
-      Verify GitHub Action pins: success
-      CE-to-Builder transition pytest: success
-      Behavioral coverage validator: success
-      CE-to-Builder lock verification: success
-      CE-to-Builder live owner tool smoke: success
-  note: This document records confirmed evidence. Recheck the current PR head before merge if new commits are added.
+  current_repository_aware_patch:
+    status: pending_ci_on_latest_pr_head
+    note: Verify current PR head and GitHub Actions result after this status update before merge.
 
 critical_or_high_gaps:
   - id: GAP-C2B-REAL-EVIDENCE
@@ -81,8 +75,9 @@ critical_or_high_gaps:
     description: Final evidence gate remains not implemented.
 
 remaining_insufficient_evidence:
+  - post_repository_aware_patch_green_ci_on_latest_head
   - real_non_synthetic_CE_to_Builder_transition_evidence
   - Builder_to_Responsive_Project_Gate_transition
   - final_evidence_gate
 
-next_allowed_prompt: PR_Inspector_review_on_latest_head
+next_allowed_prompt: verify_CI_and_PR_Inspector_review_on_latest_head
