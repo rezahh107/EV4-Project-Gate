@@ -16,7 +16,8 @@ commits:
   - eac982699cd4b10e4a04331ba12e2962e883e9c1 docs: refresh closure audit ci evidence
   - 98101dbfac740d32c566d656a94922a03bf72cf4 docs: update prompt 07 handoff ci evidence
   - 341addc932bc0e145278628137ba5cd312149dcd docs: replace prompt 07 handoff self reference
-  - self_reference: docs: finalize prompt 07 handoff commit ledger; exact commit SHA is reported in the final response after creation.
+  - 622eaa5c346261b925f6594e5bf46e8ab0cf4182 docs: finalize prompt 07 handoff commit ledger
+  - self_reference: docs: update prompt 07 current head note; exact commit SHA is reported in the final response after creation.
 files_changed:
   - docs/ARCHITECTURE.md
   - docs/ROLE_BOUNDARY_MAP.md
@@ -85,10 +86,10 @@ important_design_decisions:
   - Preserved repository.current_main_head_ci as a compatibility key because existing tests depend on it; added current_main_ref_ci separately instead of renaming the old field.
   - Recorded Prompt-07 reviewed-head CI success without promoting the project to personal_use_ready.
 web_sources_used: []
-next_allowed_prompt: after this documentation-refresh head has green CI and owner explicitly approves, merge Prompt-07 PR; after merge, the safe next engineering prompt is real evidence bundle intake design, not further closure cleanup.
+next_allowed_prompt: after the current PR head has green CI and owner explicitly approves, merge Prompt-07 PR; after merge, the safe next engineering prompt is real evidence bundle intake design, not further closure cleanup.
 blocking_issues:
   - Local full clone/test execution is unavailable in this environment due DNS failure.
-  - This documentation refresh creates a new PR head; observe GitHub Actions on the new head before merge.
+  - Current PR head changed after the stale-prose documentation refresh; observe GitHub Actions on the current head before merge.
 remaining_insufficient_evidence:
   - exact current main ref SHA/CI after Prompt-07 branch merge, if merged
   - real non-synthetic CE-to-Builder transition evidence
