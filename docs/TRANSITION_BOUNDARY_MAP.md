@@ -1,6 +1,6 @@
 # EV4 Transition Boundary Map
 
-Status: `PROMPT-04` CE→Builder baseline is CI-evidenced on PR `#20` head `87a4a84640c999cee049a0d40865c25efabeafb0`. This map records Project Gate-owned orchestration boundaries. Specialist schemas and runtime logic remain owner-repository artifacts; Project Gate pins, hashes, validates, calls official tools, and emits diagnostics/results only.
+Status: `PROMPT-05` adds Builder→Responsive transition orchestration and a Final Evidence Gate baseline. Project Gate remains a checkpoint: it pins, hashes, validates, calls official owner tools where available, emits diagnostics/results, and does not implement specialist semantics.
 
 ## Status vocabulary
 
@@ -22,7 +22,6 @@ transition_id: ev4-architect-to-ce-transition@1.0.0
 project_gate_status: implemented_synthetic_verified
 source_repository: rezahh107/EV4-Architect-Repo
 target_repository: rezahh107/EV4-Constructability-Engineer-Repo
-verification_state: synthetic_fixture_and_ci_coverage_existing_before_PROMPT_04
 ```
 
 Allowed Project Gate behavior:
@@ -52,16 +51,9 @@ Forbidden Project Gate behavior:
 transition_id: ev4-ce-to-builder-transition@1.0.0
 project_gate_status: ci_evidenced_baseline_with_synthetic_owner_fixture_smoke
 source_repository: rezahh107/EV4-Constructability-Engineer-Repo
-source_commit: cfceec5c20269c75a1cc19b2675d7087cede4599
 consumer_repository: rezahh107/EV4-Builder-Assistant-Repo
-consumer_commit: 69a2c61edf6d06b4418ad770fcefbfdffcf275d6
 project_gate_lock: contracts/locks/ce-to-builder-transition.v1.lock.json
 project_gate_result_schema: schemas/ce-to-builder-transition-result/ce-to-builder-transition-result.v1.schema.json
-project_gate_transition_module: src/ev4_transition/transitions/ce_to_builder.py
-ci_lock_verifier: scripts/verify-ce-to-builder-lock.py
-ci_smoke: scripts/ce-to-builder-smoke.py
-latest_checked_ci_run: 28741498875
-latest_checked_ci_head: 87a4a84640c999cee049a0d40865c25efabeafb0
 ```
 
 Current boundary:
@@ -78,54 +70,62 @@ CE Builder Executable Package
 → Project Gate CE→Builder transition result
 ```
 
-Project Gate may:
-
-```text
-- verify CE/Builder repository, commit, path, identity marker, and file-byte SHA-256 pins;
-- run official CE validator through runner infrastructure;
-- run official Builder Contract Gate through runner infrastructure;
-- call the official Builder adapter only after the Builder gate passes;
-- validate Builder output with Builder-owned schema and validator;
-- record stdout/stderr hashes and structured execution records;
-- emit accepted/invalid/insufficient_evidence diagnostics and a Project Gate-owned result envelope.
-```
-
-Project Gate must not:
-
-```text
-- copy CE or Builder canonical schemas into Project Gate;
-- implement CE constructability rules;
-- implement Builder normalization/adapter logic;
-- bypass the Builder Contract Gate;
-- silently repair or normalize CE output;
-- treat synthetic fixtures as real EV4 evidence;
-- emit accepted when any accepted_requires item is false.
-```
-
-Important current limitation:
-
-```yaml
-lock_hash_state: exact_file_byte_sha256_values_committed_from_pinned_owner_ci_checkouts
-merge_state: ci_green_but_pr_kept_draft_pending_review
-real_handoff_evidence_state: not_proven_by_PROMPT_04_smoke
-```
+Project Gate must not copy CE or Builder canonical schemas, implement CE constructability rules, implement Builder normalization/adapter logic, bypass the Builder Contract Gate, silently repair CE output, or treat synthetic fixtures as real EV4 evidence.
 
 ## Builder → Responsive
 
 ```yaml
 transition_id: ev4-builder-to-responsive-transition@1.0.0
-project_gate_status: not_implemented
+project_gate_status: prompt_05_fail_closed_baseline
 producer_repository: rezahh107/EV4-Builder-Assistant-Repo
 consumer_repository: rezahh107/EV4-Responsive-Architect
+project_gate_module: src/ev4_transition/transitions/builder_to_responsive.py
+project_gate_lock: contracts/locks/builder-to-responsive-transition.v1.lock.json
+project_gate_result_schema: schemas/builder-to-responsive-transition-result/builder-to-responsive-transition-result.v1.schema.json
 ```
 
-Current boundary remains future-only:
+Current boundary:
 
 ```text
-verified Builder execution evidence
-→ future Project Gate transport/eligibility checks
-→ Responsive-owned input validation
-→ Responsive output and viewport evidence
+Builder context / evidence handoff
+→ Project Gate Builder evidence reference checks
+→ Project Gate Builder/Responsive lock verification
+→ Responsive-owned input schema load from owner repository
+→ official Responsive input boundary validator when checkout is available
+→ Project Gate Builder→Responsive transition result
 ```
 
-Project Gate must not claim Responsive correctness, frontend correctness, accessibility completion, export validation completion, or production readiness before explicit Responsive/frontend evidence exists.
+Project Gate may verify Builder evidence refs, verify viewport evidence refs, verify lock role/path/hash identity, load the Responsive-owned input schema, run the Responsive-owned input boundary validator, and emit fail-closed diagnostics.
+
+Project Gate must not invent Responsive input semantics, create a Project Gate-owned Responsive schema, implement Responsive repair logic, claim responsive correctness, treat raw screenshots as correctness evidence, or treat CI success as frontend evidence.
+
+Current lock state:
+
+```yaml
+hash_state: placeholder_not_refreshed_from_owner_checkouts
+accepted_state: intentionally_blocked_until_exact_owner_hash_refresh
+```
+
+## Final Evidence Gate
+
+```yaml
+gate_id: ev4-final-evidence-gate@1.0.0
+project_gate_status: prompt_05_fail_closed_baseline
+project_gate_module: src/ev4_transition/transitions/final_gate.py
+project_gate_lock: contracts/locks/final-gate.v1.lock.json
+project_gate_result_schema: schemas/final-gate-result/final-gate-result.v1.schema.json
+```
+
+Current boundary:
+
+```text
+Prior Project Gate lock manifests
+→ Responsive output/evidence packet
+→ Final Gate lock chain verification
+→ Responsive-owned output schema load from owner repository
+→ official Responsive output validator when checkout is available
+→ forbidden readiness/correctness claim scan
+→ Project Gate final evidence result
+```
+
+The Final Gate refuses `production_ready`, `release_ready`, `frontend_correctness`, `responsive_correctness`, accessibility completion, export validation completion, and any equivalent readiness claim unless explicit validated owner evidence exists. CI success is never counted as frontend evidence. Synthetic fixtures are never counted as real final evidence.
