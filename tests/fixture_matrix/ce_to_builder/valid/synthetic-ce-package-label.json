@@ -1,0 +1,6 @@
+{
+  "fixture_kind": "synthetic_ce_to_builder_positive_shape",
+  "synthetic": true,
+  "counts_as_real_evidence": false,
+  "expected_project_gate_behavior": "usable for local fixture tests only; never sufficient for real accepted evidence"
+}
