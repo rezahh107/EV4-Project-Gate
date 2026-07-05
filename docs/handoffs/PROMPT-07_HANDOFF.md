@@ -6,7 +6,7 @@ commits:
   - 66c2686c8bb1e12b776b8844a98827b22099eac5 docs: sync role boundary implementation summary
   - 5c8b26ffdbf31ae6878ddc0ed1f25280d39ae23a docs: refresh transition boundary closure status
   - fa16ee2e8e85680e6f31db4e332ac1fdbbf1b0cb docs: update result model for closure audit
-  - ff4da85608b84e804de65f5e2137fb9f0b426ef3 docs: record prompt 07 closure status
+  - ff4da85608b84e804de65f5e2137fb9f0b426ef3 docs: add Prompt-07 implementation status baseline
   - d92c363261b101979facc768685c7aa69896f11f docs: refresh behavioral coverage closure ledger
   - 27b10d275cb03b6b457b3ad9e6808b5d48a6ecd8 docs: add prompt 07 closure audit
   - 82e692e947a3e22a36a9888e1238b6068444ec3d docs: add prompt 07 handoff
@@ -18,7 +18,8 @@ commits:
   - 341addc932bc0e145278628137ba5cd312149dcd docs: replace prompt 07 handoff self reference
   - 622eaa5c346261b925f6594e5bf46e8ab0cf4182 docs: finalize prompt 07 handoff commit ledger
   - 13fd2e1fb0dca299411426cde1755e686f3c169b docs: update prompt 07 current head note
-  - self_reference: docs: record prompt 07 latest head observation boundary; exact commit SHA is reported in the final response after creation.
+  - 44fe222fef4b43c6a7880330bf061a1d9426ba8f docs: record prompt 07 latest head observation boundary
+  - self_reference: docs: stop prompt 07 handoff self reference churn; exact commit SHA is intentionally not in-file to prevent endless metadata-only churn.
 files_changed:
   - docs/ARCHITECTURE.md
   - docs/ROLE_BOUNDARY_MAP.md
@@ -86,6 +87,7 @@ important_design_decisions:
   - Retained insufficient_evidence for real CE→Builder, Builder execution, Responsive input/output, accessibility/export/frontend correctness, and downstream owner rejection evidence.
   - Preserved repository.current_main_head_ci as a compatibility key because existing tests depend on it; added current_main_ref_ci separately instead of renaming the old field.
   - Recorded Prompt-07 reviewed-head CI success without promoting the project to personal_use_ready.
+  - Stopped exact self-reference churn by keeping the final handoff commit SHA out of the handoff body by design.
 web_sources_used: []
 next_allowed_prompt: after the current PR head has green CI and owner explicitly approves, merge Prompt-07 PR; after merge, the safe next engineering prompt is real evidence bundle intake design, not further closure cleanup.
 blocking_issues:
