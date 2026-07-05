@@ -3,16 +3,16 @@ branch: project-gate-prompt-04-ce-to-builder
 pull_request: 20
 base_branch: main
 base_sha: 10e665cdec74ba5508042fa774a3934b16387192
-latest_head_sha_after_continuation: 1a87ce8b9de26ab7d99c5c08b2b5a9d5d7479561
+latest_code_head_sha_before_handoff_refresh: 796b3552c779d901a7452af573e3df4002c6d76c
 pr_state_after_continuation: open_draft_unmerged
 
 review_input:
   authoritative_review: PR_Inspector_v1_5_0_RED_DO_NOT_MERGE
   blocking_findings_addressed_partially:
-    - PRF-001_CI_schema_allowlist: workflow_allowlist_updated_for_project_gate_owned_ce_to_builder_result_schema
+    - PRF-001_CI_schema_allowlist: workflow_allowlist_updated_for_project_gate_owned_ce_to_builder_result_schema_and_skeleton_job_now_passes
     - PRF-002_lock_hashes_zero: not_fully_fixed_exact_hashes_still_pending
-    - PRF-003_builder_pins_paths: builder_commit_and_paths_re_pinned_to_owner_commit_with_gate_registry_artifacts
-    - PRF-004_ci_integration: CE_to_Builder_pytest_lock_verification_and_live_owner_tool_smoke_steps_added
+    - PRF-003_builder_pins_paths: builder_commit_and_paths_re_pinned_to_owner_commit_with_gate_registry_artifacts_but_lock_verification_not_reached_due_pytest_failure
+    - PRF-004_ci_integration: CE_to_Builder_pytest_lock_verification_and_live_owner_tool_smoke_steps_added_but_pytest_currently_fails
 
 commits_initial_slice:
   - 0af2e48feddff904fef3aaffbd078afbf682d1c9 feat(c2b): add transition package exports
@@ -42,6 +42,10 @@ commits_continuation:
   - b1a0af96c87ae4132065d98b4a0af06a3af55b05 docs(c2b): update implementation status
   - 454c04317306ac570d0bf814b9173d662ed725de docs(c2b): update behavioral coverage ledger
   - 1a87ce8b9de26ab7d99c5c08b2b5a9d5d7479561 docs(c2b): register CE to Builder diagnostics
+  - a49b2fdb4c6613676bd7c3412bcfb9f98d7b1db5 docs(c2b): update PROMPT-04 handoff after Inspector follow-up
+  - 3876b237a6f16b90f08aafc006faf1ab2ed0c8d8 test(c2b): align synthetic repos with corrected owner pins
+  - 796b3552c779d901a7452af573e3df4002c6d76c test(c2b): make bundle fixture schema valid
+  - THIS_COMMIT docs(c2b): refresh PROMPT-04 handoff with latest CI failure evidence
 
 files_changed:
   - .github/workflows/validate.yml
@@ -66,31 +70,77 @@ files_changed:
   - tests/fixture_matrix/ce_to_builder/insufficient-evidence/synthetic-only-not-real-evidence.json
   - tests/transitions/test_ce_to_builder.py
 
-tests_run_by_assistant:
+tests_run_by_assistant_local:
   - local py_compile on drafted Python files before GitHub write in initial slice
   - local py_compile on continuation draft scripts/modules in /mnt/data
   - local YAML parse of drafted workflow/status files in /mnt/data
-tests_passed_by_assistant:
+tests_passed_by_assistant_local:
   - py_compile_drafted_python_files
   - yaml_parse_drafted_workflow_and_status
-tests_failed_by_assistant: []
-tests_not_run_by_assistant:
-  - pytest tests/transitions/test_ce_to_builder.py in repository checkout
-  - pytest tests/runners in repository checkout
-  - python scripts/check-runner-boundary.py in repository checkout
-  - python scripts/verify-ce-to-builder-lock.py against live checkouts outside GitHub Actions
-  - python scripts/ce-to-builder-smoke.py against live checkouts outside GitHub Actions
-  - full GitHub Actions result for latest head
+tests_failed_by_assistant_local: []
+
+github_actions_evidence:
+  latest_completed_run_checked:
+    code_head_sha: 796b3552c779d901a7452af573e3df4002c6d76c
+    run_id: 28738791107
+    workflow: Skeleton Health
+    skeleton_job: success
+    schema_allowlist_step: success
+    python_core_job: failure
+    successful_python_core_steps_before_failure:
+      - Checkout Project Gate
+      - Checkout Architect pinned contract repo
+      - Checkout CE pinned contract repo
+      - Checkout CE pinned CE-to-Builder repo
+      - Checkout Builder pinned CE-to-Builder repo
+      - Setup Python
+      - Setup Node
+      - Install package
+      - CLI and bundle tests
+      - A2C valid transition smoke
+      - A2C mapping and order tests
+      - A2C fail-closed hook tests
+      - A2C source commit preservation test
+      - A2C insufficient evidence test
+      - A2C lock enforcement test
+      - A2C repeat run determinism test
+      - A2C nonfinite edge test
+      - Architect-to-CE CLI transition tests
+      - Prompt 01 unit tests
+      - Static runner-boundary scanner
+      - Runner tests
+    failing_step: CE-to-Builder transition pytest
+    skipped_after_failure:
+      - Progress tests
+      - Runner boundary tests
+      - Behavioral coverage validator
+      - Behavioral fixture validation
+      - Verify external contract lock hashes
+      - CE-to-Builder lock verification
+      - CE-to-Builder live owner tool smoke
+      - CLI smoke valid bundle
+      - CLI smoke invalid array
+      - CLI smoke Persian insufficient evidence
+      - Official Architect validator fixture suite
+      - Official CE validator fixture suite
+      - Generated Architect-to-CE transition smoke and CE binding
+    failure_detail_limit: job_log_output_available_to_chat_was_truncated_before_pytest_traceback
+
+tests_not_run_or_not_proven:
+  - pytest tests/transitions/test_ce_to_builder.py passing result
+  - python scripts/verify-ce-to-builder-lock.py passing result with exact lock hashes
+  - python scripts/ce-to-builder-smoke.py passing result with pinned live owner checkouts
+  - full GitHub Actions success on latest PR head
 
 coverage_rules_advanced:
-  - PG-C2B-001: validator_backed lock verification carrier and CI step added; not ci_enforced while exact hashes are placeholders
-  - PG-C2B-002: validator_backed official CE validator Builder gate Builder adapter Builder output validator sequence carrier added; not ci_enforced until CI passes
+  - PG-C2B-001: validator_backed lock verification carrier and CI step added; not ci_enforced while exact hashes are placeholders and CI step is skipped by earlier pytest failure
+  - PG-C2B-002: validator_backed official CE validator Builder gate Builder adapter Builder output validator sequence carrier added; not ci_enforced until pytest and live owner smoke pass
   - PG-EVIDENCE-001: CE-to-Builder accepted_requires result schema and transition result validation included; not ci_enforced until CI passes
   - PG-SYNTH-001: synthetic evidence remains explicitly non-real evidence; live owner smoke is labeled synthetic integration evidence
-  - PG-SCHEMA-001: CE-to-Builder result schema is explicitly treated as Project Gate-owned result envelope, not specialist canonical schema
+  - PG-SCHEMA-001: CE-to-Builder result schema is explicitly treated as Project Gate-owned result envelope and schema allowlist now passes
 coverage_rules_still_gap:
   - PG-C2B-001 needs exact file-byte SHA-256 values and passing CI lock verification
-  - PG-C2B-002 needs passing live owner tool smoke on pinned checkouts
+  - PG-C2B-002 needs passing CE-to-Builder pytest and live owner tool smoke on pinned checkouts
   - PG-DOWNSTREAM-001 remains below downstream_contract_enforced
 
 new_diagnostics:
@@ -141,23 +191,23 @@ important_design_decisions:
   - Forbidden claim detection now recursively treats production_ready, builder_runtime_authorized, and production_ready_allowed=true as blocking.
   - The lock remains fail-closed with placeholder hashes until exact file-byte SHA-256 values are available from CI/local owner checkouts.
   - A temporary newline probe file was created and deleted; it is not present in the final compare diff.
+  - CE-to-Builder pytest remains the current CI blocker; exact assertion traceback is unknown because the available job-log output was truncated before the pytest failure details.
 
 web_sources_used: []
 
 blocking_issues:
+  - CE-to-Builder transition pytest fails in GitHub Actions on code head 796b3552c779d901a7452af573e3df4002c6d76c.
   - Exact live owner file-byte SHA-256 values must replace all-zero placeholders in contracts/locks/ce-to-builder-transition.v1.lock.json.
-  - GitHub Actions must pass on the latest PR head.
-  - CE-to-Builder lock verification must pass with pinned CE and Builder checkouts.
+  - CE-to-Builder lock verification must pass with pinned CE and Builder checkouts after hashes are replaced.
   - CE-to-Builder live owner tool smoke must pass and remain labeled as synthetic integration evidence, not real handoff evidence.
   - PR must remain draft until blockers are resolved.
 
 remaining_insufficient_evidence:
   - exact_file_byte_sha256_values_for_contracts/locks/ce-to-builder-transition.v1.lock.json
   - passing_GitHub_Actions_result_for_PR_20_latest_head
+  - passing_CE-to-Builder_transition_pytest_result
   - passing_CE-to-Builder_lock_verification_with_pinned_CE_and_Builder_checkouts
   - passing_CE-to-Builder_live_owner_tool_smoke
-  - pytest_result_for_tests/transitions/test_ce_to_builder.py_on_latest_head
-  - static_runner_boundary_result_after_latest_CE_to_Builder_changes
   - real_non_synthetic_CE_to_Builder_transition_evidence
 
-next_allowed_prompt: continue_PROMPT-04_replace_lock_hashes_from_CI_or_local_checkout_then_recheck_PR_20
+next_allowed_prompt: continue_PROMPT-04_debug_CE_to_Builder_pytest_then_replace_lock_hashes_and_recheck_PR_20
