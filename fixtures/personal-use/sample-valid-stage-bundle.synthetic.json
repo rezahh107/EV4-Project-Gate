@@ -1,0 +1,47 @@
+{
+  "schema_version": "stage-evidence-bundle.v1",
+  "bundle_id": "synthetic-personal-valid-001",
+  "stage": "architect",
+  "payload_schema": {
+    "id": "ev4.synthetic.personal.architect.payload",
+    "version": "0.1.0",
+    "owner_repository": "rezahh107/EV4-Architect-Repo"
+  },
+  "produced_by": {
+    "repository": "rezahh107/EV4-Architect-Repo",
+    "ref": "synthetic-personal-demo"
+  },
+  "evidence_status": "complete",
+  "payload": {
+    "schema_id": "ev4.synthetic.personal.architect.payload@0.1.0",
+    "data": {
+      "project_id": "ev4-personal-demo",
+      "sample_type": "synthetic",
+      "expected_status_note": "Envelope validation should be valid; this is not real EV4 handoff evidence.",
+      "handoff_summary": "Synthetic personal-use demo bundle."
+    }
+  },
+  "evidence": [
+    {
+      "id": "synthetic_architecture_handoff",
+      "kind": "document",
+      "state": "validated",
+      "description": "Synthetic personal-use architecture handoff fixture.",
+      "artifact_hash": {
+        "algorithm": "sha256",
+        "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "scope": "canonical_json"
+      },
+      "source": {
+        "type": "synthetic_fixture",
+        "reference": "fixtures/personal-use/sample-valid-stage-bundle.synthetic.json"
+      }
+    }
+  ],
+  "provenance": {
+    "source": "synthetic-personal-demo",
+    "created_by": "ev4-project-gate-personal-use-package",
+    "created_at": "2026-07-06T00:00:00Z"
+  },
+  "synthetic": true
+}

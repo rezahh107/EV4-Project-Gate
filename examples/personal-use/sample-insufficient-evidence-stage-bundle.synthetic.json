@@ -1,0 +1,54 @@
+{
+  "schema_version": "stage-evidence-bundle.v1",
+  "bundle_id": "synthetic-personal-insufficient-001",
+  "stage": "architect",
+  "payload_schema": {
+    "id": "ev4.synthetic.personal.architect.payload",
+    "version": "0.1.0",
+    "owner_repository": "rezahh107/EV4-Architect-Repo"
+  },
+  "produced_by": {
+    "repository": "rezahh107/EV4-Architect-Repo",
+    "ref": "synthetic-personal-demo"
+  },
+  "evidence_status": "insufficient_evidence",
+  "missing_evidence": [
+    {
+      "id": "real_architecture_handoff",
+      "owner": "architect",
+      "reason": "This synthetic demo intentionally does not include real owner-repository handoff evidence."
+    }
+  ],
+  "payload": {
+    "schema_id": "ev4.synthetic.personal.architect.payload@0.1.0",
+    "data": {
+      "project_id": "ev4-personal-demo",
+      "sample_type": "synthetic",
+      "expected_status_note": "This sample should remain insufficient_evidence.",
+      "handoff_summary": "Synthetic personal-use demo bundle with intentionally missing real evidence."
+    }
+  },
+  "evidence": [
+    {
+      "id": "synthetic_unverified_notes",
+      "kind": "document",
+      "state": "unverified",
+      "description": "Synthetic notes only; not real EV4 evidence.",
+      "artifact_hash": {
+        "algorithm": "sha256",
+        "value": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "scope": "canonical_json"
+      },
+      "source": {
+        "type": "synthetic_fixture",
+        "reference": "examples/personal-use/sample-insufficient-evidence-stage-bundle.synthetic.json"
+      }
+    }
+  ],
+  "provenance": {
+    "source": "synthetic-personal-demo",
+    "created_by": "ev4-project-gate-personal-use-package",
+    "created_at": "2026-07-06T00:00:00Z"
+  },
+  "synthetic": true
+}
