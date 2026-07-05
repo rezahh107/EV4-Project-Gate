@@ -69,6 +69,7 @@ commits_added_after_initial_prompt_04_handoff:
   - 9d38f6cc2994060521feb4fc03eb5ea79940bb33 docs(c2b): record diagnostic docs conflict in handoff
   - 3b913881df9990338eb1c83a9953d6259134d029 docs(c2b): remove unresolved placeholder from handoff
   - 139c5b3f767e17b6587d1b272530e438c0ed7962 docs(c2b): finalize PROMPT-04 handoff commit ledger
+  - 604fbfcae42e823ad4128907f58ef74aeff3b2bb docs(c2b): record final handoff commit ledger
 
 files_changed_relevant_to_continuation:
   - .github/workflows/validate.yml
