@@ -1,6 +1,6 @@
 # EV4 Role Boundary Map
 
-Status: Architect→CE and the CE→Builder orchestration baseline are implemented. CE→Builder public CLI exposure is not implemented, owner-fixture integration is verified, and real non-synthetic handoff evidence remains `insufficient_evidence`.
+Status: Architect→CE, CE→Builder, Builder→Responsive, and Final Evidence Gate orchestration baselines are implemented. Only Architect→CE has public CLI exposure. Real non-synthetic EV4 handoff/evidence remains `insufficient_evidence` for transition readiness beyond the synthetic or pinned-owner integration proofs.
 
 ## Authority rule
 
@@ -12,7 +12,7 @@ Specialist repositories remain authoritative for their schemas, validators, adap
 | `rezahh107/EV4-Constructability-Engineer-Repo` | Constructability Engineer | Constructability review; implementation-strategy proof; canonical Architect-facing CE intake `ev4-ce-architect-stage-intake@1.1.0`; CE-owned mapping `ev4-architect-stage-to-ce-intake-mapping@1.1.0`; Builder Executable Package producer semantics | Architect redesign; Builder runtime execution; Builder adapter projection; Responsive repair; production readiness | CE intake validation; CE review output; Builder Executable Package when evidence-gated | Builder runtime output; Builder compact `node:model` carriers in CE source output; production-ready claims | Project Gate, then Builder | repo-local authoritative for CE review/gating and executable handoff issuance |
 | `rezahh107/EV4-Builder-Assistant-Repo` | Builder | Runtime intake validation; `ev4-builder-context-package@1.0.0`; CE→Builder Contract Gate; CE→Builder adapter; Builder action batch, layout check, completion gate, and real Elementor execution evidence validators | Architecture decisions; CE strategy proof; Responsive conclusions; production readiness; invention of missing Golden Reference / Build Intent Brief / Spatial Lexicon | Normalized Builder runtime intake; execution/build evidence; Builder-side validation decisions | Architect-only package treated as Builder-ready; CE review-only package treated as runtime-ready; Responsive correctness claims | Project Gate, then Responsive | repo-local authoritative for Builder runtime intake, execution behavior, and Builder-owned evidence surfaces |
 | `rezahh107/EV4-Responsive-Architect` | Responsive Architect | Responsive input eligibility; `ev4-builder-responsive-input@0.1.0`; responsive output `ev4-responsive-output@0.3.0`; viewport evidence gates; Responsive repair semantics; responsive handoff export family | Original architecture selection; CE constructability proof; Builder execution; mobile/tablet inference from desktop-only evidence; final readiness without evidence | Responsive input eligibility decisions; responsive output; viewport-scoped evidence; repair outputs when authorized | Raw screenshot as baseline authority; frontend/export/accessibility/production claims without evidence | Project Gate final gate | repo-local authoritative for responsive adaptation, viewport evidence, and Responsive-owned output concepts |
-| `rezahh107/EV4-Project-Gate` | Project Gate | Stage Evidence Bundle envelope; transition/result schemas; diagnostic schema; lock manifest schema; deterministic canonical JSON and SHA-256; pinned external contract verification; Architect→CE orchestration; CE→Builder orchestration baseline; official validator/adapter execution through `src/ev4_transition/runners/`; diagnostics; Persian summaries; behavioral coverage ledger | Specialist schemas as canonical copies; CE constructability logic; Builder runtime logic; Responsive repair logic; evidence invention; silent normalization; accepted/final claims without evidence; subprocess execution outside `src/ev4_transition/runners/` | Validation results; transition results; pinned/hash reports; next-stage packages only when owner contracts/evidence validate; repair/insufficient-evidence diagnostics | Specialist logic; copied owner schemas; synthetic or owner fixtures described as real evidence; production readiness claims | User and next specialist repository | Project Gate-owned orchestration authority only |
+| `rezahh107/EV4-Project-Gate` | Project Gate | Stage Evidence Bundle envelope; transition/result schemas; diagnostic schema; lock manifest schema; deterministic canonical JSON and SHA-256; pinned external contract verification; Architect→CE orchestration; CE→Builder orchestration baseline; Builder→Responsive orchestration baseline; Final Evidence Gate orchestration baseline; official validator/adapter execution through `src/ev4_transition/runners/`; diagnostics; Persian summaries; report rendering; atomic output writing; behavioral coverage ledger | Specialist schemas as canonical copies; CE constructability logic; Builder runtime logic; Responsive repair logic; evidence invention; silent normalization; accepted/final claims without evidence; subprocess execution outside `src/ev4_transition/runners/` | Validation results; transition results; pinned/hash reports; next-stage packages only when owner contracts/evidence validate; repair/insufficient-evidence diagnostics; Persian reports | Specialist logic; copied owner schemas; synthetic or owner fixtures described as real evidence; production readiness claims | User and next specialist repository | Project Gate-owned orchestration authority only |
 
 ## Boundary invariants
 
@@ -48,6 +48,8 @@ src/ev4_transition/stage_bundle/
 src/ev4_transition/locks/
 src/ev4_transition/presentation/status_mapping.py
 src/ev4_transition/runners/
+src/ev4_transition/reports/
+src/ev4_transition/io/atomic_writer.py
 ```
 
 Only `src/ev4_transition/runners/` may execute subprocesses for official specialist validators or adapters.
@@ -57,6 +59,7 @@ runner_boundary:
   allowed_inside:
     - src/ev4_transition/runners/subprocess_runner.py imports and calls subprocess
     - src/ev4_transition/runners/official_tools.py builds official validator/adapter commands
+    - src/ev4_transition/runners/responsive_tools.py builds official Responsive validator commands
     - src/ev4_transition/runners/records.py creates execution records
     - src/ev4_transition/runners/failure_mapping.py maps failures to deterministic Project Gate statuses
   forbidden_outside:
@@ -83,6 +86,30 @@ real_non_synthetic_handoff: insufficient_evidence
 
 Project Gate may verify the CE/Builder lock, run official tools, validate the Builder-owned output schema, and emit a Project Gate result. It must not duplicate the CE validator, Builder contract gate, Builder adapter, or Builder output rules.
 
+## Builder → Responsive boundary
+
+```yaml
+transition_id: ev4-builder-to-responsive-transition@1.0.0
+orchestration_baseline: implemented
+cli_exposure: not_implemented
+official_responsive_validator_integration: implemented
+real_non_synthetic_handoff: insufficient_evidence
+```
+
+Project Gate may verify the Builder/Responsive lock, preserve Builder evidence references as transport metadata, validate Responsive-owned intake, run official Responsive input validators, and emit a Project Gate result. It must not invent Builder execution evidence or Responsive repair semantics.
+
+## Final Evidence Gate boundary
+
+```yaml
+gate_id: ev4-final-evidence-gate@1.0.0
+orchestration_baseline: implemented
+cli_exposure: not_implemented
+official_responsive_validator_integration: implemented
+real_non_synthetic_evidence: insufficient_evidence
+```
+
+Project Gate may verify the immutable prior lock chain, validate Responsive-owned final output, run official Responsive output validators, and reject unsupported readiness/correctness claims. It must not claim release readiness, production readiness, accessibility completion, export validation, or frontend correctness without explicit owner evidence.
+
 ## Current implementation summary
 
 ```yaml
@@ -96,26 +123,31 @@ implemented:
   - Architect-to-CE transition orchestration and public CLI path
   - CE-to-Builder orchestration baseline
   - owner-fixture CE-to-Builder integration
+  - Builder-to-Responsive orchestration baseline
+  - Final Evidence Gate orchestration baseline
   - runner boundary for official validator/adapter subprocess execution
   - local-only mockable repo access abstraction
   - sanitized runtime progress events
   - static runner-boundary scanner
+  - Persian report rendering and atomic report writing
 not_implemented:
   - CE-to-Builder public CLI exposure
+  - Builder-to-Responsive public CLI exposure
+  - Final Evidence Gate public CLI exposure
   - real non-synthetic CE-to-Builder handoff verification
-  - Builder-to-Responsive Project Gate transition
-  - final evidence gate
+  - real non-synthetic Builder execution evidence verification
+  - real non-synthetic Responsive input/output evidence verification
   - UI/upload-download application
   - real Elementor artifact validation
 ```
 
-## Known baseline drift
+## Known evidence gaps
 
 ```yaml
-- id: DRIFT-B2R-RESPONSIVE-INPUT
-  description: Previous Project Gate freeze docs described Responsive Builder-specific input as not implemented. Live Responsive repo has schema-bound non-executing ev4-builder-responsive-input@0.1.0 and validator.
-  action: update the future Builder→Responsive lock baseline before implementation.
 - id: STATUS-MODEL-LEGACY-VALID
   description: Current Stage Bundle validation and Architect→CE paths retain legacy valid status compatibility while newer transition results use accepted/repair_needed/insufficient_evidence/invalid.
   action: preserve compatibility unless a breaking status migration is explicitly approved.
+- id: REAL-EV4-EVIDENCE-GAP
+  description: Prompt-04 and Prompt-05 verify orchestration, locks, fixtures, and pinned owner validators, but not a real non-synthetic EV4 Builder/Responsive evidence chain.
+  action: keep real handoff/final readiness at insufficient_evidence until owner evidence bundles exist and pass.
 ```

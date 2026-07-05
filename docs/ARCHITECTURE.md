@@ -18,29 +18,38 @@ Project Gate is a deterministic checkpoint system. It is not a fifth EV4 special
 
 ## Architectural authority
 
-Project Gate may own Stage Evidence Bundle validation, Project Gate result/diagnostic/lock carriers, canonical JSON and SHA-256, exact external file-byte pin verification, runner-based orchestration of official specialist tools, diagnostics, machine-readable results, Persian summaries, and behavioral coverage tracking.
+Project Gate may own Stage Evidence Bundle validation, Project Gate result/diagnostic/lock carriers, canonical JSON and SHA-256, exact external file-byte pin verification, runner-based orchestration of official specialist tools, diagnostics, machine-readable results, Persian summaries, report rendering, atomic report writing, and behavioral coverage tracking.
 
 Project Gate must not own Architect decisions, CE constructability logic, Builder runtime or adapter logic, Responsive repair logic, copied specialist schemas, invented evidence, or silent normalization.
 
 ## Capability truth
+
+The machine-readable source is `src/ev4_transition/data/capability-status.v1.json`. The summary below reflects the closure audit after `PROMPT-06`:
 
 ```yaml
 architect_to_ce:
   orchestration_baseline: implemented
   cli_exposure: implemented
   verification_state: synthetic_fixture_only
+  real_non_synthetic_handoff: insufficient_evidence
 ce_to_builder:
   orchestration_baseline: implemented
   cli_exposure: not_implemented
   owner_fixture_integration: verified
   real_non_synthetic_handoff: insufficient_evidence
 builder_to_responsive:
-  orchestration_baseline: not_implemented
+  orchestration_baseline: implemented
+  cli_exposure: not_implemented
+  official_responsive_validator_integration: implemented
+  real_non_synthetic_handoff: insufficient_evidence
 final_evidence_gate:
-  orchestration_baseline: not_implemented
+  orchestration_baseline: implemented
+  cli_exposure: not_implemented
+  official_responsive_validator_integration: implemented
+  real_non_synthetic_evidence: insufficient_evidence
+user_interface:
+  status: not_implemented
 ```
-
-The machine-readable source is `src/ev4_transition/data/capability-status.v1.json`.
 
 ## Deterministic foundation
 
@@ -53,7 +62,7 @@ Stage Evidence Bundle JSON
 → Project Gate result JSON or Persian summary
 ```
 
-Project Gate-owned schemas include envelope, result, diagnostic, lock, behavioral coverage, validator evidence, Architect→CE result, and CE→Builder result carriers. They are not specialist-domain schemas.
+Project Gate-owned schemas include envelope, result, diagnostic, lock, behavioral coverage, validator evidence, Architect→CE result, CE→Builder result, Builder→Responsive result, and Final Gate result carriers. They are not specialist-domain schemas.
 
 ## Architect → CE
 
@@ -102,11 +111,59 @@ Owner-fixture integration is verified by PR #20 workflow run `28744810186` on he
 
 ## Builder → Responsive
 
-Not implemented in Project Gate. Future work must remain fail-closed until Builder-owned output/evidence and Responsive-owned input requirements are explicit, pinned, and validated.
+Implemented orchestration baseline:
+
+```text
+ev4-builder-to-responsive-transition@1.0.0
+```
+
+```text
+Builder evidence references and Responsive input packet
+→ Project Gate identity and evidence checks
+→ exact Builder/Responsive lock verification
+→ Responsive-owned input schema validation
+→ official Responsive input boundary validator through runner infrastructure
+→ Project Gate Builder→Responsive result
+```
+
+Exact-head Prompt-05 evidence is recorded in `docs/handoffs/PROMPT-05_HANDOFF.md`. The baseline proves pinned owner-contract and official-validator integration, not real non-synthetic Builder execution, Responsive correctness, frontend correctness, accessibility completion, export validation, or production readiness.
+
+Builder→Responsive is not exposed as a public CLI transition.
 
 ## Final evidence gate
 
-Not implemented. It must not emit final readiness without explicit owning-repository evidence for Responsive, frontend, export, accessibility, and production-readiness concerns.
+Implemented orchestration baseline:
+
+```text
+ev4-final-evidence-gate@1.0.0
+```
+
+```text
+Final evidence packet
+→ immutable prior lock-chain verification
+→ Responsive-owned output schema validation
+→ official Responsive output validator through runner infrastructure
+→ forbidden readiness/correctness claim checks
+→ Project Gate Final Gate result
+```
+
+The final gate must not emit final readiness without explicit owning-repository evidence for Responsive, frontend, export, accessibility, and production-readiness concerns. Real non-synthetic final evidence remains `insufficient_evidence`.
+
+Final Evidence Gate is not exposed as a public CLI transition.
+
+## Persian reports and output writing
+
+`PROMPT-06` adds an implementation-ready CLI/report layer:
+
+```text
+Project Gate result
+→ non-mutating Persian plain-text / Markdown report rendering
+→ status icon + text + semantic tone
+→ RTL Persian container with LTR-isolated technical fragments
+→ atomic output writer
+```
+
+Report rendering must not change transition decisions, add diagnostics, repair evidence, normalize specialist output, or include progress events in canonical final result hashes.
 
 ## Determinism model
 

@@ -1,26 +1,40 @@
 schema_version: ev4-project-gate-implementation-status.v1
-updated_at: 2026-07-05
+updated_at: 2026-07-06
 status_authority: active_capability_truth
 capability_truth_source: src/ev4_transition/data/capability-status.v1.json
 historical_merge_ledger: docs/EV4_SHARED_CONTRACTS_STATUS.md
+closure_audit: docs/CLOSURE_AUDIT.md
+release_readiness_classification: implementation_ready_with_known_gaps
+release_readiness_reason: >-
+  Project Gate orchestration baselines, deterministic core, runner boundary, behavioral coverage validation,
+  Builder→Responsive/Final Gate baselines, Persian report UX, and Prompt-07 closure audit docs are implemented
+  and have exact-head PR CI evidence. Real non-synthetic CE→Builder, Builder execution, Responsive input/output,
+  frontend/export/accessibility correctness, and downstream owner rejection evidence remain insufficient_evidence.
 
 repository:
   name: rezahh107/EV4-Project-Gate
   default_branch: main
+  current_main_head: not_observed_by_connector_during_prompt_07
+  current_main_head_ci:
+    status: insufficient_evidence
+    reason: GitHub connector confirmed repository and PR/workflow evidence, but did not expose an exact current main ref SHA for closure-branch validation.
+  current_main_ref_sha: not_observed_by_connector_during_prompt_07
+  current_main_ref_ci:
+    status: insufficient_evidence
+    reason: Alias for the Prompt-07 current main ref observation; retained separately from the historical current_main_head_ci compatibility key.
   foundation_main_head: 4233d2ff22310f86305b2e67055c8e4eeb03d6df
   foundation_main_head_ci:
     status: insufficient_evidence
     reason: no_visible_exact_head_run_for_automatic_historical_ledger_commit
   audited_main_head: 4233d2ff22310f86305b2e67055c8e4eeb03d6df
-  current_main_head_ci:
-    status: insufficient_evidence
-    reason: no_visible_exact_head_run_for_automatic_historical_ledger_commit
+  audited_main_head_note: historical pre-prompt-06 value retained for traceability; not used as the current main ref claim.
   pull_request_20:
     state: merged
     head_sha: 42bfa484481c585f589d86c40424660c70b038a0
     merge_commit_sha: 34b08240ad4deaf017a8f79236d0b8e214530dec
     workflow_run_id: 28744810186
     workflow_result: success
+    scope_limit: pinned_owner_fixture_integration_only
   last_verified_project_gate_pr:
     number: 21
     head_sha: ce356b6f6a8dee5f807679aed0f78aa057152d1b
@@ -33,6 +47,30 @@ repository:
     prompt_05_workflow_run_id: 28749872553
     skeleton_health_workflow_run_id: 28749872558
     workflow_result: success
+  prompt_06:
+    pull_request: 24
+    branch: project-gate-prompt-06-ux
+    merged: true
+    final_head_sha: c8522cf36e65243dfebc3f9b2f0b3feb97cbedf4
+    merge_commit_sha: d522e7d4b434cc337bfe9314116f5b4af61466cf
+    workflow_result: success
+    workflow_runs:
+      prompt_06_report_ux: 28754737277
+      prompt_05_builder_responsive_final_gate: 28754737310
+      skeleton_health: 28754737291
+      historical_merge_ledger: 28754835391
+  prompt_07:
+    branch: project-gate-prompt-07-closure-audit
+    pull_request: 26
+    scope: closure_audit_and_stale_prose_cleanup
+    state: verified_by_exact_head_ci
+    verified_head_sha: 531960f76f1ca0f09b948b69578dbb968e464ff6
+    workflow_result: success
+    workflow_runs:
+      prompt_06_report_ux: 28755207049
+      prompt_05_builder_responsive_final_gate: 28755207015
+      skeleton_health: 28755207013
+    scope_limit: docs_only_closure_audit_not_real_non_synthetic_readiness
 
 capabilities:
   architect_to_ce:
@@ -74,6 +112,12 @@ capabilities:
     real_non_synthetic_evidence: insufficient_evidence
     result_schema: schemas/final-gate-result/final-gate-result.v1.schema.json
     lock_manifest: contracts/locks/final-gate.v1.lock.json
+  reports:
+    persian_rtl_ltr: implemented
+    status_icon_text_tone: implemented
+    atomic_output_writer: implemented
+    result_mutation: forbidden
+    verification_state: verified_by_prompt_06_exact_head_ci
   user_interface:
     status: not_implemented
 
@@ -91,10 +135,28 @@ verification:
     prompt_05_workflow_run_id: 28749872553
     skeleton_health_workflow_run_id: 28749872558
     scope_limit: not_real_non_synthetic_handoff_or_frontend_correctness
+  prompt_06:
+    state: verified_by_exact_head_ci
+    evidence_type: report_ux_typography_theme_reporting_atomic_writer_and_behavioral_coverage_checks
+    verified_head_sha: c8522cf36e65243dfebc3f9b2f0b3feb97cbedf4
+    prompt_06_workflow_run_id: 28754737277
+    prompt_05_workflow_run_id: 28754737310
+    skeleton_health_workflow_run_id: 28754737291
+    historical_merge_ledger_run_id: 28754835391
+    scope_limit: not_real_ui_not_frontend_correctness_not_release_readiness
+  prompt_07:
+    state: verified_by_exact_head_ci
+    evidence_type: closure_audit_docs_only_pr_checks
+    verified_head_sha: 531960f76f1ca0f09b948b69578dbb968e464ff6
+    prompt_06_report_ux_workflow_run_id: 28755207049
+    prompt_05_builder_responsive_final_gate_workflow_run_id: 28755207015
+    skeleton_health_workflow_run_id: 28755207013
+    scope_limit: not_real_non_synthetic_handoff_or_release_readiness
 
 remaining_insufficient_evidence:
-  - exact_foundation_main_head_ci_result
+  - current_main_ref_exact_sha_and_ci_after_prompt_07
   - real_non_synthetic_CE_to_Builder_transition_evidence
   - real_Builder_execution_evidence_bundle
   - real_Responsive_input_and_output_evidence_bundle
   - accessibility_export_and_frontend_correctness_evidence
+  - downstream_owner_rejection_evidence_for_downstream_contract_enforced_claims
