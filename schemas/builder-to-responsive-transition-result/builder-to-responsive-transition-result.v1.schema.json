@@ -1,0 +1,42 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": true,
+  "properties": {
+    "accepted_requires": {
+      "type": "object"
+    },
+    "diagnostics": {
+      "type": "array"
+    },
+    "hashes": {
+      "type": "object"
+    },
+    "result_type": {
+      "const": "builder_to_responsive_transition"
+    },
+    "schema_version": {
+      "const": "builder-to-responsive-transition-result.v1"
+    },
+    "status": {
+      "enum": [
+        "accepted",
+        "repair_needed",
+        "insufficient_evidence",
+        "invalid"
+      ]
+    },
+    "transition_id": {
+      "const": "ev4-builder-to-responsive-transition@1.0.0"
+    }
+  },
+  "required": [
+    "schema_version",
+    "result_type",
+    "transition_id",
+    "status",
+    "diagnostics",
+    "accepted_requires",
+    "hashes"
+  ],
+  "type": "object"
+}
