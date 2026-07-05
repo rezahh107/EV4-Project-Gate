@@ -40,7 +40,7 @@ def _repos(tmp_path: Path, *, ce_ok=True, gate_ok=True, adapter_ok=True, output_
         "docs/CE_TO_BUILDER_PRODUCER_CONTRACT.md": CE_PACKAGE_SCHEMA,
         "schemas/builder_executable_package.schema.json": "EV4 Builder Executable Package",
         "validator/rules.py": "ConstructabilityViolation",
-        "tests/valid/center_anchored_symmetric_pill_cards.json": CE_PACKAGE_SCHEMA,
+        "tests/role-alignment/valid/executable_visual_reference_package.json": CE_PACKAGE_SCHEMA,
     }
     for path, marker in ce_markers.items():
         _write(ce / path, marker)
@@ -53,16 +53,16 @@ sys.exit(0 if %s else 1)
 """ % (ce_ok, ce_ok, ce_ok, ce_ok))
     builder_markers = {
         "input-contracts/BUILDER_CONTEXT_INPUT_CONTRACT.md": "ev4-builder-context-package@1.0.0",
-        "schemas/builder-context-package.schema.json": json.dumps({"type":"object","required":["schema"],"properties":{"schema":{"const":"ev4-builder-context-package@1.0.0"}}}),
+        "schemas/builder-context-package.schema.json": json.dumps({"type": "object", "required": ["schema"], "properties": {"schema": {"const": "ev4-builder-context-package@1.0.0"}}}),
         "docs/CE_TO_BUILDER_CONTRACT_GATE.md": "ce_to_builder_contract_gate",
         "docs/CE_BUILDER_PACKAGE_ADAPTER_CONTRACT.md": "normalizeCeBuilderExecutablePackage",
-        "data/ce-builder-transformation-registry.v1.json": "ce-builder-transformation-registry.v1",
+        "data/ce-builder-transformation-registry.v1.json": "ev4-ce-builder-transformation-registry@1.0.0",
     }
     for path, marker in builder_markers.items():
         _write(builder / path, marker)
     _write(builder / "scripts/validate-ce-to-builder-contract-gate.mjs", "const ok=%s; console.log(JSON.stringify({result: ok?'pass':'fail', blocking:!ok, gate:'ce_to_builder_contract_gate'})); process.exit(ok?0:1);" % str(gate_ok).lower())
     _write(builder / "scripts/normalize-ce-builder-executable-package.mjs", "const ok=%s; if(!ok) process.exit(1); console.log(JSON.stringify(%s));" % (str(adapter_ok).lower(), json.dumps(_builder_package())))
-    _write(builder / "scripts/validate-package.mjs", "const ok=%s; console.log(ok?'Cross-field validation passed':'Cross-field validation failed'); process.exit(ok?0:1);" % str(output_ok).lower())
+    _write(builder / "scripts/validate-package.mjs", "// validateReferenceParadigmGate\nconst ok=%s; console.log(ok?'Cross-field validation passed':'Cross-field validation failed'); process.exit(ok?0:1);" % str(output_ok).lower())
     roots = {CE_REPO: ce, BUILDER_REPO: builder}
     lock = {"schema_version": LOCK_SCHEMA_VERSION, "transition_id": TRANSITION_ID, "files": []}
     for dep in EXPECTED_CE_TO_BUILDER_DEPENDENCIES.values():
@@ -124,8 +124,9 @@ def test_ce_to_builder_missing_builder_adapter_is_insufficient_evidence(tmp_path
 
 
 def test_ce_to_builder_fallback_adapter_usage_fails(tmp_path):
-    p = tmp_path / "fallback_adapter.mjs"; p.write_text("console.log('{}')", encoding="utf-8")
-    out = execute_adapter(repo_root=tmp_path, owner_repo=BUILDER_REPO, owner_commit=BUILDER_COMMIT, adapter_path="fallback_adapter.mjs", command=["node", str(p)], input_ref="in.json", input_hash="b"*64)
+    p = tmp_path / "fallback_adapter.mjs"
+    p.write_text("console.log('{}')", encoding="utf-8")
+    out = execute_adapter(repo_root=tmp_path, owner_repo=BUILDER_REPO, owner_commit=BUILDER_COMMIT, adapter_path="fallback_adapter.mjs", command=["node", str(p)], input_ref="in.json", input_hash="b" * 64)
     assert out.status == "invalid"
 
 
@@ -143,7 +144,7 @@ def test_ce_to_builder_builder_output_validated_by_builder_owned_rules(tmp_path)
 
 def test_ce_to_builder_synthetic_fixture_cannot_count_as_real_evidence(tmp_path):
     ce, builder, lock = _repos(tmp_path)
-    bundle = {"schema_version":"stage-evidence-bundle.v1","bundle_id":"b","stage":"ce","payload_schema":{"id":CE_PACKAGE_SCHEMA,"version":"1.0.0","owner_repository":CE_REPO},"produced_by":{"repository":CE_REPO,"ref":"x"},"evidence_status":"complete","payload":{"schema_id":CE_PACKAGE_SCHEMA,"data":{"builder_executable_package":_ce_package()}},"evidence":[{"id":"e","kind":"fixture","state":"synthetic","description":"test"}],"provenance":{},"synthetic":True}
+    bundle = {"schema_version": "stage-evidence-bundle.v1", "bundle_id": "b", "stage": "ce", "payload_schema": {"id": CE_PACKAGE_SCHEMA, "version": "1.0.0", "owner_repository": CE_REPO}, "produced_by": {"repository": CE_REPO, "ref": "x"}, "evidence_status": "complete", "payload": {"schema_id": CE_PACKAGE_SCHEMA, "data": {"builder_executable_package": _ce_package()}}, "evidence": [{"id": "e", "kind": "fixture", "state": "synthetic", "description": "test"}], "provenance": {}, "synthetic": True}
     r = transition_ce_to_builder(bundle, _source(ce, builder), _config(ce, builder, lock, real=True))
     assert r["status"] == "insufficient_evidence"
 
@@ -161,8 +162,8 @@ def test_ce_to_builder_result_schema_validated(tmp_path):
 
 def test_ce_to_builder_diagnostics_have_stable_ordering(tmp_path):
     ce, builder, lock = _repos(tmp_path)
-    lock["files"][0]["sha256_file_bytes"] = "0"*64
-    lock["files"][1]["sha256_file_bytes"] = "1"*64
+    lock["files"][0]["sha256_file_bytes"] = "0" * 64
+    lock["files"][1]["sha256_file_bytes"] = "1" * 64
     first = transition_ce_to_builder(_ce_package(), _source(ce, builder), _config(ce, builder, lock))
     second = transition_ce_to_builder(_ce_package(), _source(ce, builder), _config(ce, builder, lock))
     assert [d["code"] + d["path"] for d in first["diagnostics"]] == [d["code"] + d["path"] for d in second["diagnostics"]]
