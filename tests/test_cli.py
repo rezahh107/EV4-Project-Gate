@@ -25,6 +25,16 @@ def run_cli(*args):
     )
 
 
+def run_script(script: str, *args: str):
+    return subprocess.run(
+        [sys.executable, str(ROOT / script), *args],
+        cwd=ROOT,
+        text=True,
+        capture_output=True,
+        check=False,
+    )
+
+
 def test_cli_json_output_valid_bundle():
     completed = run_cli("validate", str(ROOT / "fixtures/valid/architect-stage-bundle.v1.json"))
     assert completed.returncode == 0
@@ -80,13 +90,13 @@ def test_cli_inspect_does_not_overclaim_real_ce_to_builder_handoff():
     assert payload["evidence"]["current_main_head_ci"]["status"] == "insufficient_evidence"
 
 
-def test_implementation_status_matches_capability_truth_and_merged_pr_20():
+def test_implementation_status_matches_all_capability_truth():
     capability = json.loads((ROOT / "src/ev4_transition/data/capability-status.v1.json").read_text(encoding="utf-8"))
     implementation = yaml.safe_load((ROOT / "docs/IMPLEMENTATION_STATUS.yaml").read_text(encoding="utf-8"))
-    expected = capability["capabilities"]["ce_to_builder"]
-    actual = implementation["capabilities"]["ce_to_builder"]
-    for key, value in expected.items():
-        assert actual[key] == value
+    for capability_id, expected in capability["capabilities"].items():
+        actual = implementation["capabilities"][capability_id]
+        for key, value in expected.items():
+            assert actual[key] == value
     assert implementation["repository"]["pull_request_20"]["state"] == "merged"
     assert implementation["repository"]["current_main_head_ci"]["status"] == "insufficient_evidence"
 
@@ -110,6 +120,39 @@ def test_active_docs_do_not_restore_flat_ce_to_builder_not_implemented_claim():
         assert "orchestration_baseline" in text or relative == "README.md"
 
 
+def test_capability_truth_gate_passes_repository():
+    completed = run_script("scripts/check-capability-truth.py", str(ROOT))
+    assert completed.returncode == 0, completed.stdout + completed.stderr
+
+
+def test_capability_truth_gate_detects_active_doc_drift(tmp_path):
+    relative_paths = [
+        "src/ev4_transition/data/capability-status.v1.json",
+        "docs/IMPLEMENTATION_STATUS.yaml",
+        "README.md",
+        "AGENTS.md",
+    ]
+    for relative in relative_paths:
+        source = ROOT / relative
+        target = tmp_path / relative
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_text(source.read_text(encoding="utf-8"), encoding="utf-8")
+
+    agents = tmp_path / "AGENTS.md"
+    agents.write_text(
+        agents.read_text(encoding="utf-8").replace(
+            "orchestration_baseline: implemented",
+            "orchestration_baseline: not_implemented",
+            1,
+        ),
+        encoding="utf-8",
+    )
+
+    completed = run_script("scripts/check-capability-truth.py", str(tmp_path))
+    assert completed.returncode == 1
+    assert "AGENTS.md" in completed.stdout
+
+
 def test_action_pinning_guard_scans_all_workflows_by_default(tmp_path):
     workflows = tmp_path / ".github/workflows"
     workflows.mkdir(parents=True)
@@ -121,27 +164,55 @@ def test_action_pinning_guard_scans_all_workflows_by_default(tmp_path):
         "permissions:\n  contents: write\nsteps:\n  - uses: actions/setup-node@v4\n",
         encoding="utf-8",
     )
-    completed = subprocess.run(
-        [sys.executable, str(ROOT / "scripts/check-github-action-pinning.py"), str(tmp_path)],
-        cwd=ROOT,
-        text=True,
-        capture_output=True,
-        check=False,
-    )
+    completed = run_script("scripts/check-github-action-pinning.py", str(tmp_path))
     assert completed.returncode == 1
     assert "mutable.yaml" in completed.stdout
     assert "actions/setup-node@v4" in completed.stdout
 
 
 def test_repository_workflows_use_full_sha_action_pins():
-    completed = subprocess.run(
-        [sys.executable, str(ROOT / "scripts/check-github-action-pinning.py"), str(ROOT)],
-        cwd=ROOT,
-        text=True,
-        capture_output=True,
-        check=False,
-    )
+    completed = run_script("scripts/check-github-action-pinning.py", str(ROOT))
     assert completed.returncode == 0, completed.stdout + completed.stderr
+
+
+def test_workflow_permission_gate_passes_repository():
+    completed = run_script("scripts/check-workflow-permissions.py", str(ROOT))
+    assert completed.returncode == 0, completed.stdout + completed.stderr
+
+
+def test_workflow_permission_gate_rejects_persisted_checkout_credentials(tmp_path):
+    workflows = tmp_path / ".github/workflows"
+    workflows.mkdir(parents=True)
+    (workflows / "unsafe.yml").write_text(
+        """name: Unsafe
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+""",
+        encoding="utf-8",
+    )
+    completed = run_script("scripts/check-workflow-permissions.py", str(tmp_path))
+    assert completed.returncode == 1
+    assert "persist-credentials: false" in completed.stdout
+
+
+def test_post_merge_workflow_dispatches_exact_main_head_validation():
+    post_merge = (ROOT / ".github/workflows/status-after-merge.yml").read_text(encoding="utf-8")
+    assert "actions: write" in post_merge
+    assert "FINAL_MAIN_SHA=$(git rev-parse HEAD)" in post_merge
+    assert "actions/workflows/${workflow}/dispatches" in post_merge
+    assert "validate.yml prompt-05.yml" in post_merge
+    assert "expected_head_sha" in post_merge
+
+    for relative in [".github/workflows/validate.yml", ".github/workflows/prompt-05.yml"]:
+        text = (ROOT / relative).read_text(encoding="utf-8")
+        assert "workflow_dispatch:" in text
+        assert "expected_head_sha:" in text
+        assert 'test "$TESTED_SHA" = "$EXPECTED_HEAD_SHA"' in text
 
 
 def test_cli_inspect_reports_prompt05_layered_truth():
