@@ -4,13 +4,13 @@
 
 - Repository: `rezahh107/EV4-Shared-Contracts`
 - Main branch: `main`
-- Last merged PR: `#19` — `PROMPT-03 Runner boundary and official tool execution infrastructure`
-- PR #19 merge commit: `34fb7acd82b6ff94ed3c64a53ae3fb0582c2714a`
-- PR #19 head commit: `16268e56a9f80224c68621cdff2f87dbf50d5267`
-- PR #19 `Skeleton Health`: `CI_PASSED`
+- Last merged PR: `#20` — `PROMPT-04 CE to Builder transition orchestration baseline`
+- PR #20 merge commit: `34b08240ad4deaf017a8f79236d0b8e214530dec`
+- PR #20 head commit: `42bfa484481c585f589d86c40424660c70b038a0`
+- PR #20 `Skeleton Health`: `CI_PASSED`
 - Current work branch: `main`
 - Active PR: `none`
-- Current status: `PR #19 merge fully recorded automatically; governance interpretation remains evidence-based; canonical migration remains blocked`
+- Current status: `PR #20 merge fully recorded automatically; governance interpretation remains evidence-based; canonical migration remains blocked`
 - Main status correction commit: `754ff8503bc042de4a8c5bbba0ace0360a1473c5`
 - Phase 5 proposal commit: `02812d3cb1d4c76f25f1783ccfcb14f76b10ed72`
 - Phase 5 status update commit: `80055a6e68074349a7ed3562cb5fcbd27e128b65`
@@ -100,6 +100,7 @@ This section is updated by GitHub Actions after a pull request is merged. It rec
 
 | PR | Title | Head branch | Head commit | Merge commit | Skeleton Health | Recorded by |
 |---|---|---|---|---|---|---|
+| `#20` | `PROMPT-04 CE to Builder transition orchestration baseline` | `project-gate-prompt-04-ce-to-builder` | `42bfa484481c585f589d86c40424660c70b038a0` | `34b08240ad4deaf017a8f79236d0b8e214530dec` | `CI_PASSED` | `rezahh107 on rezahh107/EV4-Project-Gate` |
 | `#19` | `PROMPT-03 Runner boundary and official tool execution infrastructure` | `project-gate-prompt-03-runner-boundary` | `16268e56a9f80224c68621cdff2f87dbf50d5267` | `34fb7acd82b6ff94ed3c64a53ae3fb0582c2714a` | `CI_PASSED` | `rezahh107 on rezahh107/EV4-Project-Gate` |
 | `#18` | `PROMPT-02 Behavioral Rule Coverage enforcement` | `project-gate-prompt-02-behavioral-coverage` | `0a355b24fabd3f74ea73c1e66d85df359286fe03` | `cf0d1f40047bcd2479cec7359f99c969088267f8` | `CI_PASSED` | `rezahh107 on rezahh107/EV4-Project-Gate` |
 | `#17` | `PROMPT-01 Project Gate contracts and deterministic core hardening` | `project-gate-prompt-01-deterministic-core` | `4153c9df348e66626ed81d63ad1888ef41430fb6` | `4897d7c2e0d693a1df29447f4a010acf3a65feac` | `CI_PASSED` | `rezahh107 on rezahh107/EV4-Project-Gate` |
