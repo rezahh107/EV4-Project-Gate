@@ -106,7 +106,7 @@ Validator execution record minimum children:
 
 ```yaml
 owner_repo: owner/repo of official validator
-owner_commit: pinned owner commit or explicit unresolved marker
+owner_commit: pinned owner commit; successful official validator runs must not use unknown
 validator_path: repo-relative validator path
 command: command list used by the runner
 working_directory: repo-relative/safe working directory label
@@ -115,7 +115,7 @@ stdout_hash: SHA-256 of exact stdout bytes
 stderr_hash: SHA-256 of exact stderr bytes
 execution_record_hash: SHA-256 over canonical execution record without this field
 started_by: runner identity
- timeout_policy:
+timeout_policy:
   seconds: numeric timeout
   kill_process_tree: bool
 parsed_result_ref: reference to parsed result source, usually stdout:json
@@ -127,7 +127,7 @@ Adapter execution record minimum children:
 owner_repo: owner/repo of official adapter
 owner_commit: pinned owner commit or explicit unresolved marker
 adapter_path: repo-relative adapter path
-command_or_entrypoint: command list or entrypoint name used by the runner
+command_or_entrypoint: command list or entrypoint name used by the runner; must execute adapter_path directly or through a trusted interpreter
 input_ref: input artifact reference
 input_hash: SHA-256 of canonical input/artifact bytes
 output_ref: output artifact reference, if produced
@@ -169,6 +169,9 @@ execution_crash_without_structured_result:
 fallback_adapter_used:
   status: invalid
   diagnostic: PG.ADAPTER.FALLBACK_FORBIDDEN
+adapter_command_path_mismatch:
+  status: invalid
+  diagnostic: PG.ADAPTER.COMMAND_PATH_MISMATCH
 ```
 
 Raw stdout/stderr are not stored in execution records. Only `stdout_hash` and `stderr_hash` are retained.
