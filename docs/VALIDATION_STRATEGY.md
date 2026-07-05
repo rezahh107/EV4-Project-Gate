@@ -1,24 +1,41 @@
 # EV4 Validation Strategy
 
-This document defines validation strategy for EV4 Project Gate.
+This document defines validation strategy for EV4 Project Gate. Layered capability status is authoritative in `src/ev4_transition/data/capability-status.v1.json` and mirrored in `docs/IMPLEMENTATION_STATUS.yaml`.
 
-The active implementation includes the deterministic Python foundation, Stage Evidence Bundle envelope validation, and the first narrow synthetic-verified transition: `ev4-architect-to-ce-transition@1.0.0`.
+## Capability state
 
-## Active Foundation Validation
+```yaml
+architect_to_ce:
+  orchestration_baseline: implemented
+  cli_exposure: implemented
+  verification_state: synthetic_fixture_only
+ce_to_builder:
+  orchestration_baseline: implemented
+  cli_exposure: not_implemented
+  owner_fixture_integration: verified
+  real_non_synthetic_handoff: insufficient_evidence
+builder_to_responsive:
+  orchestration_baseline: not_implemented
+final_evidence_gate:
+  orchestration_baseline: not_implemented
+```
+
+## Foundation validation
 
 Current Python checks validate:
 
 - canonical JSON v1 behavior;
 - stable SHA-256 over canonical UTF-8 JSON;
 - NaN and infinity rejection;
-- structured diagnostics;
+- structured diagnostics and deterministic ordering;
 - malformed JSON values without crashes;
 - Stage Evidence Bundle envelope structure;
 - explicit `insufficient_evidence`;
 - provenance preservation;
-- validation-result schema enforcement;
-- Architect-to-CE transition-result schema enforcement;
-- minimal CLI JSON and Persian output.
+- validation-result and transition-result schema enforcement;
+- runner-boundary enforcement;
+- behavioral coverage declarations;
+- layered capability-truth reporting.
 
 Current commands:
 
@@ -28,169 +45,87 @@ pytest
 ev4-transition validate fixtures/valid/architect-stage-bundle.v1.json
 ev4-transition validate fixtures/invalid/array-input.v1.json
 ev4-transition validate fixtures/insufficient-evidence/architect-stage-bundle.v1.json --format persian
-```
-
-Existing Node skeleton checks remain temporarily available:
-
-```bash
+python scripts/check-github-action-pinning.py
 npm run status
 npm run validate
 ```
 
-## Verification State Vocabulary
+The Node skeleton remains temporarily required until a dedicated parity-proof change retires it.
 
-Project Gate uses this canonical value for synthetic-only transition evidence:
+## Architect → CE validation
 
-```yaml
-verification_state: synthetic_fixture_only
-```
-
-Historical equivalents that may appear in old reports are compatibility wording only and should be normalized to `synthetic_fixture_only` in active Project Gate documents:
-
-```yaml
-legacy_equivalents:
-  - verified_by_synthetic_fixture
-  - synthetic_cross_repository_fixtures_only
-canonical: synthetic_fixture_only
-```
-
-## Architect-to-CE Transition Validation
-
-The first active transition is:
+Active transition:
 
 ```text
 ev4-architect-to-ce-transition@1.0.0
 ```
 
-It validates:
+It validates the source bundle, source identity, pinned external file bytes, Architect payload schema and official validator, deterministic CE-owned mapping, CE intake schema and official validator, source binding, target bundle, and Project Gate result schema.
 
-- source Stage Evidence Bundle envelope;
-- exact source stage and payload identity;
-- pinned external contract file hashes;
-- Architect payload schema from the Architect repository;
-- deterministic Architect-to-CE mapping without semantic derivation;
-- CE intake schema from the CE repository;
-- target CE Stage Evidence Bundle envelope;
-- Architect-to-CE transition result schema;
-- official Architect validator and official CE intake validator in CLI/CI.
-
-Required pinned local checkouts:
+Pinned repositories:
 
 ```text
 rezahh107/EV4-Architect-Repo@b0651668b97f682bb17f66840c8e8c503fd3935d
 rezahh107/EV4-Constructability-Engineer-Repo@546680a2e2a309c0d7e0ddbfc017e9e194ece7cb
 ```
 
-## CE-to-Builder Transition Validation Baseline
+Verification remains `synthetic_fixture_only`; no real non-synthetic Architect→CE handoff is claimed.
 
-The CE → Builder transition is documented as a freeze baseline only. It is not implemented in Project Gate yet.
+## CE → Builder validation
 
-When implemented later, it should validate:
-
-- CE Stage Evidence Bundle envelope;
-- CE package identity `ev4-builder-executable-package@1.0.0`;
-- pinned CE producer contract, schema, validators, and proving fixtures;
-- Builder CE→Builder Contract Gate;
-- Builder transformation registry;
-- Builder CE→Builder adapter;
-- generated Builder Context Package schema validation;
-- generated Builder Context Package cross-field validation;
-- target Stage Evidence Bundle envelope;
-- transition result schema for the future CE→Builder transition.
-
-The current freeze matrix is:
+Implemented orchestration baseline:
 
 ```text
-docs/CE_TO_BUILDER_FREEZE_MATRIX.md
+ev4-ce-to-builder-transition@1.0.0
 ```
 
-## Builder-to-Responsive Transition Validation Baseline
+The baseline validates or executes, in order:
 
-The Builder → Responsive transition is documented as a freeze baseline only. It is not implemented in Project Gate yet.
+- CE Stage Evidence Bundle or CE package identity;
+- exact CE and Builder owner repository, commit, path, identity marker, and file-byte SHA-256 pins;
+- official CE package validator;
+- official Builder CE→Builder Contract Gate;
+- official Builder adapter;
+- Builder-owned context schema;
+- official Builder output validator;
+- Project Gate CE→Builder result schema.
 
-When implemented later, it should validate:
+Project Gate calls owner tools through `src/ev4_transition/runners/`; it does not duplicate CE or Builder domain logic.
 
-- Builder Stage Evidence Bundle envelope or equivalent Project Gate transport envelope;
-- pinned Builder action batch, layout check, completion gate, and real Elementor execution evidence contracts;
-- pinned Builder validators and proving fixtures;
-- explicit absence or presence of a formal Builder→Responsive export schema;
-- Responsive Builder→Responsive input boundary;
-- Responsive output schema validation;
-- Responsive submitted-packet dry-run boundary validation;
-- Responsive evidence-intake, pilot-boundary, Issue #8, RTAQ, and STATUS guard checks;
-- target Stage Evidence Bundle envelope;
-- transition result schema for the future Builder→Responsive transition.
-
-The current freeze matrix is:
-
-```text
-docs/BUILDER_TO_RESPONSIVE_FREEZE_MATRIX.md
-```
-
-The transition may be implemented as fail-closed while formal Builder and Responsive handoff package schemas remain absent. It must not emit an accepted handoff result unless current pinned artifacts and official validators support that result.
-
-## Local Schema Validation
-
-The active schemas in this repository are Project Gate envelope/result schemas only:
-
-```text
-schemas/stage-bundle/stage-bundle.v1.schema.json
-schemas/transition-result/transition-result.v1.schema.json
-schemas/architect-to-ce-transition-result/architect-to-ce-transition-result.v1.schema.json
-```
-
-They are not copied specialist-domain schemas and are not canonical Architect, CE, Builder, or Responsive contracts.
-
-## Cross-Repo Fixture Validation
-
-Transition PRs validate against fixtures from the relevant producer and consumer repositories.
-
-Positive fixtures prove accepted behavior. Negative fixtures prove boundary rejection.
-
-For Architect-to-CE v1:
+Evidence state:
 
 ```yaml
-real_cross_repository_validation: not_available
-verification_state: synthetic_fixture_only
+owner_fixture_integration:
+  status: verified
+  pull_request: 20
+  head_sha: 42bfa484481c585f589d86c40424660c70b038a0
+  workflow_run_id: 28744810186
+real_non_synthetic_handoff:
+  status: insufficient_evidence
+public_cli_exposure:
+  status: not_implemented
 ```
 
-No real EV4 fixture validation is claimed by this transition.
+The owner-fixture smoke is integration evidence only. It is not real non-synthetic handoff evidence and does not authorize a public `ce-to-builder` CLI command.
 
-## Contract Compatibility Matrix
+## Builder → Responsive baseline
 
-A compatibility matrix defines, for each future transition contract:
+Builder→Responsive remains not implemented in Project Gate. Existing freeze documentation may guide future work, but Project Gate must remain fail-closed until Builder-owned output/evidence artifacts and Responsive-owned input requirements are explicit, pinned, and validated.
 
-- owner repo
-- producer
-- consumer
-- schema version
-- allowed compatibility path
-- blocked compatibility path
-- deprecation behavior
-- migration status
+## Local schemas
 
-## Producer/Consumer Contract Tests
+Project Gate owns envelope/result/diagnostic/lock/coverage schemas only. It must not copy specialist-domain schemas as competing canonical contracts.
 
-No real transition is accepted without at least one producer-side fixture and one consumer-side fixture.
+## Producer and consumer validation
 
-Producer tests prove the owning repo can emit or carry the contract correctly. Consumer tests prove the downstream repo accepts valid input and rejects invalid or premature input.
+A cross-repository compatibility claim requires producer-side evidence and consumer-side acceptance/rejection evidence. Synthetic or owner fixtures must retain their labels and cannot be promoted into real handoff evidence.
 
-## CI Requirement
+## CI requirements
 
-CI evidence is required before schema promotion or transition activation.
+CI must prove the package installs, applicable unit and CLI tests pass, positive and negative fixtures behave as expected, official owner tools execute through the runner boundary, external locks match exact pinned bytes, behavioral coverage declarations validate, active documentation matches capability truth, and every external GitHub Action in every workflow is pinned according to repository policy.
 
-At minimum, transition CI should prove:
+The exact automatic post-merge `main` head `dca39ed177d5660d96df04a05fff0a0314c6c339` had no visible workflow run during the audit; its CI state remains `insufficient_evidence` until direct evidence exists.
 
-- Python package installs
-- unit tests pass
-- CLI smoke tests pass
-- schema files parse
-- positive fixtures pass
-- negative fixtures fail as expected
-- producer validation passes
-- consumer validation passes
-- cross-repo compatibility tests pass when that transition claims cross-repo compatibility
-
-## Dependency Boundary
+## Dependency boundary
 
 Existing EV4 repositories should not import from this repository until an explicit ADR, migration plan, validation evidence, compatibility policy, and rollback guidance are approved.
