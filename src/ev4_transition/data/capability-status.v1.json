@@ -1,0 +1,67 @@
+{
+  "schema_version": "ev4-project-gate-capability-status.v1",
+  "package": "ev4-project-gate",
+  "repository": "rezahh107/EV4-Project-Gate",
+  "capabilities": {
+    "architect_to_ce": {
+      "orchestration_baseline": "implemented",
+      "cli_exposure": "implemented",
+      "verification_state": "synthetic_fixture_only",
+      "real_non_synthetic_handoff": "insufficient_evidence"
+    },
+    "ce_to_builder": {
+      "orchestration_baseline": "implemented",
+      "cli_exposure": "not_implemented",
+      "owner_fixture_integration": "verified",
+      "real_non_synthetic_handoff": "insufficient_evidence"
+    },
+    "builder_to_responsive": {
+      "orchestration_baseline": "not_implemented",
+      "cli_exposure": "not_implemented"
+    },
+    "final_evidence_gate": {
+      "orchestration_baseline": "not_implemented",
+      "cli_exposure": "not_implemented"
+    },
+    "user_interface": {
+      "status": "not_implemented"
+    }
+  },
+  "public_cli_transitions": [
+    "architect-to-ce"
+  ],
+  "implemented": [
+    "canonical_json",
+    "sha256",
+    "structured_diagnostics",
+    "stage_bundle_validation",
+    "transition_result_schema_foundation",
+    "status_presentation_mapping",
+    "behavioral_coverage_validation",
+    "architect-to-ce transition",
+    "ce-to-builder orchestration baseline",
+    "minimal_cli"
+  ],
+  "not_implemented": [
+    "ce-to-builder public CLI exposure",
+    "builder-to-responsive transition",
+    "final evidence gate",
+    "real EV4 artifact validation",
+    "UI"
+  ],
+  "evidence": {
+    "ce_to_builder_owner_fixture_integration": {
+      "pull_request": 20,
+      "head_sha": "42bfa484481c585f589d86c40424660c70b038a0",
+      "workflow_run_id": 28744810186,
+      "workflow": "Skeleton Health",
+      "result": "success",
+      "scope": "owner_fixture_integration_only"
+    },
+    "current_main_head_ci": {
+      "observed_head_sha": "dca39ed177d5660d96df04a05fff0a0314c6c339",
+      "status": "insufficient_evidence",
+      "reason": "No workflow run was visible for the exact automatic post-merge main head during the capability-truth audit."
+    }
+  }
+}
