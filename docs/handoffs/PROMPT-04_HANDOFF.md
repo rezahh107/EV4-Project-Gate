@@ -40,9 +40,9 @@ latest_green_ci_evidence_before_final_docs_refresh:
     CE-to-Builder lock verification: success
     CE-to-Builder live owner tool smoke: success
     Official CE validator fixture suite: success
-  note: Documentation-only refresh commits after this green run may trigger newer runs; verify latest PR head before merge.
+  note: Documentation-only refresh commits after this green run triggered run 28742062937 on head b097842f5450d5c638cffc3bae111aae56b6ba18; verify its final result before merge.
 
-commit_ledger_note: Full continuation commit history is available in PR #20. Key green-evidence code head is 87a4a84640c999cee049a0d40865c25efabeafb0; latest handoff-only refresh commit before final response is fe4a157d9962507d545a7f55899146899eff4596.
+commit_ledger_note: Full continuation commit history is available in PR #20. Key green-evidence code head is 87a4a84640c999cee049a0d40865c25efabeafb0; latest handoff refresh commit is b097842f5450d5c638cffc3bae111aae56b6ba18.
 
 files_changed_relevant_to_continuation:
   - .github/workflows/validate.yml
