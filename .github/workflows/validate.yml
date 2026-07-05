@@ -92,12 +92,19 @@ jobs:
         working-directory: EV4-Project-Gate
         run: pytest tests/test_cli.py tests/test_canonical_json.py tests/test_bundle_validator.py
 
-      - name: Architect-to-CE transition tests
+      - name: Architect-to-CE pure transition tests
         working-directory: EV4-Project-Gate
         env:
           EV4_ARCHITECT_REPO: ${{ github.workspace }}/EV4-Architect-Repo
           EV4_CE_REPO: ${{ github.workspace }}/EV4-Constructability-Engineer-Repo
-        run: pytest tests/test_architect_to_ce_transition.py
+        run: pytest tests/test_architect_to_ce_transition.py -k 'not cli'
+
+      - name: Architect-to-CE CLI transition tests
+        working-directory: EV4-Project-Gate
+        env:
+          EV4_ARCHITECT_REPO: ${{ github.workspace }}/EV4-Architect-Repo
+          EV4_CE_REPO: ${{ github.workspace }}/EV4-Constructability-Engineer-Repo
+        run: pytest tests/test_architect_to_ce_transition.py -k 'cli'
 
       - name: Prompt 01 unit tests
         working-directory: EV4-Project-Gate
