@@ -5,3 +5,9 @@ node_modules/
 *.log
 coverage/
 dist/
+
+# Python build and runtime artifacts
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/

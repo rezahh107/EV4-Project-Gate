@@ -1,2 +1,0 @@
-[console_scripts]
-ev4-transition = ev4_transition.cli:main

@@ -1,4 +1,4 @@
-name: Status After Merge
+name: Historical Merge Ledger
 
 on:
   pull_request:
@@ -11,25 +11,25 @@ permissions:
   pull-requests: read
 
 concurrency:
-  group: status-after-merge-${{ github.event.pull_request.number }}
+  group: historical-merge-ledger-${{ github.event.pull_request.number }}
   cancel-in-progress: false
 
 jobs:
-  update-status:
+  update-ledger:
     if: github.event.pull_request.merged == true && github.event.pull_request.base.ref == 'main'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout main
-        uses: actions/checkout@v4
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
         with:
           ref: main
 
       - name: Setup Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
         with:
           node-version: 20
 
-      - name: Resolve Skeleton Health status
+      - name: Resolve merged PR validation status
         env:
           MERGED_PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
         run: |
@@ -45,7 +45,7 @@ jobs:
 
           echo "MERGED_PR_SKELETON_HEALTH=$health" >> "$GITHUB_ENV"
 
-      - name: Update status file
+      - name: Update historical ledger
         env:
           MERGED_PR_NUMBER: ${{ github.event.pull_request.number }}
           MERGED_PR_TITLE: ${{ github.event.pull_request.title }}
@@ -54,15 +54,15 @@ jobs:
           MERGED_PR_MERGE_SHA: ${{ github.event.pull_request.merge_commit_sha }}
         run: node scripts/update-status-after-merge.js
 
-      - name: Commit status update
+      - name: Commit historical ledger update
         run: |
           if git diff --quiet -- docs/EV4_SHARED_CONTRACTS_STATUS.md; then
-            echo "No status update needed."
+            echo "No historical ledger update needed."
             exit 0
           fi
 
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add docs/EV4_SHARED_CONTRACTS_STATUS.md
-          git commit -m "docs: record merged PR #${{ github.event.pull_request.number }} in status"
+          git commit -m "docs: record merged PR #${{ github.event.pull_request.number }} in historical ledger"
           git push
