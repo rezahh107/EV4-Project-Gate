@@ -5,7 +5,7 @@ prompt_id: PROMPT-06
 branch: project-gate-prompt-06-ux
 pull_request: 24
 base_branch: main
-latest_recorded_head_sha_before_handoff_update: 625eb8428e40d55595790344f7a1f2a247c5b9a4
+final_head_sha_before_this_handoff_ci_update: 17dc19f323ddae10c64cd4baf80ad56c7db96b59
 review_repair_source:
   review_package: review-package.json
   original_review_status: RED_DO_NOT_MERGE
@@ -24,6 +24,7 @@ commits:
     - e57cb29612e400b0aa0041d754e9d74970fb1160
     - 2c2b9f0913ea74f7609d9394e7705f90c6d55cd4
     - 625eb8428e40d55595790344f7a1f2a247c5b9a4
+    - 17dc19f323ddae10c64cd4baf80ad56c7db96b59
 files_changed:
   - .github/workflows/prompt-06.yml
   - docs/BEHAVIORAL_RULE_COVERAGE.md
@@ -46,14 +47,14 @@ files_changed:
   - tests/ux_acceptance/test_report_status_ux.py
 tests_run:
   - local limited prototype before repository writes: PYTHONPATH=src pytest -q tests/ux_acceptance tests/typography_acceptance tests/theme_acceptance tests/reporting
-  - GitHub Actions on head 625eb8428e40d55595790344f7a1f2a247c5b9a4: Prompt 06 Report UX
-  - GitHub Actions on head 625eb8428e40d55595790344f7a1f2a247c5b9a4: Prompt 05 Builder Responsive Final Gate
-  - GitHub Actions on head 625eb8428e40d55595790344f7a1f2a247c5b9a4: Skeleton Health
+  - GitHub Actions on head 17dc19f323ddae10c64cd4baf80ad56c7db96b59: Prompt 06 Report UX
+  - GitHub Actions on head 17dc19f323ddae10c64cd4baf80ad56c7db96b59: Prompt 05 Builder Responsive Final Gate
+  - GitHub Actions on head 17dc19f323ddae10c64cd4baf80ad56c7db96b59: Skeleton Health
 tests_passed:
   - local limited prototype before repository writes: 19 passed in 0.19s
-  - Prompt 06 Report UX run 28752150828: success
-  - Prompt 05 Builder Responsive Final Gate run 28752150813: success
-  - Skeleton Health run 28752150805: success
+  - Prompt 06 Report UX run 28752224334: success
+  - Prompt 05 Builder Responsive Final Gate run 28752224330: success
+  - Skeleton Health run 28752224349: success
 tests_failed: []
 tests_not_run:
   - full local live-checkout pytest from this environment: unavailable because github.com DNS resolution failed earlier
