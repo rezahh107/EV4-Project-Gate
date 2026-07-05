@@ -45,7 +45,7 @@ def _checkout_steps(workflow: dict[str, Any]) -> list[dict[str, Any]]:
 
 def check_repository(root: Path) -> list[str]:
     workflow_root = root / ".github" / "workflows"
-    if not workflow_root.exists():
+    if not workflow_root.is_dir():
         return [f"{workflow_root}: workflow directory does not exist"]
 
     failures: list[str] = []
