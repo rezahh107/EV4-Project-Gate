@@ -1,6 +1,6 @@
 # EV4 Project Gate
 
-Status: The deterministic Python foundation and the `ev4-architect-to-ce-transition@1.0.0`, `ev4-ce-to-builder-transition@1.0.0`, `ev4-builder-to-responsive-transition@1.0.0`, and `ev4-final-evidence-gate@1.0.0` orchestration baselines are implemented at their documented scopes. Only Architect → CE is exposed through the public CLI. Real non-synthetic handoff evidence remains insufficient, and the user interface is not implemented.
+Status: The deterministic Python foundation and the `ev4-architect-to-ce-transition@1.0.0`, `ev4-ce-to-builder-transition@1.0.0`, `ev4-builder-to-responsive-transition@1.0.0`, and `ev4-final-evidence-gate@1.0.0` orchestration baselines are implemented at their documented scopes. Only Architect → CE is exposed through the public CLI. Real non-synthetic handoff evidence remains insufficient, and the initial local operator UI shell is implemented.
 
 ## Purpose
 
@@ -35,6 +35,7 @@ Implemented components:
 - Synthetic valid, invalid, and insufficient-evidence fixtures
 - Pytest coverage for deterministic hashes, malformed inputs, structured diagnostics, provenance preservation, lock enforcement, validator order, and result-schema enforcement
 - GitHub Actions Python validation alongside the existing Node skeleton checks
+- Initial local Persian-first operator UI shell: `python -m ev4_transition.ui.app`
 
 Implemented transition:
 
@@ -84,6 +85,7 @@ The following remain intentionally out of scope:
 - CE-to-Builder general public CLI exposure
 - Builder-to-Responsive general public CLI exposure
 - Final Evidence Gate general public CLI exposure
+- UI service-layer execution for CE→Builder, Builder→Responsive, and Final Evidence Gate
 - real non-synthetic CE-to-Builder handoff verification
 - real non-synthetic Builder-to-Responsive handoff verification
 - real non-synthetic final evidence verification
@@ -91,12 +93,11 @@ The following remain intentionally out of scope:
 - implementation strategy selection
 - Builder authorization
 - real Elementor artifact validation
-- UI/upload-download application
 - legacy Node retirement
 
 The CE-to-Builder, Builder-to-Responsive, and Final Evidence Gate orchestration baselines, result schemas, lock verification, runner integration, and scoped tests exist in the repository. `ev4-transition inspect` reports the layered status from `src/ev4_transition/data/capability-status.v1.json`.
 
-Do not claim real EV4 end-to-end compatibility from synthetic transition fixtures, owner-fixture integration, or pinned-owner validator execution.
+Do not claim real EV4 end-to-end compatibility from synthetic transition fixtures, owner-fixture integration, pinned-owner validator execution, or the local operator UI shell.
 
 ## CLI
 
@@ -118,6 +119,23 @@ Exit codes:
 1 = invalid
 2 = insufficient_evidence
 ```
+
+## Local operator UI
+
+```bash
+python -m pip install -e '.[dev]'
+python -m ev4_transition.ui.app
+```
+
+Optional script entry point:
+
+```bash
+ev4-project-gate-ui
+```
+
+The UI is Persian-first and local. It supports JSON upload/paste, safe malformed-JSON handling, local checkout path inputs, read-only capability inspection, diagnostics display, and downloads for `result.json`, `report.md`, and `report.html`.
+
+The UI does not prove production readiness, real Elementor validation, frontend correctness, responsive correctness, accessibility completion, or export validation. It does not expose new public CLI transitions and does not change transition semantics.
 
 ## Stage Evidence Bundle
 
@@ -188,7 +206,7 @@ EV4-Responsive-Architect
   post-build responsive validation and repair
 
 EV4-Project-Gate
-  deterministic envelope validation, diagnostics, provenance, hashes, external pin verification, and package orchestration
+  deterministic envelope validation, diagnostics, provenance, hashes, external pin verification, package orchestration, Persian summaries, and local operator UI shell
 ```
 
 ## Validation
@@ -248,7 +266,7 @@ capabilities:
     real_non_synthetic_evidence: insufficient_evidence
     verification_state: verified_by_exact_head_ci
   user_interface:
-    status: not_implemented
+    status: implemented_initial_operator_panel
 public_cli_transitions:
   - architect-to-ce
 python_deterministic_core: implemented_initial_v1
