@@ -1,73 +1,51 @@
+# PROMPT-04 Historical Handoff Record
+
+```yaml
 prompt_id: PROMPT-04
+record_type: historical_pre_merge_handoff
 branch: project-gate-prompt-04-ce-to-builder
 pull_request: 20
-base_branch: main
-base_sha: 10e665cdec74ba5508042fa774a3934b16387192
-handoff_refresh_context: after_PR_Inspector_YELLOW_repository_aware_lock_patch
-pr_state: open_draft_unmerged
+final_pr_state: merged
+final_head_sha: 42bfa484481c585f589d86c40424660c70b038a0
+merge_commit_sha: 34b08240ad4deaf017a8f79236d0b8e214530dec
+final_checked_workflow:
+  name: Skeleton Health
+  run_id: 28744810186
+  result: success
+```
 
-review_input:
-  authoritative_review: PR_Inspector_v1_5_0_YELLOW_CHANGES_OR_VERIFICATION_REQUIRED
-  uploaded_review_report: user_message_technical_handoff
-  followup_blockers:
-    - PRF-001: accepted_requires can misreport lock mismatch categories in invalid results
-  non_blocking_findings:
-    - PRF-002: committed status docs had stale CI evidence references
+This file preserves the PROMPT-04 review and repair history. It is not the current capability or implementation status source.
 
-repository_aware_lock_patch:
-  - Added repository, commit, and file_path details to PG.C2B.LOCK_ROLE_DUPLICATE.
-  - Added repository, commit, and file_path details to PG.C2B.LOCK_REPOSITORY_MISMATCH, PG.C2B.LOCK_COMMIT_MISMATCH, PG.C2B.LOCK_PATH_MISMATCH, and PG.C2B.LOCK_IDENTITY_MISMATCH.
-  - Added repository, commit, and file_path details to PG.C2B.EXTERNAL_IDENTITY_MISMATCH.
-  - Added accepted_requires regression matrix for duplicate role, repository mismatch, commit mismatch, path mismatch, id mismatch, hash mismatch, and identity mismatch on both CE and Builder roles.
+Current status sources:
 
-status_doc_refresh:
-  - docs/BEHAVIORAL_RULE_COVERAGE.md no longer cites an old head/run as current evidence.
-  - docs/IMPLEMENTATION_STATUS.yaml marks the repository-aware lock patch as pending CI rather than claiming older CI as current.
-  - This handoff marks older green runs as historical and requires latest-head CI verification after this patch.
+```text
+src/ev4_transition/data/capability-status.v1.json
+docs/IMPLEMENTATION_STATUS.yaml
+```
 
-historical_green_before_repository_aware_patch:
-  repository: rezahh107/EV4-Project-Gate
-  workflow: Skeleton Health
-  run_id: 28743697368
-  checked_head_sha: d613dd21d644b18fad6eb869b7c229b4567e4ffa
-  conclusion: success
-  note: Historical evidence only; the repository-aware patch changes the PR head and requires a fresh CI result.
+## Final capability outcome
 
-post_repository_aware_patch_validation_state:
-  latest_head_sha: pending_after_this_handoff_commit
-  github_actions_result: pending
-  note: Re-run CI and PR Inspector review are required before merge.
+```yaml
+ce_to_builder:
+  orchestration_baseline: implemented
+  cli_exposure: not_implemented
+  owner_fixture_integration: verified
+  real_non_synthetic_handoff: insufficient_evidence
+```
 
-files_changed_relevant_to_repository_aware_patch:
-  - src/ev4_transition/transitions/ce_to_builder.py
-  - tests/transitions/test_ce_to_builder.py
-  - docs/BEHAVIORAL_RULE_COVERAGE.md
-  - docs/IMPLEMENTATION_STATUS.yaml
-  - docs/handoffs/PROMPT-04_HANDOFF.md
+## Confirmed PROMPT-04 repairs
 
-coverage_state:
-  PG-C2B-001:
-    behavioral_ledger_status: validator_backed
-    ci_evidence: pending_after_repository_aware_patch
-  PG-C2B-002:
-    behavioral_ledger_status: validator_backed
-    ci_evidence: pending_after_repository_aware_patch
-  PG-DOWNSTREAM-001:
-    behavioral_ledger_status: fixture_tested
-    downstream_contract_enforced: false
+- GitHub Actions used immutable full-SHA pins in the primary validation workflow.
+- The static action-pin guard was added.
+- Raw CE package input fails closed when real evidence is required.
+- Lock diagnostics carry repository-aware details used by `accepted_requires` classification.
+- Regression tests cover duplicate role, repository, commit, path, identity, hash, and owner-file marker mismatches.
+- CE→Builder lock verification and live owner-tool smoke ran successfully on the final PR head.
 
-important_design_decisions:
-  - PR #20 stayed draft and was not merged.
-  - accepted_requires still derives CE and Builder lock flags from repository-aware diagnostics.
-  - Diagnostics were made repository-aware instead of adding a separate classifier, preserving the existing result contract.
-  - C2B live smoke remains integration evidence, not real non-synthetic handoff evidence.
+## Evidence limitation
 
-web_sources_used: []
+The live smoke used a pinned owner fixture. It proves integration against pinned owner tools, not a real non-synthetic CE handoff package. `PG-DOWNSTREAM-001`, Builder→Responsive, and the final evidence gate remain outside this handoff proof.
 
-remaining_insufficient_evidence:
-  - post_repository_aware_patch_green_ci_on_latest_head
-  - real_non_synthetic_CE_to_Builder_transition_evidence
-  - Builder_to_Responsive_Project_Gate_transition
-  - final_evidence_gate
+## Superseded statements
 
-next_allowed_prompt: verify_CI_and_PR_Inspector_review_on_latest_head
+Earlier statements in this handoff that PR #20 was open, draft, unmerged, or pending CI are historical pre-merge observations and must not be used as current repository state.
