@@ -8,7 +8,7 @@ from typing import Any, Literal
 from ev4_transition.canonical_json import bytes_sha256, file_sha256
 from ev4_transition.progress import ProgressEvent, emit_progress_event
 
-from .failure_mapping import adapter_command_mismatch, command_not_found, execution_failed, fallback_adapter_forbidden, map_structured_nonzero, map_zero_exit, missing_tool, timeout, unparseable_output
+from .failure_mapping import adapter_command_mismatch, command_not_found, execution_failed, fallback_adapter_forbidden, map_structured_nonzero, map_zero_exit, missing_tool, text_failure, text_success, timeout, unparseable_output
 from .records import TimeoutPolicy, ToolExecutionOutcome, build_adapter_execution_record, build_validator_execution_record, repo_relative
 
 ToolKind = Literal["validator", "adapter"]
@@ -179,9 +179,15 @@ def execute_official_tool(
 
     stdout_hash = bytes_sha256(stdout)
     stderr_hash = bytes_sha256(stderr)
-    parsed = _parse_json(stdout)
-    output_hash = file_sha256(output_path) if output_path is not None and Path(output_path).exists() else None
-    if parsed is None:
+    parsed = None if parsed_result_ref == "stdout:text" else _parse_json(stdout)
+    output_hash = file_sha256(output_path) if output_path is not None and Path(output_path).exists() else (stdout_hash if output_ref and output_ref.startswith("stdout:") else None)
+    if parsed_result_ref == "stdout:text":
+        if exit_code == 0:
+            status, diagnostics = text_success()
+        else:
+            status, diag = text_failure(tool_kind, exit_code)
+            diagnostics = [diag]
+    elif parsed is None:
         status, diag = unparseable_output()
         diagnostics = [diag]
     elif exit_code == 0:
@@ -210,7 +216,7 @@ def execute_official_tool(
         validator_after_adapter_ref=validator_after_adapter_ref,
         failure_code=failure_code,
     )
-    if parsed is None and exit_code != 0:
+    if parsed_result_ref != "stdout:text" and parsed is None and exit_code != 0:
         status2, diag2 = execution_failed(exit_code)
         status, diagnostics = status2, [diag2]
         record = _record(
