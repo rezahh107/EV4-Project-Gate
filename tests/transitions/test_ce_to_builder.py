@@ -56,7 +56,7 @@ sys.exit(0 if %s else 1)
         "input-contracts/BUILDER_CONTEXT_INPUT_CONTRACT.md": "ev4-builder-context-package@1.0.0",
         "schemas/builder-context-package.schema.json": json.dumps({"type": "object", "required": ["schema"], "properties": {"schema": {"const": "ev4-builder-context-package@1.0.0"}}}),
         "docs/CE_TO_BUILDER_CONTRACT_GATE.md": "ce_to_builder_contract_gate",
-        "docs/CE_BUILDER_PACKAGE_ADAPTER_CONTRACT.md": "normalizeCeBuilderExecutablePackage",
+        "docs/CE_BUILDER_PACKAGE_ADAPTER_CONTRACT.md": "CE Builder Package Adapter Contract",
         "data/ce-builder-transformation-registry.v1.json": "ev4-ce-builder-transformation-registry@1.0.0",
     }
     for path, marker in builder_markers.items():
