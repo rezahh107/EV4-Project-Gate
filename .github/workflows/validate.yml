@@ -88,12 +88,20 @@ jobs:
         working-directory: EV4-Project-Gate
         run: python -m pip install -e '.[dev]'
 
-      - name: Core and transition tests
+      - name: CLI and bundle tests
+        working-directory: EV4-Project-Gate
+        run: pytest tests/test_cli.py tests/test_canonical_json.py tests/test_bundle_validator.py
+
+      - name: Architect-to-CE transition tests
         working-directory: EV4-Project-Gate
         env:
           EV4_ARCHITECT_REPO: ${{ github.workspace }}/EV4-Architect-Repo
           EV4_CE_REPO: ${{ github.workspace }}/EV4-Constructability-Engineer-Repo
-        run: pytest tests/test_cli.py tests/test_canonical_json.py tests/test_bundle_validator.py tests/test_architect_to_ce_transition.py tests/unit
+        run: pytest tests/test_architect_to_ce_transition.py
+
+      - name: Prompt 01 unit tests
+        working-directory: EV4-Project-Gate
+        run: pytest tests/unit
 
       - name: Static runner-boundary scanner
         working-directory: EV4-Project-Gate
