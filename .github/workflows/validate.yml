@@ -17,10 +17,13 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+
+      - name: Verify GitHub Action pins
+        run: python scripts/check-github-action-pinning.py
 
       - name: Setup Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
         with:
           node-version: 20
 
@@ -62,45 +65,45 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Project Gate
-        uses: actions/checkout@v4
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
         with:
           path: EV4-Project-Gate
 
       - name: Checkout Architect pinned contract repo
-        uses: actions/checkout@v4
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
         with:
           repository: rezahh107/EV4-Architect-Repo
           ref: b0651668b97f682bb17f66840c8e8c503fd3935d
           path: EV4-Architect-Repo
 
       - name: Checkout CE pinned contract repo
-        uses: actions/checkout@v4
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
         with:
           repository: rezahh107/EV4-Constructability-Engineer-Repo
           ref: 546680a2e2a309c0d7e0ddbfc017e9e194ece7cb
           path: EV4-Constructability-Engineer-Repo
 
       - name: Checkout CE pinned CE-to-Builder repo
-        uses: actions/checkout@v4
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
         with:
           repository: rezahh107/EV4-Constructability-Engineer-Repo
           ref: cfceec5c20269c75a1cc19b2675d7087cede4599
           path: EV4-Constructability-Engineer-Repo-Prompt04
 
       - name: Checkout Builder pinned CE-to-Builder repo
-        uses: actions/checkout@v4
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
         with:
           repository: rezahh107/EV4-Builder-Assistant-Repo
           ref: 69a2c61edf6d06b4418ad770fcefbfdffcf275d6
           path: EV4-Builder-Assistant-Repo-Prompt04
 
       - name: Setup Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
         with:
           python-version: '3.11'
 
       - name: Setup Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
         with:
           node-version: 20
 
@@ -195,7 +198,7 @@ jobs:
 
       - name: Upload CE-to-Builder pytest log
         if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: c2b-pytest-log
           path: EV4-Project-Gate/c2b-pytest.log
@@ -239,7 +242,7 @@ jobs:
 
       - name: Upload CE-to-Builder computed lock
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: c2b-lock-computed
           path: EV4-Project-Gate/c2b-lock-computed.json
@@ -256,7 +259,7 @@ jobs:
 
       - name: Upload CE-to-Builder lock verify log
         if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: c2b-lock-verify-log
           path: EV4-Project-Gate/c2b-lock-verify.log
@@ -276,7 +279,7 @@ jobs:
 
       - name: Upload CE-to-Builder smoke log
         if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: c2b-smoke-log
           path: EV4-Project-Gate/c2b-smoke.log
