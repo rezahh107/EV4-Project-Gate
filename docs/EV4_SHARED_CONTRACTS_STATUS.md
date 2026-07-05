@@ -58,6 +58,7 @@ This section is updated by GitHub Actions after a pull request is merged. It rec
 
 | PR | Title | Head branch | Head commit | Merge commit | Skeleton Health | Recorded by |
 |---|---|---|---|---|---|---|
+| `#23` | `Repair Prompt-05 foundation, immutable locks, and CI gates` | `fix/prompt-05-foundation-reconciliation` | `b8ac70e6acd2c2c6201b7a1e924751dcdc6f07c9` | `fed7a77f1e0c7be617e87ba757f35dae673c6e2e` | `CI_PASSED` | `rezahh107 on rezahh107/EV4-Project-Gate` |
 | `#21` | `Fix post-merge capability truth and workflow pinning coverage` | `fix/capability-truth-post-merge-hardening` | `ce356b6f6a8dee5f807679aed0f78aa057152d1b` | `5aaf2b93f0d18c8ac557f0d0e3d958693a1ec2f4` | `CI_PASSED` | `rezahh107 on rezahh107/EV4-Project-Gate` |
 | `#20` | `PROMPT-04 CE to Builder transition orchestration baseline` | `project-gate-prompt-04-ce-to-builder` | `42bfa484481c585f589d86c40424660c70b038a0` | `34b08240ad4deaf017a8f79236d0b8e214530dec` | `CI_PASSED` | `rezahh107 on rezahh107/EV4-Project-Gate` |
 | `#19` | `PROMPT-03 Runner boundary and official tool execution infrastructure` | `project-gate-prompt-03-runner-boundary` | `16268e56a9f80224c68621cdff2f87dbf50d5267` | `34fb7acd82b6ff94ed3c64a53ae3fb0582c2714a` | `CI_PASSED` | `rezahh107 on rezahh107/EV4-Project-Gate` |
