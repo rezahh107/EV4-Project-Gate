@@ -143,6 +143,7 @@ def test_repository_workflows_use_full_sha_action_pins():
     )
     assert completed.returncode == 0, completed.stdout + completed.stderr
 
+
 def test_cli_inspect_reports_prompt05_layered_truth():
     completed = run_cli("inspect")
     assert completed.returncode == 0
@@ -152,7 +153,7 @@ def test_cli_inspect_reports_prompt05_layered_truth():
         "cli_exposure": "not_implemented",
         "owner_contract_lock": "computed_from_pinned_owner_file_bytes",
         "official_responsive_validator_integration": "implemented",
-        "verification_state": "pending_exact_head_ci",
+        "verification_state": "verified_by_exact_head_ci",
         "real_non_synthetic_handoff": "insufficient_evidence",
     }
     assert payload["capabilities"]["final_evidence_gate"] == {
@@ -160,9 +161,10 @@ def test_cli_inspect_reports_prompt05_layered_truth():
         "cli_exposure": "not_implemented",
         "prior_lock_chain": "pinned_to_immutable_project_gate_commit",
         "official_responsive_validator_integration": "implemented",
-        "verification_state": "pending_exact_head_ci",
+        "verification_state": "verified_by_exact_head_ci",
         "real_non_synthetic_evidence": "insufficient_evidence",
     }
+    assert payload["evidence"]["prompt_05_owner_contract_and_validator_integration"]["result"] == "success"
     assert "builder-to-responsive public CLI exposure" in payload["not_implemented"]
     assert "final evidence gate public CLI exposure" in payload["not_implemented"]
     assert "builder-to-responsive" not in payload["public_cli_transitions"]

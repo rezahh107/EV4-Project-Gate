@@ -26,7 +26,13 @@ repository:
     head_sha: ce356b6f6a8dee5f807679aed0f78aa057152d1b
     workflow_run_id: 28748324684
     workflow_result: success
-  prompt_05_repair_branch: fix/prompt-05-foundation-reconciliation
+  prompt_05_repair:
+    pull_request: 23
+    branch: fix/prompt-05-foundation-reconciliation
+    verified_head_sha: cf69f83682e65154678a85d05d9e2f3d31bdedaa
+    prompt_05_workflow_run_id: 28749872553
+    skeleton_health_workflow_run_id: 28749872558
+    workflow_result: success
 
 capabilities:
   architect_to_ce:
@@ -54,7 +60,7 @@ capabilities:
     consumer_commit: df74c7ba2ffbed1a4136b5ea6be6ce30db4e161a
     owner_contract_lock: computed_from_pinned_owner_file_bytes
     official_responsive_validator_integration: implemented
-    verification_state: pending_exact_head_ci
+    verification_state: verified_by_exact_head_ci
     real_non_synthetic_handoff: insufficient_evidence
     result_schema: schemas/builder-to-responsive-transition-result/builder-to-responsive-transition-result.v1.schema.json
     lock_manifest: contracts/locks/builder-to-responsive-transition.v1.lock.json
@@ -64,7 +70,7 @@ capabilities:
     cli_exposure: not_implemented
     prior_lock_chain: pinned_to_immutable_project_gate_commit
     official_responsive_validator_integration: implemented
-    verification_state: pending_exact_head_ci
+    verification_state: verified_by_exact_head_ci
     real_non_synthetic_evidence: insufficient_evidence
     result_schema: schemas/final-gate-result/final-gate-result.v1.schema.json
     lock_manifest: contracts/locks/final-gate.v1.lock.json
@@ -79,8 +85,11 @@ verification:
     workflow_head_sha: 42bfa484481c585f589d86c40424660c70b038a0
     scope_limit: not_real_non_synthetic_handoff
   prompt_05:
-    state: pending_exact_head_ci
-    evidence_type: pinned_owner_contract_and_official_validator_integration
+    state: verified_by_exact_head_ci
+    evidence_type: pinned_owner_contract_lock_reproduction_and_official_validator_integration
+    verified_head_sha: cf69f83682e65154678a85d05d9e2f3d31bdedaa
+    prompt_05_workflow_run_id: 28749872553
+    skeleton_health_workflow_run_id: 28749872558
     scope_limit: not_real_non_synthetic_handoff_or_frontend_correctness
 
 remaining_insufficient_evidence:

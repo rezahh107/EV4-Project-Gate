@@ -12,7 +12,7 @@
       "orchestration_baseline": "implemented",
       "owner_contract_lock": "computed_from_pinned_owner_file_bytes",
       "real_non_synthetic_handoff": "insufficient_evidence",
-      "verification_state": "pending_exact_head_ci"
+      "verification_state": "verified_by_exact_head_ci"
     },
     "ce_to_builder": {
       "cli_exposure": "not_implemented",
@@ -26,7 +26,7 @@
       "orchestration_baseline": "implemented",
       "prior_lock_chain": "pinned_to_immutable_project_gate_commit",
       "real_non_synthetic_evidence": "insufficient_evidence",
-      "verification_state": "pending_exact_head_ci"
+      "verification_state": "verified_by_exact_head_ci"
     },
     "user_interface": {
       "status": "not_implemented"
@@ -57,6 +57,14 @@
       "result": "success",
       "workflow": "Skeleton Health",
       "workflow_run_id": 28748324684
+    },
+    "prompt_05_owner_contract_and_validator_integration": {
+      "prompt_05_workflow_run_id": 28749872553,
+      "pull_request": 23,
+      "result": "success",
+      "scope": "pinned_owner_contract_lock_reproduction_and_official_validator_integration_only",
+      "skeleton_health_workflow_run_id": 28749872558,
+      "verified_head_sha": "cf69f83682e65154678a85d05d9e2f3d31bdedaa"
     }
   },
   "implemented": [

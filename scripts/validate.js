@@ -65,7 +65,7 @@ assertExactCapability(capabilities.builder_to_responsive, {
   cli_exposure: 'not_implemented',
   owner_contract_lock: 'computed_from_pinned_owner_file_bytes',
   official_responsive_validator_integration: 'implemented',
-  verification_state: 'pending_exact_head_ci',
+  verification_state: 'verified_by_exact_head_ci',
   real_non_synthetic_handoff: 'insufficient_evidence'
 }, 'Builder-to-Responsive');
 
@@ -74,7 +74,7 @@ assertExactCapability(capabilities.final_evidence_gate, {
   cli_exposure: 'not_implemented',
   prior_lock_chain: 'pinned_to_immutable_project_gate_commit',
   official_responsive_validator_integration: 'implemented',
-  verification_state: 'pending_exact_head_ci',
+  verification_state: 'verified_by_exact_head_ci',
   real_non_synthetic_evidence: 'insufficient_evidence'
 }, 'Final Evidence Gate');
 
