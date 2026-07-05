@@ -57,7 +57,8 @@ if (syntaxCheck.status !== 0) {
   process.exit(syntaxCheck.status || 1);
 }
 
-const pinCheck = spawnSync('python', ['scripts/check-github-action-pinning.py'], {
+const pythonCmd = process.platform === 'win32' ? 'python' : 'python3';
+const pinCheck = spawnSync(pythonCmd, ['scripts/check-github-action-pinning.py'], {
   encoding: 'utf8'
 });
 
