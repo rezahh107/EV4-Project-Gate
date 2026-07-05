@@ -1,5 +1,5 @@
 prompt_id: PROMPT-04
-status: ce_to_builder_continuation_in_progress_fail_closed
+status: ce_to_builder_baseline_ci_evidenced_pr_draft
 updated_at: 2026-07-05
 scope: continue_PR_20_after_PR_Inspector_RED_DO_NOT_MERGE
 
@@ -10,14 +10,15 @@ capability_handshake:
   pull_request: 20
   codex: UNKNOWN
   local_test_runner: UNAVAILABLE_FOR_REPO_CHECKOUT
-  github_actions_status: pending_after_new_commits
-  external_owner_checkout_in_ci: REQUIRES_GITHUB_ACTIONS_EVIDENCE
+  github_actions_status: AVAILABLE_SUCCESS_ON_LATEST_CHECKED_HEAD
+  external_owner_checkout_in_ci: AVAILABLE_SUCCESS_ON_LATEST_CHECKED_HEAD
 
 repository:
   name: rezahh107/EV4-Project-Gate
   default_branch: main
   direct_commit_to_main: false
   pr_draft: true
+  merged_to_main: false
 
 implementation_summary:
   python_package: implemented_initial_v1
@@ -28,7 +29,7 @@ implementation_summary:
     non_finite_number_rejection: implemented_initial_v1
   package_generation:
     architect_to_ce: implemented_synthetic_verified
-    ce_to_builder: implementation_in_progress_fail_closed
+    ce_to_builder: ci_evidenced_baseline_with_synthetic_owner_fixture_smoke
     builder_to_responsive: not_implemented
     final_evidence_gate: not_implemented
 
@@ -52,22 +53,25 @@ active_transitions:
     official_validators_called_by_cli_when_local_checkouts_are_supplied: true
   ce_to_builder:
     transition_id: ev4-ce-to-builder-transition@1.0.0
-    status: implementation_in_progress_fail_closed
+    status: ci_evidenced_baseline_with_synthetic_owner_fixture_smoke
     source_repository: rezahh107/EV4-Constructability-Engineer-Repo
     source_commit: cfceec5c20269c75a1cc19b2675d7087cede4599
     consumer_repository: rezahh107/EV4-Builder-Assistant-Repo
     consumer_commit: 69a2c61edf6d06b4418ad770fcefbfdffcf275d6
     result_schema: schemas/ce-to-builder-transition-result/ce-to-builder-transition-result.v1.schema.json
     lock_manifest: contracts/locks/ce-to-builder-transition.v1.lock.json
-    lock_hashes: placeholders_pending_exact_ci_or_local_computation
-    ci_steps_added:
+    lock_hashes: exact_file_byte_sha256_values_committed_from_pinned_owner_ci_checkouts
+    ci_steps_passing_on_latest_checked_head:
       - CE-to-Builder transition pytest
       - CE-to-Builder lock verification
       - CE-to-Builder live owner tool smoke
-    acceptance_state: not_accepted_until_lock_hashes_and_CI_pass
+    acceptance_state: baseline_smoke_accepted_with_synthetic_owner_fixture_not_real_handoff_evidence
 
 ci_baseline:
   workflow: .github/workflows/validate.yml
+  latest_checked_head_sha: 87a4a84640c999cee049a0d40865c25efabeafb0
+  latest_checked_run_id: 28741498875
+  latest_checked_workflow_result: success
   prompt_04_changes:
     schema_allowlist_includes_ce_to_builder_result_schema: true
     prompt_04_branch_push_trigger: true
@@ -75,18 +79,13 @@ ci_baseline:
     ce_to_builder_pytest_step_added: true
     ce_to_builder_lock_verification_step_added: true
     ce_to_builder_live_owner_tool_smoke_step_added: true
-  ci_result_for_this_prompt: pending_or_not_yet_rechecked_after_latest_commits
+    ce_to_builder_computed_lock_artifact_step_added: true
+    ce_to_builder_debug_artifacts_added_for_failed_pytest_lock_and_smoke: true
 
 critical_or_high_gaps:
-  - id: GAP-C2B-LOCK-HASHES
-    severity: critical
-    description: CE-to-Builder lock still needs exact SHA-256 file-byte values from pinned owner checkouts before acceptance can be claimed.
-  - id: GAP-C2B-CI-EVIDENCE
-    severity: critical
-    description: New CE-to-Builder CI steps must pass on the PR head before merge readiness can be claimed.
   - id: GAP-C2B-REAL-EVIDENCE
-    severity: critical
-    description: Synthetic owner fixture smoke is integration evidence only and must not be treated as real EV4 handoff evidence.
+    severity: high
+    description: Passing live owner smoke uses a Builder-owned fixture and is integration evidence only; it is not a real non-synthetic CE handoff evidence package.
   - id: GAP-BUILDER-RESPONSIVE-PG
     severity: critical
     description: Builder-to-Responsive Project Gate transition remains not implemented.
@@ -95,10 +94,8 @@ critical_or_high_gaps:
     description: Final evidence gate remains not implemented.
 
 remaining_insufficient_evidence:
-  - exact_file_byte_sha256_values_for_contracts/locks/ce-to-builder-transition.v1.lock.json
-  - passing_GitHub_Actions_result_for_PR_20_latest_head
-  - passing_CE-to-Builder_lock_verification_with_pinned_CE_and_Builder_checkouts
-  - passing_CE-to-Builder_live_owner_tool_smoke
   - real_non_synthetic_CE_to_Builder_transition_evidence
+  - Builder_to_Responsive_Project_Gate_transition
+  - final_evidence_gate
 
-next_allowed_prompt: continue_PROMPT-04_until_PR_20_green_then_PROMPT-05
+next_allowed_prompt: PROMPT-05_after_review_or_continue_PROMPT-04_cleanup_if_PR_review_finds_remaining_issues
