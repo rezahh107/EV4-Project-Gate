@@ -1,1 +1,1 @@
-console.log('EV4-Shared-Contracts status: non-authoritative skeleton. No canonical schemas are active.');
+console.log('EV4-Project-Gate: Architect→CE is CLI-enabled; CE→Builder orchestration baseline is implemented, public CLI exposure is not implemented, and real non-synthetic handoff remains insufficient_evidence.');
