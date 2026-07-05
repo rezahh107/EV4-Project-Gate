@@ -33,6 +33,7 @@ def test_directory_fsync_error_after_replace_is_best_effort(tmp_path, monkeypatc
     destination = tmp_path / "result.json"
     sentinel_directory_fd = 987654
     real_fsync = os.fsync
+    real_close = os.close
 
     monkeypatch.setattr(atomic_writer.os, "open", lambda *_args, **_kwargs: sentinel_directory_fd)
 
@@ -43,7 +44,7 @@ def test_directory_fsync_error_after_replace_is_best_effort(tmp_path, monkeypatc
 
     def close_or_ignore(fd):
         if fd != sentinel_directory_fd:
-            os.close(fd)
+            real_close(fd)
 
     monkeypatch.setattr(atomic_writer.os, "fsync", fsync_or_raise)
     monkeypatch.setattr(atomic_writer.os, "close", close_or_ignore)
