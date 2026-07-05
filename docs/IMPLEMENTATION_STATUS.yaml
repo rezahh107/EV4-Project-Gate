@@ -7,9 +7,10 @@ closure_audit: docs/CLOSURE_AUDIT.md
 release_readiness_classification: implementation_ready_with_known_gaps
 release_readiness_reason: >-
   Project Gate orchestration baselines, deterministic core, runner boundary, behavioral coverage validation,
-  Builder→Responsive/Final Gate baselines, Persian report UX, and Prompt-07 closure audit docs are implemented
-  and have exact-head PR CI evidence. Real non-synthetic CE→Builder, Builder execution, Responsive input/output,
-  frontend/export/accessibility correctness, and downstream owner rejection evidence remain insufficient_evidence.
+  Builder→Responsive/Final Gate baselines, Persian report UX, typography/reporting hardening, closure audit docs,
+  and the initial local operator UI shell are implemented at their documented scopes. Real non-synthetic CE→Builder,
+  Builder execution, Responsive input/output, frontend/export/accessibility correctness, downstream owner rejection
+  evidence, and production readiness remain insufficient_evidence.
 
 repository:
   name: rezahh107/EV4-Project-Gate
@@ -119,7 +120,7 @@ capabilities:
     result_mutation: forbidden
     verification_state: verified_by_prompt_06_exact_head_ci
   user_interface:
-    status: not_implemented
+    status: implemented_initial_operator_panel
 
 verification:
   ce_to_builder_owner_fixture_integration:
@@ -139,7 +140,7 @@ verification:
     state: verified_by_exact_head_ci
     evidence_type: report_ux_typography_theme_reporting_atomic_writer_and_behavioral_coverage_checks
     verified_head_sha: c8522cf36e65243dfebc3f9b2f0b3feb97cbedf4
-    prompt_06_workflow_run_id: 28754737277
+    prompt_06_report_ux_workflow_run_id: 28754737277
     prompt_05_workflow_run_id: 28754737310
     skeleton_health_workflow_run_id: 28754737291
     historical_merge_ledger_run_id: 28754835391
