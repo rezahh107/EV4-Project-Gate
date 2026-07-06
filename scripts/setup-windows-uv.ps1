@@ -1,6 +1,6 @@
 $ErrorActionPreference = "Stop"
 
-$ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
+$ScriptDir = if ($PSScriptRoot) { $PSScriptRoot } else { Split-Path -Parent $MyInvocation.MyCommand.Path }
 $Root = Resolve-Path (Join-Path $ScriptDir "..")
 Set-Location $Root
 

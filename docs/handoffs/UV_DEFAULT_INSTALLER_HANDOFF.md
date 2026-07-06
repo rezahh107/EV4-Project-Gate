@@ -103,3 +103,28 @@ Revert this branch commit to restore the previous `pip`-primary documentation an
 ## Next safe action
 
 Run `uv lock --check`, `uv sync --locked --extra dev --extra ui`, and the repository validation commands, then open a draft PR.
+
+## Review follow-up fixes
+
+A follow-up review found that required CI jobs still had uv ordering and bare command gaps. This branch now fixes those gaps by:
+
+- installing and syncing uv before uv commands in the `validate.yml` `skeleton` job;
+- replacing the CE→Builder bare `pytest` gate with `uv run pytest` while preserving tee/log capture;
+- running Project Gate lock recompute, lock verification, smoke, behavioral coverage, CLI smoke, and Prompt 05 Python gates through `uv run`;
+- adding workflow-structure tests that fail if a job runs uv before `setup-uv` or if uv workflows contain bare `python`, `pytest`, or `ev4-transition` commands.
+
+Additional validation after the follow-up fix:
+
+- `uv lock --check`
+- `uv sync --locked --extra dev --extra ui`
+- `uv run --locked pytest tests/personal_use tests/reporting/test_workflow_permissions.py tests/test_cli.py`
+- `uv run --locked python scripts/check-github-action-pinning.py`
+- `uv run --locked python scripts/check-workflow-permissions.py`
+- `uv run --locked python scripts/check-capability-truth.py`
+- `uv run --locked pytest`
+- `npm run status`
+- `npm run validate`
+- `uv run --locked ev4-transition inspect`
+- `uv run --locked python scripts/run-project-gate-demo.py --run-id uv-ci-fix-smoke`
+
+Remote GitHub Actions still need to run on the updated head before CI can be reported as successful.

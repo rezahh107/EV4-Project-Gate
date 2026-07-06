@@ -38,6 +38,23 @@ jobs:
           TESTED_SHA: ${{ github.sha }}
         run: test "$TESTED_SHA" = "$EXPECTED_HEAD_SHA"
 
+      - name: Install uv
+        uses: astral-sh/setup-uv@08807647e7069bb48b6ef5acd8ec9567f424441b
+        with:
+          version: "0.7.22"
+          enable-cache: true
+
+      - name: Setup Python
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
+        with:
+          python-version-file: .python-version
+
+      - name: Verify uv lockfile
+        run: uv lock --check
+
+      - name: Install package
+        run: uv sync --locked --extra dev --extra ui
+
       - name: Verify GitHub Action pins
         run: uv run python scripts/check-github-action-pinning.py
 
@@ -249,7 +266,7 @@ jobs:
         working-directory: EV4-Project-Gate
         run: |
           set -o pipefail
-          pytest -vv --tb=short --maxfail=1 tests/transitions/test_ce_to_builder.py 2>&1 | tee c2b-pytest.log
+          uv run pytest -vv --tb=short --maxfail=1 tests/transitions/test_ce_to_builder.py 2>&1 | tee c2b-pytest.log
 
       - name: Prompt-05 transition tests
         working-directory: EV4-Project-Gate
@@ -274,8 +291,8 @@ jobs:
       - name: Behavioral coverage validator
         working-directory: EV4-Project-Gate
         run: |
-          python scripts/validate-behavioral-rule-coverage.py docs/BEHAVIORAL_RULE_COVERAGE.md
-          ev4-transition coverage validate docs/BEHAVIORAL_RULE_COVERAGE.md
+          uv run python scripts/validate-behavioral-rule-coverage.py docs/BEHAVIORAL_RULE_COVERAGE.md
+          uv run ev4-transition coverage validate docs/BEHAVIORAL_RULE_COVERAGE.md
 
       - name: Behavioral fixture validation
         working-directory: EV4-Project-Gate
@@ -294,7 +311,7 @@ jobs:
           EV4_CE_REPO_PROMPT04: ${{ github.workspace }}/EV4-Constructability-Engineer-Repo-Prompt04
           EV4_BUILDER_REPO_PROMPT04: ${{ github.workspace }}/EV4-Builder-Assistant-Repo-Prompt04
         run: |
-          python scripts/compute-ce-to-builder-lock.py \
+          uv run python scripts/compute-ce-to-builder-lock.py \
             --ce-repo "$EV4_CE_REPO_PROMPT04" \
             --builder-repo "$EV4_BUILDER_REPO_PROMPT04" \
             --output c2b-lock-computed.json
@@ -314,7 +331,7 @@ jobs:
           EV4_BUILDER_REPO_PROMPT04: ${{ github.workspace }}/EV4-Builder-Assistant-Repo-Prompt04
         run: |
           set -o pipefail
-          python scripts/verify-ce-to-builder-lock.py --ce-repo "$EV4_CE_REPO_PROMPT04" --builder-repo "$EV4_BUILDER_REPO_PROMPT04" 2>&1 | tee c2b-lock-verify.log
+          uv run python scripts/verify-ce-to-builder-lock.py --ce-repo "$EV4_CE_REPO_PROMPT04" --builder-repo "$EV4_BUILDER_REPO_PROMPT04" 2>&1 | tee c2b-lock-verify.log
 
       - name: Upload CE-to-Builder lock verify log
         if: failure()
@@ -331,7 +348,7 @@ jobs:
           EV4_BUILDER_REPO_PROMPT04: ${{ github.workspace }}/EV4-Builder-Assistant-Repo-Prompt04
         run: |
           set -o pipefail
-          python scripts/ce-to-builder-smoke.py \
+          uv run python scripts/ce-to-builder-smoke.py \
             --ce-repo "$EV4_CE_REPO_PROMPT04" \
             --builder-repo "$EV4_BUILDER_REPO_PROMPT04" \
             --fixture "$EV4_CE_REPO_PROMPT04/tests/role-alignment/valid/executable_visual_reference_package.json" 2>&1 | tee c2b-smoke.log
@@ -352,7 +369,7 @@ jobs:
         working-directory: EV4-Project-Gate
         run: |
           set +e
-          ev4-transition validate fixtures/invalid/array-input.v1.json
+          uv run ev4-transition validate fixtures/invalid/array-input.v1.json
           status=$?
           test "$status" -eq 1
 
@@ -360,7 +377,7 @@ jobs:
         working-directory: EV4-Project-Gate
         run: |
           set +e
-          output=$(ev4-transition validate fixtures/insufficient-evidence/architect-stage-bundle.v1.json --format persian)
+          output=$(uv run ev4-transition validate fixtures/insufficient-evidence/architect-stage-bundle.v1.json --format persian)
           status=$?
           printf '%s\n' "$output"
           test "$status" -eq 2
