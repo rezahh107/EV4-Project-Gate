@@ -277,7 +277,7 @@ def build_demo():
             )
 
         with gr.Accordion("خلاصه نتیجه", open=True, elem_classes=["ev4-section"]):
-            status_summary = gr.Markdown(elem_classes=["ev4-rtl", "ev4-status-card"], elem_id="ev4-status-live")
+            status_summary = gr.HTML(elem_classes=["ev4-rtl", "ev4-status-card"], elem_id="ev4-status-live")
 
         with gr.Accordion("جزئیات پیشرفته / Diagnostics", open=False, elem_classes=["ev4-section"]):
             diagnostics = gr.Dataframe(
