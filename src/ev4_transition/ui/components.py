@@ -38,7 +38,7 @@ def status_summary_markdown(result: dict[str, Any]) -> str:
     return "\n".join(
         [
             '<section lang="fa" dir="rtl" role="status" aria-live="polite" class="ev4-status-content">',
-            "### نتیجه بررسی",
+            "<h3>نتیجه بررسی</h3>",
             f'<p class="ev4-status-title">{presentation.icon} <strong>وضعیت: {escape(presentation.persian_label)}</strong></p>',
             f"<p>{status_meta}</p>",
             f"<p><strong>معنی:</strong> {escape(meaning)}</p>",
