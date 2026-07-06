@@ -10,6 +10,15 @@ base_branch: main
 base_context:
   patch_3_pr: 37
   patch_3_status: merged
+review_follow_up:
+  inspector_status_received: RED_DO_NOT_MERGE
+  inspector_blockers:
+    - required CI failed on reviewed head 1d8254f670762525f898a7f68c72fd4b21265d8f
+    - manual/browser QA not evidenced
+  ci_repair_action:
+    - updated tests/ui/test_operator_panel.py to align the Markdown report regression test with Patch 4 report hardening: report.md intentionally contains both Raw diagnostics and Raw JSON result code blocks.
+  optional_low_risk_item:
+    - _preflight_summary_markdown explicit-None fallback was identified as a non-blocking defensive improvement; a direct adapters.py rewrite attempt was blocked by the connector safety layer, so this remains deferred unless patched from a local checkout.
 files_changed:
   - src/ev4_transition/presentation/rtl.py
   - src/ev4_transition/presentation/bidi.py
@@ -21,6 +30,7 @@ files_changed:
   - tests/presentation/test_rtl_contract.py
   - tests/theme_acceptance/test_operator_panel_theme_contract.py
   - tests/ui/test_preflight_final_contract.py
+  - tests/ui/test_operator_panel.py
   - docs/OPERATOR_PANEL_UX_CONTRACT.md
   - docs/OPERATOR_PANEL_MANUAL_QA.md
   - docs/PERSIAN_RTL_UI_CONTRACT.md
@@ -46,13 +56,21 @@ commits_created_before_this_handoff:
   - ff20741386e9288e0b35163e796897a43bc39999
   - 16868ef971e4e95c1da117ed6053da720d074e1d
   - 5d283368f70bd174525ced673694d88932a977d0
+  - 1546c0f398cad2448ca9d080a194a2af0f367b6d
+  - e628f4b90a48e1a75fcd6b14dd963ddcb686d332
+ci_evidence_before_handoff_doc_update:
+  head_sha: e628f4b90a48e1a75fcd6b14dd963ddcb686d332
+  workflow_results:
+    - Skeleton Health: success
+    - Prompt 06 Report UX: success
+    - UI Runtime Smoke: success
+    - Prompt 05 Builder Responsive Final Gate: success
 tests_run:
   - local syntax check in sandbox on generated Python patch files: python -m py_compile /mnt/data/patch4/*.py
+  - GitHub Actions on head e628f4b90a48e1a75fcd6b14dd963ddcb686d332: Skeleton Health, Prompt 06 Report UX, UI Runtime Smoke, Prompt 05 Builder Responsive Final Gate all success
 tests_not_run:
-  - python -m pytest -q
-  - python -m pytest -q tests/ui tests/service tests/presentation
-  - browser launch / screenshot QA
-  - GitHub Actions CI result for this branch at handoff time
+  - browser launch / screenshot QA from this connector environment
+  - manual visual QA from this connector environment
 coverage_rules_advanced:
   - PG-UNICODE-001: added centralized RTL helper contract tests and report/preflight LTR isolation tests.
   - PG-OUTPUT-001: added final output-state regression tests for validation-only, output null, and CE output produced language.
@@ -73,6 +91,7 @@ important_design_decisions:
   - Hardened UI report artifacts without changing run_gate_request, transition execution, schema validation, canonical JSON, hash behavior, or status mapping.
   - Added docs/OPERATOR_PANEL_UX_CONTRACT.md as the final UX SSOT for the local operator panel.
   - Added docs/OPERATOR_PANEL_MANUAL_QA.md for final human QA before personal local operation.
+  - Kept raw diagnostics and raw JSON as separate Markdown code blocks; updated the legacy Markdown fence regression test accordingly.
 web_sources_used:
   - none.
 repository_sources_inspected:
@@ -98,11 +117,12 @@ repository_sources_inspected:
   - tests/service/test_operator_guidance.py
   - tests/service/test_preflight.py
   - tests/ui/test_preflight_rendering.py
+  - tests/ui/test_operator_panel.py
   - tests/theme_acceptance/test_operator_panel_theme_tokens.py
-next_allowed_prompt: PROMPT-06 patch review after PR CI evidence, then PROMPT-07 closure audit
+next_allowed_prompt: PROMPT-06 final patch review after CI evidence for the current final head, then PROMPT-07 closure audit
 blockers:
-  - full pytest and browser launch were not executed from this connector environment.
-  - CI status must be checked on PR 38 before merge.
+  - manual/browser QA cannot be performed from this connector environment.
+  - CI must be rechecked on the current head after this handoff documentation update before merge.
 remaining_insufficient_evidence:
   - production readiness
   - real Elementor validation
