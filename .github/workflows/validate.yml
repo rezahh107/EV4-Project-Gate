@@ -150,7 +150,7 @@ jobs:
 
       - name: Personal-use package tests
         working-directory: EV4-Project-Gate
-        run: pytest tests/personal_use tests/e2e
+        run: pytest --maxfail=1 --tb=short tests/personal_use tests/e2e
 
       - name: A2C valid transition smoke
         working-directory: EV4-Project-Gate
