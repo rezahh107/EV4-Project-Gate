@@ -2,13 +2,16 @@
 
 ```yaml
 prompt: UI operator panel prompt 1 of 3
-repair_prompt: UI operator panel repair
+repair_prompts:
+  - UI operator panel repair
+  - UI runtime smoke evidence repair
 branch: ui/operator-panel
 pull_request: 28
-head_before_repair: 5442b5e34bc6f70703b2e99689e0ee56fafec7b5
-head_after_repair: pending_final_ci_head
-scope: local Persian-first operator UI shell
-status: repair_applied_pending_final_ci
+base_branch: main
+reviewed_head_before_runtime_smoke: 84221ea0c5fa2decfa5cb3462e84d2ed15e1f679
+status: ui_runtime_smoke_added_pending_current_head_ci
+metadata_mode: historical_handoff_snapshot
+live_status_source: GitHub PR checks for the current PR head
 service_integration_status: pending
 ```
 
@@ -22,15 +25,21 @@ service_integration_status: pending
 - Base: `main`
 - Head: `ui/operator-panel`
 
+## Metadata note
+
+This handoff is a historical implementation and repair snapshot. It must not be treated as the live CI oracle after later documentation-only or smoke-evidence commits. Read the current PR head and GitHub Actions checks for live merge evidence.
+
 ## Commits
 
-- Branch was `17` commits ahead of `main` before the repair.
-- Repair commits added focused changes for dependency scope, UI input guard rails, docs, and tests.
-- Final head and CI evidence must be read from PR checks after this handoff update.
+- Branch was `17` commits ahead of `main` before the first UI repair.
+- First repair commits added focused changes for dependency scope, UI input guard rails, docs, and tests.
+- Runtime smoke repair added a focused GitHub Actions workflow to install the optional `ui` extra and construct the Gradio app without launching a server.
+- Latest commit SHAs and final CI conclusions must be read from PR `#28` checks for the current head.
 
 ## Files changed
 
 - `.github/workflows/validate.yml`
+- `.github/workflows/ui-runtime-smoke.yml`
 - `src/ev4_transition/ui/__init__.py`
 - `src/ev4_transition/ui/app.py`
 - `src/ev4_transition/ui/state.py`
@@ -57,6 +66,7 @@ service_integration_status: pending
 - Added downloadable `result.json`, `report.md`, and `report.html` generation through existing report renderers.
 - Added tests for UI helper/adapter behavior.
 - Added CI execution for `pytest tests/ui` in `Skeleton Health`.
+- Added CI runtime smoke for optional `.[dev,ui]` install and `build_demo()` construction without calling `launch()`.
 
 ## Repair changes
 
@@ -68,6 +78,7 @@ service_integration_status: pending
 - Added fail-closed `UI_PROJECT_GATE_SCHEMA_ROOT_INVALID` when the Project Gate root lacks the expected `schemas/stage-bundle/stage-bundle.v1.schema.json` file.
 - Made `ltr_token(...)` return `""` for `None` and stringify non-string values before LTR isolation.
 - Expanded `tests/ui/test_operator_panel.py` for the repair cases.
+- Added `.github/workflows/ui-runtime-smoke.yml` to prove optional Gradio install/build evidence in CI.
 
 ## Not changed
 
@@ -80,8 +91,8 @@ service_integration_status: pending
 - Builder runtime logic.
 - Responsive repair logic.
 - Public CLI transition exposure.
-- Production/readiness claims.
 - Service-layer files from PR `#29`.
+- Browser automation, visual QA, accessibility QA, export validation, frontend correctness, production readiness, or real Elementor validation claims.
 
 ## Capability truth change rationale
 
@@ -92,21 +103,24 @@ service_integration_status: pending
 | Rule | Status |
 |---|---|
 | malformed JSON safe error | ci_enforced |
-| non-object JSON safe error | fixture_tested_pending_final_ci |
-| missing Project Gate schemas root safe error | fixture_tested_pending_final_ci |
+| non-object JSON safe error | ci_enforced |
+| missing Project Gate schemas root safe error | ci_enforced |
 | status mapping for accepted/invalid/insufficient_evidence/repair_needed | ci_enforced |
 | diagnostics preserve code/severity/path | ci_enforced |
-| LTR isolation and None-safe technical tokens | fixture_tested_pending_final_ci |
+| LTR isolation and None-safe technical tokens | ci_enforced |
 | capability inspector read-only | ci_enforced |
-| unavailable transitions do not fake execution or return accepted | fixture_tested_pending_final_ci |
+| unavailable transitions do not fake execution or return accepted | ci_enforced |
 | report/result rendering does not mutate result object | ci_enforced |
-| Gradio remains optional UI extra | fixture_tested_pending_final_ci |
+| Gradio remains optional UI extra | ci_enforced |
+| optional `.[dev,ui]` install and Gradio `build_demo()` construction | ci_pending_for_current_head |
 
 ## Coverage rules still gap
 
 | Rule | Gap |
 |---|---|
 | browser-level UI accessibility | not validated by browser automation |
+| browser visual behavior | not validated by browser automation or manual visual run in this prompt |
+| `python -m ev4_transition.ui.app` long-running launch | not executed because smoke must not launch a server |
 | CE→Builder UI execution | pending service-layer integration after PR #29 path is intentionally adopted |
 | Builder→Responsive UI execution | pending service-layer integration after PR #29 path is intentionally adopted |
 | Final Evidence Gate UI execution | pending service-layer integration after PR #29 path is intentionally adopted |
@@ -130,9 +144,20 @@ service_integration_status: pending
 - Added optional local UI entry point: `ev4-project-gate-ui`.
 - Did not expose new public Project Gate transition commands.
 - Added `Operator UI adapter tests` step to `.github/workflows/validate.yml` because otherwise the new UI tests would not be CI-enforced.
-- No further workflow rewrite was performed in the repair.
+- Added `UI Runtime Smoke` workflow that runs:
+  - `python -m pip install -e '.[dev,ui]'`
+  - imports `build_demo()` from `ev4_transition.ui.app`
+  - constructs the demo object
+  - asserts it has `launch`
+  - does not call `launch()`
 
 ## Tests run
+
+GitHub Actions before runtime smoke repair, PR `#28`, head `84221ea0c5fa2decfa5cb3462e84d2ed15e1f679`:
+
+- `Skeleton Health` run `28780835147`: success.
+- `Prompt 05 Builder Responsive Final Gate` run `28780835158`: success.
+- `Prompt 06 Report UX` run `28780835247`: success.
 
 Local/container attempt from the original UI prompt:
 
@@ -142,24 +167,14 @@ git clone --branch ui/operator-panel --single-branch https://github.com/rezahh10
 
 Result: failed because the execution container could not resolve `github.com`.
 
-GitHub Actions before repair, PR `#28`, head `68055db677a2f2a10af0a4d4c1f5c4a3782d7a59`:
-
-- `Skeleton Health` run `28757902985`: success.
-- `Prompt 05 Builder Responsive Final Gate` run `28757902962`: success.
-- `Prompt 06 Report UX` run `28757902964`: success.
-
-Repair validation pending after this handoff update:
-
-- `Skeleton Health` must pass on final repair head.
-- `Prompt 05 Builder Responsive Final Gate` must pass on final repair head.
-- `Prompt 06 Report UX` must pass on final repair head.
+Runtime smoke validation for the current head must be read from the `UI Runtime Smoke` GitHub Actions workflow after this handoff update.
 
 ## Tests not run
 
 - Browser-driven Gradio UI testing was not run.
 - Manual visual inspection of the live UI was not performed.
-- Optional UI launch command `python -m ev4_transition.ui.app` was not executed in this environment.
-- `python -m pip install -e '.[dev,ui]'` was not executed in this environment.
+- Optional UI launch command `python -m ev4_transition.ui.app` was not executed because it would start a long-running Gradio server.
+- Local `python -m pip install -e '.[dev,ui]'` was not executed in this ChatGPT container.
 
 ## Important design decisions
 
@@ -170,18 +185,19 @@ Repair validation pending after this handoff update:
 - PR `#29` was inspected only for service contract compatibility context; no service files were modified here.
 - Reports reuse `src/ev4_transition/reports/` renderers.
 - Result objects are deep-copied before report rendering.
+- Runtime smoke evidence intentionally proves install/import/build only, not visual/browser/accessibility readiness.
 
 ## Web sources used
 
-- None. The implementation followed live repository files, PR review comments, PR `#29` service contract context, and uploaded Project rules.
+- None. The implementation followed live repository files, the PR review report, PR checks, and uploaded Project rules.
 
 ## Next allowed prompt
 
-- Service-layer adoption/integration after PR `#29` is intentionally available to this branch.
+- Service-layer adoption/integration after PR `#29` is intentionally available to this branch, or Prompt 3 packaging/run-script work after this PR is merged.
 
 ## Blockers
 
-- No browser-level UI run evidence yet.
+- Current-head CI must complete for `UI Runtime Smoke` before this PR can be considered re-review ready.
 - No merge to `main`; PR remains open.
 
 ## Remaining insufficient_evidence
