@@ -1,0 +1,9 @@
+{
+  "fixture_schema": "producer-gate-export-fixture-recipes.v1",
+  "synthetic": true,
+  "cases": [
+    {"name": "complete", "handoff_status": "successful", "allowed": true},
+    {"name": "blocked", "stage_status": "blocked", "handoff_status": "blocked", "allowed": false},
+    {"name": "insufficient_evidence", "stage_status": "insufficient_evidence", "handoff_status": "insufficient_evidence", "allowed": false}
+  ]
+}

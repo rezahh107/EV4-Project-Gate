@@ -123,6 +123,13 @@ capabilities:
     status: implemented_initial_operator_panel
     service_routing: implemented_prompt_06_fail_closed
     browser_accessibility_evidence: insufficient_evidence
+  producer_emitted_gate_artifact:
+    common_contract: implemented
+    reusable_verifier: implemented
+    producer_adoption: not_started
+    project_gate_runtime_integration: not_implemented
+    downstream_producer_ci_enforcement: not_implemented
+    real_non_synthetic_handoff: insufficient_evidence
 
 verification:
   ce_to_builder_owner_fixture_integration:
@@ -163,3 +170,14 @@ remaining_insufficient_evidence:
   - real_Responsive_input_and_output_evidence_bundle
   - accessibility_export_and_frontend_correctness_evidence
   - downstream_owner_rejection_evidence_for_downstream_contract_enforced_claims
+
+prompt_00_common_contract_foundation:
+  producer_emitted_gate_artifact:
+    common_contract: implemented
+    reusable_verifier: implemented
+    producer_adoption: not_started
+    project_gate_runtime_integration: not_implemented
+    downstream_producer_ci_enforcement: not_implemented
+    real_non_synthetic_handoff: insufficient_evidence
+  pinned_owner_file_computation:
+    status: implemented_at_documented_scopes

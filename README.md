@@ -383,6 +383,13 @@ capabilities:
     browser_accessibility_evidence: insufficient_evidence
     service_routing: implemented_prompt_06_fail_closed
     status: implemented_initial_operator_panel
+  producer_emitted_gate_artifact:
+    common_contract: implemented
+    reusable_verifier: implemented
+    producer_adoption: not_started
+    project_gate_runtime_integration: not_implemented
+    downstream_producer_ci_enforcement: not_implemented
+    real_non_synthetic_handoff: insufficient_evidence
 public_cli_transitions:
   - architect-to-ce
   - ce-to-builder

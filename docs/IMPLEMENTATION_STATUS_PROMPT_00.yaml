@@ -1,0 +1,29 @@
+schema_version: ev4-project-gate-implementation-status-prompt-00.v1
+updated_at: 2026-07-06
+scope: common_contract_foundation
+
+implemented:
+  - producer-gate-export.v1
+  - project-gate-common-contract-lock.v1
+  - deterministic_local_vendored_contract_verifier
+  - reusable_read_only_workflow
+  - synthetic_fixture_recipes
+  - unit_tests
+
+preserved:
+  pinned_owner_file_computation: implemented_at_documented_scopes
+  stage_evidence_bundle_v1: canonical_and_unchanged
+  silent_fallback: forbidden
+
+not_implemented:
+  - producer_adoption
+  - project_gate_runtime_integration_for_producer_emitted_gate_artifact
+  - downstream_producer_ci_enforcement
+  - legacy_retirement
+
+insufficient_evidence:
+  - real_non_synthetic_cross_repository_handoff
+  - exact_head_ci_until_pull_request_workflows_complete
+
+canonical_release_pin:
+  status: pending_merge
