@@ -159,7 +159,7 @@ def _transition_preflight(args: argparse.Namespace) -> dict[str, Any] | None:
 
 def _looks_like_url(value: str) -> bool:
     lowered = value.lower()
-    return lowered.startswith(("http://", "https://", "git@")) or "github.com/" in lowered
+    return lowered.startswith(("http://", "https://", "git@")) or "github.com" in lowered
 
 
 def _simple_insufficient(code: str, message: str, **details: Any) -> dict[str, Any]:
