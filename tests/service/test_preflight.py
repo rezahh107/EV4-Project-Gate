@@ -3,8 +3,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from ev4_transition.service import GateRequest, RepoPaths
-from ev4_transition.service.preflight import run_preflight
+from ev4_transition.service import GateRequest, RepoPaths, run_preflight
 
 
 def _repo(root: Path, files: list[str], *, git: bool = True) -> Path:
@@ -135,3 +134,41 @@ def test_project_gate_path_is_not_required_for_architect_to_ce_preflight(tmp_pat
 
     assert not any(check.classification == "looks_like_github_url" for check in result.checks)
     assert any(check.id == "path.project_gate_repo_path.not_required_filled" for check in result.checks)
+
+
+def test_malformed_lock_file_does_not_crash_preflight(tmp_path: Path):
+    project_gate = _repo(tmp_path / "EV4-Project-Gate", [])
+    lock_path = project_gate / "contracts/locks/architect-to-ce-transition.v1.lock.json"
+    lock_path.parent.mkdir(parents=True, exist_ok=True)
+    lock_path.write_text("[]", encoding="utf-8")
+
+    result = run_preflight(GateRequest(transition_choice="architect_to_ce", input_data={"stage": "architect"}, repo_paths=RepoPaths(project_gate_repo_path=str(project_gate))))
+
+    assert result.status == "blocked"
+    assert any(check.id == "lock_manifest.invalid_format" and check.classification == "invalid_format" for check in result.checks)
+
+
+def test_lock_file_read_error_is_structured_preflight_check(monkeypatch, tmp_path: Path):
+    project_gate = _repo(tmp_path / "EV4-Project-Gate", [])
+    lock_path = project_gate / "contracts/locks/architect-to-ce-transition.v1.lock.json"
+    lock_path.parent.mkdir(parents=True, exist_ok=True)
+    lock_path.write_text(json.dumps({"files": []}), encoding="utf-8")
+    original_read_text = Path.read_text
+
+    def fail_lock_read(self: Path, *args, **kwargs):
+        if self == lock_path:
+            raise OSError("cannot read lock")
+        return original_read_text(self, *args, **kwargs)
+
+    monkeypatch.setattr(Path, "read_text", fail_lock_read)
+    result = run_preflight(GateRequest(transition_choice="architect_to_ce", input_data={"stage": "architect"}, repo_paths=RepoPaths(project_gate_repo_path=str(project_gate))))
+
+    assert result.status == "blocked"
+    assert any(check.id == "lock_manifest.file_read_error" and check.classification == "file_read_error" for check in result.checks)
+
+
+def test_none_repo_paths_defaults_to_empty_repo_paths_without_crashing():
+    result = run_preflight(GateRequest(transition_choice="architect_to_ce", input_data={"stage": "architect"}, repo_paths=None))  # type: ignore[arg-type]
+
+    assert result.status == "blocked"
+    assert any(check.id == "path.architect_repo_path.missing" for check in result.checks)
