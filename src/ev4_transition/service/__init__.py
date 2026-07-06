@@ -4,7 +4,7 @@ from .capabilities import get_capabilities
 from .dispatcher import run_gate_request
 from .guidance import OperatorGuidance, build_operator_guidance, classify_output_state, load_guidance_registry
 from .models import GateRequest, GateResponse, RepoPaths, ReportBundle, ServiceDiagnostic
-from .preflight import PreflightCheck, PreflightResult, run_preflight
+from .preflight_core import PreflightCheck, PreflightResult, run_preflight
 from .reports import build_report_bundle
 
 __all__ = [
