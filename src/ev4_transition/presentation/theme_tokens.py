@@ -50,6 +50,8 @@ THEME_TOKENS: dict[ThemeName, dict[str, Any]] = {
     },
 }
 
+STATUS_NAMES = ("accepted", "repair_needed", "insufficient_evidence", "invalid")
+REQUIRED_STATUS_FIELDS = ("tone", "foreground", "background", "icon", "label")
 REQUIRED_TOKEN_KEYS = (
     "status.accepted",
     "status.repair_needed",
@@ -68,6 +70,8 @@ REQUIRED_TOKEN_KEYS = (
     "focus.ring",
     "code.bg",
     "shadow.raised",
+    "font.fa_ui",
+    "font.code",
 )
 
 
@@ -80,10 +84,14 @@ def assert_theme_contract() -> None:
         missing = [key for key in REQUIRED_TOKEN_KEYS if key not in tokens]
         if missing:
             raise AssertionError(f"{theme} theme missing required tokens: {missing}")
-        for status in ("accepted", "repair_needed", "insufficient_evidence", "invalid"):
+        for status in STATUS_NAMES:
             token = tokens[f"status.{status}"]
-            if not all(token.get(key) for key in ("tone", "foreground", "background", "icon", "label")):
+            if not isinstance(token, dict):
+                raise AssertionError(f"status.{status} in {theme} must be an object token")
+            if not all(token.get(key) for key in REQUIRED_STATUS_FIELDS):
                 raise AssertionError(f"status.{status} in {theme} must include tone, colors, icon, and label")
+    if THEME_TOKENS["dark"]["surface.base"] in {"#000", "#000000"}:
+        raise AssertionError("dark theme must not use pure black as its base surface")
     if THEME_TOKENS["light"]["surface.base"] == THEME_TOKENS["dark"]["text.primary"]:
         raise AssertionError("dark theme appears to be a simple inversion")
 
@@ -114,6 +122,10 @@ def css_custom_properties() -> str:
       --ev4-font-code: {light["font.code"]};
       --ev4-status-accepted-fg: {light["status.accepted"]["foreground"]};
       --ev4-status-accepted-bg: {light["status.accepted"]["background"]};
+      --ev4-status-success-fg: {light["status.accepted"]["foreground"]};
+      --ev4-status-success-bg: {light["status.accepted"]["background"]};
+      --ev4-status-repair-fg: {light["status.repair_needed"]["foreground"]};
+      --ev4-status-repair-bg: {light["status.repair_needed"]["background"]};
       --ev4-status-warning-fg: {light["status.insufficient_evidence"]["foreground"]};
       --ev4-status-warning-bg: {light["status.insufficient_evidence"]["background"]};
       --ev4-status-danger-fg: {light["status.invalid"]["foreground"]};
@@ -138,6 +150,10 @@ def css_custom_properties() -> str:
         --ev4-shadow-raised: {dark["shadow.raised"]};
         --ev4-status-accepted-fg: {dark["status.accepted"]["foreground"]};
         --ev4-status-accepted-bg: {dark["status.accepted"]["background"]};
+        --ev4-status-success-fg: {dark["status.accepted"]["foreground"]};
+        --ev4-status-success-bg: {dark["status.accepted"]["background"]};
+        --ev4-status-repair-fg: {dark["status.repair_needed"]["foreground"]};
+        --ev4-status-repair-bg: {dark["status.repair_needed"]["background"]};
         --ev4-status-warning-fg: {dark["status.insufficient_evidence"]["foreground"]};
         --ev4-status-warning-bg: {dark["status.insufficient_evidence"]["background"]};
         --ev4-status-danger-fg: {dark["status.invalid"]["foreground"]};
