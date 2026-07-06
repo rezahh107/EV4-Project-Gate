@@ -73,6 +73,8 @@ scripts/run-project-gate-ui.bat
 UI is not installed yet. Merge Prompt 1 UI branch first.
 ```
 
+اگر UI نصب شده باشد، رفتار download خروجی‌ها توسط خود UI تعیین می‌شود. تا قبل از PR integration نهایی، این رفتار را با قرارداد demo یکی فرض نکن.
+
 ## اجرای demo کنترل‌شده
 
 این demo فقط fixtureهای synthetic را بررسی می‌کند:
@@ -81,21 +83,15 @@ UI is not installed yet. Merge Prompt 1 UI branch first.
 python scripts/run-project-gate-demo.py
 ```
 
-خروجی زیر ساخته می‌شود:
+خروجی demo زیر ساخته می‌شود:
 
 ```text
-outputs/runs/demo-<timestamp>/
+outputs/runs/demo-<timestamp-or-run-id>/
 ```
 
 ## خروجی‌ها کجا ذخیره می‌شوند؟
 
-خروجی‌های تولیدی باید زیر این مسیر باشند:
-
-```text
-outputs/runs/<timestamp-or-run-id>/
-```
-
-فایل‌های مورد انتظار:
+`outputs/runs/<timestamp-or-run-id>/` قرارداد خروجی demo کنترل‌شده و script محلی است:
 
 ```text
 result.json
@@ -105,7 +101,7 @@ input.snapshot.json
 diagnostics.json
 ```
 
-خروجی‌های واقعی run نباید commit شوند.
+خروجی‌های واقعی run نباید commit شوند. UI ممکن است artifactهای download جداگانه بسازد تا وقتی integration نهایی مسیرها را یکسان کند.
 
 ## معنی statusها
 
