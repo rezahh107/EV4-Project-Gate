@@ -197,6 +197,49 @@ def test_html_report_escapes_untrusted_json_payload(tmp_path: Path):
     assert "<script>alert(1)</script>" not in html
 
 
+def test_partial_download_artifact_failure_removes_written_files(monkeypatch, caplog, tmp_path: Path):
+    import logging
+    import ev4_transition.ui.adapters as adapters
+
+    calls = {"count": 0}
+    original_write_text = adapters.Path.write_text
+
+    def fail_second_write(self, *args, **kwargs):
+        calls["count"] += 1
+        if calls["count"] == 2:
+            raise OSError("second write failed")
+        return original_write_text(self, *args, **kwargs)
+
+    monkeypatch.setattr(adapters.Path, "write_text", fail_second_write)
+    with caplog.at_level(logging.ERROR, logger=adapters.__name__):
+        paths = render_download_artifacts({"status": "invalid", "diagnostics": []}, tmp_path)
+
+    assert paths == []
+    assert list(tmp_path.iterdir()) == []
+    assert any("Failed to render download artifacts" in record.message for record in caplog.records)
+
+
+def test_markdown_report_neutralizes_triple_backtick_without_mutating_result_json(tmp_path: Path):
+    payload = "```breakout"
+    result = {
+        "schema_version": "ev4-project-gate-ui-result.v1",
+        "result_type": "service_response",
+        "status": "invalid",
+        "diagnostics": [{"code": "PG.UI.MD_FENCE", "severity": "error", "message": payload, "path": "$.payload"}],
+        "output": {"untrusted": payload},
+    }
+
+    paths = render_download_artifacts(result, tmp_path)
+    md = (tmp_path / "report.md").read_text(encoding="utf-8")
+    loaded_json = json.loads((tmp_path / "result.json").read_text(encoding="utf-8"))
+
+    assert loaded_json == result
+    assert "```breakout" not in md
+    assert "``​`breakout" in md
+    assert md.count("```") == 2
+    assert {Path(path).name for path in paths} == {"result.json", "report.md", "report.html"}
+
+
 def test_gradio_is_optional_ui_dependency_only():
     pyproject = tomllib.loads((ROOT / "pyproject.toml").read_text(encoding="utf-8"))
 
@@ -243,6 +286,25 @@ def test_download_artifact_failure_logs_and_cleans_temporary_directory(monkeypat
     assert paths == []
     assert not temp_dir.exists()
     assert any("Failed to render download artifacts" in record.message for record in caplog.records)
+
+
+def test_finalize_failure_returns_safe_invalid_output(monkeypatch, caplog, tmp_path: Path):
+    import logging
+    import ev4_transition.ui.adapters as adapters
+
+    def fail_finalize(*args, **kwargs):
+        raise RuntimeError("capability file vanished")
+
+    monkeypatch.setattr(adapters, "_finalize", fail_finalize)
+    with caplog.at_level(logging.ERROR, logger=adapters.__name__):
+        output = run_operator_check("Inspect Capabilities", output_dir=tmp_path)
+
+    assert output.result["status"] == "invalid"
+    assert output.result["diagnostics"][0]["code"] == "PG.UI.CRITICAL_FINALIZATION_FAILURE"
+    assert "Traceback" not in output.status_markdown
+    assert output.download_paths == []
+    assert any("Critical failure while finalizing UI operator output" in record.message for record in caplog.records)
+    assert any(record.exc_info for record in caplog.records)
 
 
 def test_ui_adapter_builds_gate_request_for_all_service_choices(tmp_path: Path):

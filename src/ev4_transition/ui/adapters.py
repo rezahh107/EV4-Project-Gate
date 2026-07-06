@@ -96,7 +96,17 @@ def run_operator_check(
             next_action_fa="گزارش فنی را دانلود کن و خطای مسیر، JSON، یا وابستگی محلی را بررسی کن.",
             error_type=type(exc).__name__,
         ).to_result(choice)
-    return _finalize(result, output_dir)
+    try:
+        return _finalize(result, output_dir)
+    except Exception as exc:  # Final UI rendering fallback; do not let report/capability failures crash the panel.
+        LOGGER.exception("Critical failure while finalizing UI operator output")
+        fallback = ErrorState(
+            code="PG.UI.CRITICAL_FINALIZATION_FAILURE",
+            message_fa="آماده‌سازی خروجی UI با خطای کنترل‌شده متوقف شد و traceback خام در نمای اصلی نمایش داده نشد.",
+            next_action_fa="گزارش technical/log را بررسی کن و فایل capability یا مسیر خروجی را اصلاح کن.",
+            error_type=type(exc).__name__,
+        ).to_result(choice)
+        return _minimal_output(fallback)
 
 
 def build_gate_request(
@@ -140,6 +150,7 @@ def build_capability_rows(path: str | Path = CAPABILITY_STATUS_PATH) -> list[lis
 
 def render_download_artifacts(result: dict[str, Any], output_dir: str | Path | None = None) -> list[str]:
     directory = Path(output_dir) if output_dir is not None else Path(tempfile.mkdtemp(prefix="ev4_project_gate_ui_"))
+    written_paths: list[Path] = []
     try:
         directory.mkdir(parents=True, exist_ok=True)
         files = {
@@ -151,13 +162,27 @@ def render_download_artifacts(result: dict[str, Any], output_dir: str | Path | N
         for name, content in files.items():
             path = directory / name
             path.write_text(content, encoding="utf-8")
+            written_paths.append(path)
             paths.append(str(path))
         return paths
     except OSError as exc:
         LOGGER.error("Failed to render download artifacts: %s", exc)
+        for path in written_paths:
+            path.unlink(missing_ok=True)
         if output_dir is None:
             shutil.rmtree(directory, ignore_errors=True)
         return []
+
+
+def _minimal_output(result: dict[str, Any]) -> UiRunOutput:
+    return UiRunOutput(
+        result=result,
+        status_markdown=status_summary_markdown(result),
+        diagnostics_rows=diagnostics_to_rows(result.get("diagnostics", [])),
+        capability_rows=[],
+        json_preview=canonical_dumps(result),
+        download_paths=[],
+    )
 
 
 def _result_from_response(response: Any) -> dict[str, Any]:
@@ -196,7 +221,12 @@ def _clean_path(value: str | None) -> str | None:
 
 
 def _markdown_report(result: dict[str, Any]) -> str:
-    return "\n".join(["# گزارش Project Gate Operator Panel", "", f"status: `{result.get('status', 'invalid')}`", "", "```json", canonical_dumps(result), "```", ""])
+    safe_json = _neutralize_markdown_fences(canonical_dumps(result))
+    return "\n".join(["# گزارش Project Gate Operator Panel", "", f"status: `{result.get('status', 'invalid')}`", "", "```json", safe_json, "```", ""])
+
+
+def _neutralize_markdown_fences(value: str) -> str:
+    return value.replace("```", "``\u200b`")
 
 
 def _html_report(result: dict[str, Any]) -> str:

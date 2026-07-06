@@ -14,7 +14,7 @@ Initial inspected commit before edits: `5fcffd26149602bed715c5ee77e4d361d18a602e
 - Exposed service choices: `validate_bundle`, `inspect_capabilities`, `architect_to_ce`, `ce_to_builder`, `builder_to_responsive`, and `final_gate`.
 - Kept missing local checkout paths, GitHub URL paths, and missing evidence fail-closed through service diagnostics; no placeholder accepted state is produced.
 - Added scoped Gradio CSS backed by semantic theme tokens, Persian UI font stack, code font stack, focus ring, RTL container behavior, and LTR technical isolation.
-- Preserved Advanced/Evidence/Diagnostics as collapsed UI details, added safer report-write failure behavior, escaped serialized JSON in `report.html` to prevent local/report HTML injection, and logged defensive UI/report failures without exposing raw tracebacks in the primary UI.
+- Preserved Advanced/Evidence/Diagnostics as collapsed UI details, added safer report-write failure behavior, escaped serialized JSON in `report.html` to prevent local/report HTML injection, neutralized Markdown code-fence breakout in `report.md`, made artifact writes transactional, and logged defensive UI/report/finalization failures without exposing raw tracebacks in the primary UI.
 - Updated CI prompt workflow to enforce UI and service tests along with UX/theme/typography/reporting checks, and to verify the exact checked-out source head for pull requests.
 
 ## Files changed
@@ -67,6 +67,7 @@ Initial inspected commit before edits: `5fcffd26149602bed715c5ee77e4d361d18a602e
 
 - `PG.UI.UNHANDLED_EXCEPTION`
 - `PG.UI.REPORT_WRITE_FAILED`
+- `PG.UI.CRITICAL_FINALIZATION_FAILURE`
 
 ## CLI/CI changes
 
@@ -74,9 +75,9 @@ No public CLI transition was added or renamed. `.github/workflows/prompt-06.yml`
 
 ## Design decisions
 
-- Unhandled UI exceptions are logged with traceback for maintainers while the primary Persian UI remains sanitized.
+- Unhandled UI exceptions are logged with traceback for maintainers while the primary Persian UI remains sanitized. Finalization failures are caught by `PG.UI.CRITICAL_FINALIZATION_FAILURE` and return a minimal invalid UI output instead of crashing the panel.
 - The UI adapter now delegates JSON parsing, repo-path validation, transition dispatch, capability inspection, and fail-closed behavior to `ev4_transition.service` instead of shelling out or duplicating transition logic. Packaged runtime capability truth now carries `user_interface.service_routing` and `browser_accessibility_evidence` so the UI inspector and active docs do not drift.
-- Download files are written only if report artifacts can be written. A write failure returns an invalid UI result, logs the failure, cleans up auto-created temporary directories, and produces no fake success download list. HTML report JSON is escaped with `html.escape(...)` before being embedded in `<pre>`.
+- Download files are written only if report artifacts can be written. A write failure returns an invalid UI result, logs the failure, removes partially written files for manual or temporary output directories, cleans up auto-created temporary directories, and produces no fake success download list. HTML report JSON is escaped with `html.escape(...)` before being embedded in `<pre>`, and Markdown report JSON neutralizes embedded triple-backtick fences without mutating `result.json`.
 - Scoped CSS uses semantic `--ev4-*` variables and `prefers-color-scheme`; no persistence claim is made.
 
 ## Web sources used
