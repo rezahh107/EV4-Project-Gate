@@ -123,11 +123,11 @@ Exit codes:
 ## Local operator UI
 
 ```bash
-python -m pip install -e '.[dev]'
+python -m pip install -e '.[dev,ui]'
 python -m ev4_transition.ui.app
 ```
 
-Optional script entry point:
+Optional script entry point after installing the `ui` extra:
 
 ```bash
 ev4-project-gate-ui
