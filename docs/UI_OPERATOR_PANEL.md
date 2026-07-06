@@ -10,7 +10,7 @@
 - متن JSON را paste کند؛
 - قابلیت‌های Project Gate را بخواند؛
 - transitionهای آماده و pending را از هم تشخیص دهد؛
-- وضعیت فارسی، diagnostics، و خروجی‌های قابل دانلود را ببیند.
+- وضعیت فارسی، راهنمای عملیاتی، diagnostics، و خروجی‌های قابل دانلود را ببیند.
 
 ## اجرای محلی
 
@@ -40,24 +40,36 @@ uv run ev4-project-gate-ui
 
 ## Patch 1: visual / RTL / typography polish
 
-این patch فقط presentation را اصلاح می‌کند:
+این patch فقط presentation را اصلاح کرد:
 
-- header به یک کارت compact operator-panel تبدیل شده است؛
-- labelهای قابل مشاهده فارسی-اول شده‌اند، بدون تغییر در internal transition choices؛
+- header به یک کارت compact operator-panel تبدیل شد؛
+- labelهای قابل مشاهده فارسی-اول شدند، بدون تغییر در internal transition choices؛
 - متن فارسی با `lang="fa"` و `dir="rtl"` و alignment راست نمایش داده می‌شود؛
 - JSON، path، repo name، diagnostic code، JSONPath، hash، command، و code-like text با LTR isolation و font کد نمایش داده می‌شوند؛
 - Gradio CSS از semantic tokens در `src/ev4_transition/presentation/theme_tokens.py` استفاده می‌کند؛
 - dark mode از near-black surfaces، elevated cards، focus ring، و status icon + text + semantic tone استفاده می‌کند.
 
+## Patch 2: operator guidance / diagnostic help
+
+این patch یک لایه code-backed guidance اضافه می‌کند که بالای raw diagnostics نمایش داده می‌شود:
+
+- `src/ev4_transition/data/operator-guidance.v1.json` رجیستری deterministic guidance برای diagnosticهای شناخته‌شده است؛
+- `src/ev4_transition/service/guidance.py` result را به خلاصه عملیاتی فارسی، گروه‌بندی diagnostics، وضعیت output و repair prompt تبدیل می‌کند؛
+- UI توضیح می‌دهد gate کجا متوقف شد، چه چیزی قبل از failure پیش رفت، مشکل فعلی چیست و اقدام بعدی دقیق چیست؛
+- اگر `output` برابر `null` باشد، پنل صریح می‌گوید downstream input package تولید نشده است؛
+- اگر `validate_bundle` اجرا شود، پنل صریح می‌گوید این مسیر validation-only است و CE output تولید نمی‌کند؛
+- برای `PG_A2C_ARCHITECT_SCHEMA_VALIDATION_FAILED` پرامپت اصلاح copy-ready ساخته می‌شود؛
+- reportهای `report.md` و `report.html` شامل راهنمای عملیاتی، grouped diagnostics و raw JSON LTR هستند.
+
 این patch عمداً موارد زیر را اضافه نمی‌کند:
 
-- diagnostic grouping logic؛
-- repair prompt generator؛
-- operator guidance registry؛
-- preflight pinned-file checking؛
-- repeated failure escape hatch؛
-- transition logic جدید؛
-- schema/validator/specialist contract جدید.
+- automatic JSON repair؛
+- mutation ورودی کاربر؛
+- schema/validator/specialist contract جدید؛
+- automatic GitHub clone/pull؛
+- real Elementor validation؛
+- browser accessibility certification؛
+- end-to-end EV4 readiness claims.
 
 ## هشدار محدوده
 
@@ -71,6 +83,9 @@ uv run ev4-project-gate-ui
 - responsive correctness
 - accessibility completion
 - export validation
+- CE approval
+- Builder authorization
+- end-to-end EV4 readiness
 
 ## RTL/LTR
 
@@ -85,3 +100,10 @@ uv run ev4-project-gate-ui
 - `report.html`
 
 رندر report/download از adapter محلی و service response ساخته می‌شود، result object را mutate نمی‌کند، و اگر نوشتن گزارش fail شود لینک دانلود موفق جعلی تولید نمی‌کند.
+
+## اسناد مرتبط
+
+- `docs/OPERATOR_GUIDE.md`
+- `docs/DIAGNOSTIC_GUIDE.md`
+- `docs/UI_SERVICE_CONTRACT.md`
+- `docs/REPORT_UX_CONTRACT.md`

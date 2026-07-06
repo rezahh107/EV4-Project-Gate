@@ -24,6 +24,9 @@ ev4-project-gate-ui = "ev4_transition.ui.app:main"
 [tool.setuptools.packages.find]
 where = ["src"]
 
+[tool.setuptools.package-data]
+ev4_transition = ["data/*.json"]
+
 [tool.pytest.ini_options]
 addopts = "-q"
 testpaths = ["tests"]

@@ -1,0 +1,118 @@
+{
+  "schema_version": "ev4-project-gate-operator-guidance.v1",
+  "items": [
+    {
+      "code": "PG.SERVICE.REPO_PATH_MISSING",
+      "group": "local_repository_paths",
+      "title_fa": "مسیر local repository وارد نشده است",
+      "meaning_fa": "این transition برای ادامه به checkout محلی ریپوی مالک نیاز دارد و URL گیت‌هاب کافی نیست.",
+      "common_causes_fa": ["مسیر لازم خالی مانده است."],
+      "next_actions_fa": ["ریپوی لازم را روی همین سیستم clone یا pull کن.", "مسیر پوشه local checkout را وارد کن.", "transition را دوباره اجرا کن."]
+    },
+    {
+      "code": "PG.SERVICE.REPO_PATH_NOT_LOCAL",
+      "group": "local_repository_paths",
+      "title_fa": "مسیر repository به‌صورت URL وارد شده است",
+      "meaning_fa": "Project Gate برای خواندن schema، lock و validator به مسیر filesystem محلی نیاز دارد، نه URL گیت‌هاب.",
+      "common_causes_fa": ["به‌جای مسیر local checkout، آدرس GitHub paste شده است."],
+      "next_actions_fa": ["ریپو را local clone کن.", "مسیر پوشه clone‌شده را وارد کن."]
+    },
+    {
+      "code": "PG.SERVICE.REPO_PATH_DOES_NOT_EXIST",
+      "group": "local_repository_paths",
+      "title_fa": "پوشه local repository پیدا نشد",
+      "meaning_fa": "مسیر واردشده روی سیستم فعلی وجود ندارد یا از دید Python قابل مشاهده نیست.",
+      "common_causes_fa": ["مسیر تایپی اشتباه است یا ریپو هنوز clone نشده است."],
+      "next_actions_fa": ["مسیر را از File Explorer یا terminal کپی کن.", "مطمئن شو مسیر به خود پوشه repo ختم می‌شود."]
+    },
+    {
+      "code": "PG.SERVICE.LOCAL_FILE_ACCESS_FAILED",
+      "group": "pinned_external_files",
+      "title_fa": "فایل local لازم خوانده نشد",
+      "meaning_fa": "Project Gate نتوانست یکی از فایل‌های schema، lock، validator یا contract لازم را از checkout محلی بخواند.",
+      "common_causes_fa": ["checkout محلی ناقص یا stale است.", "فایل pin‌شده در آن commit/path وجود ندارد."],
+      "next_actions_fa": ["ریپوهای local را pull/fetch کن.", "مطمئن شو مسیرها به checkout درست و کامل اشاره می‌کنند."]
+    },
+    {
+      "code": "PG_A2C_EXTERNAL_FILE_READ_FAILED",
+      "group": "pinned_external_files",
+      "title_fa": "فایل pin‌شده از ریپوی مالک خوانده نشد",
+      "meaning_fa": "در گذار Architect → CE، یکی از فایل‌های خارجی pin‌شده از ریپوی Architect یا CE قابل خواندن نیست.",
+      "common_causes_fa": ["checkout محلی روی commit مورد انتظار نیست.", "path داخل lock با فایل‌های فعلی owner repo نمی‌خواند."],
+      "next_actions_fa": ["Architect و CE checkout را به commit/path pin‌شده برسان.", "وجود فایل‌های pin‌شده در lock را دستی بررسی کن."]
+    },
+    {
+      "code": "PG_A2C_EXTERNAL_HASH_MISMATCH",
+      "group": "external_lock_hash_verification",
+      "title_fa": "hash فایل خارجی با lock نمی‌خواند",
+      "meaning_fa": "فایل owner repo خوانده شد، اما byte hash آن با مقدار pin‌شده در lock برابر نیست.",
+      "common_causes_fa": ["checkout محلی روی commit اشتباه است.", "فایل owner contract بعد از lock تغییر کرده است."],
+      "next_actions_fa": ["checkout را روی commit pin‌شده قرار بده.", "اگر owner contract عمداً تغییر کرده، lock را با evidence جدید بازبینی کن.", "بدون رفع hash mismatch ادامه نده."]
+    },
+    {
+      "code": "PG_A2C_ARCHITECT_SCHEMA_VALIDATION_FAILED",
+      "group": "architect_schema_validation",
+      "title_fa": "خروجی Architect با schema فعلی سازگار نیست",
+      "meaning_fa": "فایل ورودی از نظر قرارداد رسمی Architect معتبر نیست و Project Gate نباید آن را به CE تبدیل کند.",
+      "common_causes_fa": ["فایل با نسخه قدیمی ریپوی Architect ساخته شده است.", "مقادیر enum مثل node_kind یا scope با schema جدید نمی‌خوانند."],
+      "next_actions_fa": ["ریپوی Architect را pull/fetch کن.", "Stage Evidence Bundle را با نسخه جدید Architect دوباره تولید کن.", "یا repair prompt تولیدشده را به مدل Architect بده."],
+      "repair_prompt_template": "architect_schema_repair_v1"
+    },
+    {
+      "code": "PG_A2C_CE_SCHEMA_VALIDATION_FAILED",
+      "group": "ce_schema_validation",
+      "title_fa": "خروجی CE intake ساخته‌شده با schema CE سازگار نیست",
+      "meaning_fa": "Project Gate mapping به بسته‌ای رسیده که schema رسمی CE آن را نمی‌پذیرد؛ بنابراین خروجی مرحله بعد نباید استفاده شود.",
+      "common_causes_fa": ["schema CE یا mapping contract تغییر کرده است.", "mapper Project Gate با قرارداد CE drift دارد."],
+      "next_actions_fa": ["CE repo و Project Gate lock را با هم بررسی کن.", "mapper را فقط در محدوده Project Gate و بدون افزودن CE logic اصلاح کن."]
+    },
+    {
+      "code": "PG_A2C_SOURCE_SCHEMA_ID_MISMATCH",
+      "group": "architect_source_identity",
+      "title_fa": "schema id ورودی Architect درست نیست",
+      "meaning_fa": "این گذار فقط Architect Stage Payload رسمی را قبول می‌کند.",
+      "common_causes_fa": ["فایل مربوط به مرحله یا قرارداد دیگری بارگذاری شده است."],
+      "next_actions_fa": ["فایل Stage Evidence Bundle خروجی Architect را انتخاب کن.", "schema id باید ev4-architect-stage-payload@1.0.0 باشد."]
+    },
+    {
+      "code": "PG_A2C_WRONG_SOURCE_STAGE",
+      "group": "architect_source_identity",
+      "title_fa": "مرحله source bundle با transition انتخاب‌شده نمی‌خواند",
+      "meaning_fa": "Architect → CE فقط ورودی با stage برابر architect را می‌پذیرد.",
+      "common_causes_fa": ["به‌جای Architect bundle، خروجی CE/Builder/Responsive بارگذاری شده است."],
+      "next_actions_fa": ["اگر فایل مربوط به مرحله دیگری است، transition مناسب همان مرحله را انتخاب کن.", "اگر خروجی قدیمی است، آن را از منبع رسمی دوباره تولید کن."]
+    },
+    {
+      "code": "PG.UI.PREFLIGHT_RESULT_JSON_USED_AS_SOURCE",
+      "group": "transition_selection",
+      "title_fa": "به‌جای source bundle، result قبلی Project Gate بارگذاری شده است",
+      "meaning_fa": "فایل result.json خروجی UI برای گزارش است، نه ورودی transition بعدی.",
+      "common_causes_fa": ["بعد از validate_bundle، همان result.json را برای Architect → CE انتخاب کرده‌ای."],
+      "next_actions_fa": ["فایل Stage Evidence Bundle اصلی را بارگذاری کن، نه result.json گزارش UI.", "برای Architect → CE باید output رسمی Architect را بدهی.", "اگر فقط اعتبارسنجی می‌خواستی، validate_bundle را اجرا کن و انتظار CE output نداشته باش."]
+    },
+    {
+      "code": "PG.UI.PREFLIGHT_WRONG_STAGE_FOR_TRANSITION",
+      "group": "transition_selection",
+      "title_fa": "فایل ورودی با transition انتخاب‌شده هم‌مرحله نیست",
+      "meaning_fa": "stage فایل JSON با مرحله‌ای که transition از آن شروع می‌شود یکی نیست.",
+      "common_causes_fa": ["برای CE → Builder یک Architect bundle بارگذاری شده است."],
+      "next_actions_fa": ["transition مناسب stage فایل را انتخاب کن.", "یا فایل ورودی درست برای transition انتخاب‌شده را بارگذاری کن."]
+    },
+    {
+      "code": "PG.UI.UNHANDLED_EXCEPTION",
+      "group": "ui_report_rendering",
+      "title_fa": "UI با خطای کنترل‌شده متوقف شد",
+      "meaning_fa": "پنل محلی به‌جای نمایش traceback خام، خطا را به diagnostic کنترل‌شده تبدیل کرد.",
+      "common_causes_fa": ["اشکال runtime در dependency یا adapter UI رخ داده است."],
+      "next_actions_fa": ["diagnostics و log محلی را بررسی کن.", "JSON و مسیرهای repo را ساده‌سازی کن و دوباره اجرا کن."]
+    },
+    {
+      "code": "PG.UI.REPORT_WRITE_FAILED",
+      "group": "ui_report_rendering",
+      "title_fa": "نوشتن گزارش UI شکست خورد",
+      "meaning_fa": "نتیجه محاسبه شده، اما فایل‌های دانلودی با اطمینان نوشته نشده‌اند.",
+      "common_causes_fa": ["مسیر output مجوز نوشتن ندارد."],
+      "next_actions_fa": ["مجوز نوشتن مسیر خروجی را بررسی کن.", "تا وقتی download ساخته نشده، ادعای خروجی قابل دانلود نکن."]
+    }
+  ]
+}

@@ -11,7 +11,9 @@ import tempfile
 from typing import Any
 
 from ev4_transition.canonical_json import canonical_dumps, load_json_file
-from ev4_transition.service import GateRequest, RepoPaths, run_gate_request
+from ev4_transition.service import GateRequest, RepoPaths, ServiceDiagnostic, run_gate_request
+from ev4_transition.service.guidance import build_operator_guidance
+from ev4_transition.service.json_input import parse_json_input
 
 from .components import capability_rows_from_payload, diagnostics_to_rows, status_summary_markdown
 from .state import option_for_label
@@ -21,6 +23,13 @@ PACKAGE_ROOT = Path(__file__).resolve().parents[1]
 REPOSITORY_ROOT = Path(__file__).resolve().parents[3]
 CAPABILITY_STATUS_PATH = PACKAGE_ROOT / "data" / "capability-status.v1.json"
 LOGGER = logging.getLogger(__name__)
+
+_EXPECTED_SOURCE_STAGE_BY_TRANSITION = {
+    "architect_to_ce": "architect",
+    "ce_to_builder": "ce",
+    "builder_to_responsive": "builder",
+    "final_gate": "responsive",
+}
 
 
 @dataclass(frozen=True)
@@ -86,8 +95,12 @@ def run_operator_check(
             builder_repo_path=builder_repo_path,
             responsive_repo_path=responsive_repo_path,
         )
-        response = run_gate_request(request)
-        result = _result_from_response(response)
+        preflight_diagnostics = _ui_preflight_diagnostics(request)
+        if preflight_diagnostics:
+            result = _preflight_result(choice, preflight_diagnostics)
+        else:
+            response = run_gate_request(request)
+            result = _result_from_response(response)
     except Exception as exc:  # Defensive UI boundary; primary view must not expose traceback.
         LOGGER.exception("Unhandled exception in UI operator check")
         result = ErrorState(
@@ -207,6 +220,85 @@ def _result_from_response(response: Any) -> dict[str, Any]:
     }
 
 
+def _ui_preflight_diagnostics(request: GateRequest) -> list[ServiceDiagnostic]:
+    choice = str(request.transition_choice)
+    if choice in {"validate_bundle", "inspect_capabilities"}:
+        return []
+
+    parsed = parse_json_input(
+        input_json_path=request.input_json_path,
+        input_json_text=request.input_json_text,
+        input_data=request.input_data,
+    )
+    if parsed.diagnostics or not isinstance(parsed.value, dict):
+        return []
+
+    value = parsed.value
+    if _looks_like_project_gate_result(value):
+        return [
+            ServiceDiagnostic(
+                "PG.UI.PREFLIGHT_RESULT_JSON_USED_AS_SOURCE",
+                "error",
+                "Project Gate result.json is a report artifact, not a source Stage Evidence Bundle for this transition.",
+                "$",
+                {"transition_choice": choice, "observed_result_type": value.get("result_type")},
+            )
+        ]
+
+    expected_stage = _EXPECTED_SOURCE_STAGE_BY_TRANSITION.get(choice)
+    observed_stage = value.get("stage")
+    if expected_stage and isinstance(observed_stage, str) and observed_stage != expected_stage:
+        return [
+            ServiceDiagnostic(
+                "PG.UI.PREFLIGHT_WRONG_STAGE_FOR_TRANSITION",
+                "error",
+                "Input bundle stage does not match the selected transition.",
+                "$.stage",
+                {"transition_choice": choice, "expected_stage": expected_stage, "observed_stage": observed_stage},
+            )
+        ]
+    return []
+
+
+def _looks_like_project_gate_result(value: dict[str, Any]) -> bool:
+    result_type = value.get("result_type")
+    if isinstance(result_type, str) and result_type.startswith(("service_", "ui_")):
+        return True
+    if "engine_result" in value and "transition_choice" in value and "diagnostics" in value:
+        return True
+    if value.get("schema_version") in {"ev4-project-gate-ui-result.v1", "project-gate-service-result.v1"}:
+        return True
+    return False
+
+
+def _preflight_result(choice: str, diagnostics: list[ServiceDiagnostic]) -> dict[str, Any]:
+    return {
+        "schema_version": "ev4-project-gate-ui-result.v1",
+        "result_type": "ui_preflight_result",
+        "transition_choice": choice,
+        "status": _status_from_diagnostics(diagnostics),
+        "user_message_fa": "❌ پیش‌بررسی UI قبل از اجرای transition متوقف شد.",
+        "next_action_fa": "ورودی یا انتخاب transition را طبق راهنمای عملیاتی اصلاح کن و دوباره اجرا کن.",
+        "diagnostics": [diagnostic.to_dict() for diagnostic in diagnostics],
+        "engine_result": None,
+        "capabilities_snapshot": None,
+        "download_filenames": {},
+        "report_bundle": {},
+        "output": None,
+    }
+
+
+def _status_from_diagnostics(diagnostics: list[ServiceDiagnostic]) -> str:
+    severities = {diagnostic.severity for diagnostic in diagnostics}
+    if "error" in severities:
+        return "invalid"
+    if "insufficient_evidence" in severities:
+        return "insufficient_evidence"
+    if "warning" in severities:
+        return "repair_needed"
+    return "accepted"
+
+
 def _uploaded_path(uploaded_file: Any | None) -> str | None:
     if uploaded_file is None:
         return None
@@ -221,8 +313,42 @@ def _clean_path(value: str | None) -> str | None:
 
 
 def _markdown_report(result: dict[str, Any]) -> str:
+    guidance = build_operator_guidance(result)
     safe_json = _neutralize_markdown_fences(canonical_dumps(result))
-    return "\n".join(["# گزارش Project Gate Operator Panel", "", f"status: `{result.get('status', 'invalid')}`", "", "```json", safe_json, "```", ""])
+    lines = [
+        "# گزارش Project Gate Operator Panel",
+        "",
+        f"status: `{result.get('status', 'invalid')}`",
+        "",
+        "## راهنمای عملیاتی",
+        "",
+        f"- کجا متوقف شد؟ {guidance.where_stopped_fa}",
+        f"- مشکل فعلی چیست؟ {guidance.current_problem_fa}",
+        f"- آیا خروجی مرحله بعد ساخته شد؟ {guidance.output_state_fa}",
+        f"- safe_to_continue: `{str(guidance.safe_to_continue).lower()}`",
+        "",
+        "### اقدام بعدی دقیق",
+    ]
+    lines.extend(f"{index}. {action}" for index, action in enumerate(guidance.next_actions_fa, start=1))
+    lines.extend(["", "### گروه‌بندی diagnostics"])
+    if guidance.diagnostic_groups:
+        for group in guidance.diagnostic_groups:
+            lines.append(f"- {group.title_fa} — count: `{group.count}` — اقدام: {group.next_action_fa}")
+    else:
+        lines.append("- diagnostic ثبت نشده است.")
+    if guidance.repair_prompt_fa_or_en:
+        lines.extend(
+            [
+                "",
+                "## Repair prompt / پرامپت اصلاح",
+                "",
+                "```text",
+                _neutralize_markdown_fences(guidance.repair_prompt_fa_or_en),
+                "```",
+            ]
+        )
+    lines.extend(["", "## Raw JSON result", "", "```json", safe_json, "```", ""])
+    return "\n".join(lines)
 
 
 def _neutralize_markdown_fences(value: str) -> str:
@@ -230,11 +356,48 @@ def _neutralize_markdown_fences(value: str) -> str:
 
 
 def _html_report(result: dict[str, Any]) -> str:
+    guidance = build_operator_guidance(result)
     escaped_json = escape(json.dumps(result, ensure_ascii=False, indent=2))
+    guidance_html = _report_guidance_html(guidance)
     return (
         '<!doctype html><html lang="fa" dir="rtl">'
-        '<meta charset="utf-8"><title>Project Gate Report</title>'
-        f'<pre dir="ltr">{escaped_json}</pre></html>'
+        '<head><meta charset="utf-8"><title>Project Gate Report</title></head>'
+        '<body>'
+        '<section lang="fa" dir="rtl">'
+        '<h1>گزارش Project Gate Operator Panel</h1>'
+        f'<p><strong>status:</strong> <bdi dir="ltr"><code>{escape(str(result.get("status", "invalid")))}</code></bdi></p>'
+        f'{guidance_html}'
+        '<h2>Raw JSON result</h2>'
+        f'<pre dir="ltr"><code>{escaped_json}</code></pre>'
+        '</section>'
+        '</body></html>'
+    )
+
+
+def _report_guidance_html(guidance: Any) -> str:
+    actions = "".join(f"<li>{escape(action)}</li>" for action in guidance.next_actions_fa)
+    groups = "".join(
+        f"<li>{escape(group.title_fa)} — count: <bdi dir=\"ltr\"><code>{group.count}</code></bdi> — {escape(group.next_action_fa)}</li>"
+        for group in guidance.diagnostic_groups
+    )
+    if not groups:
+        groups = "<li>diagnostic ثبت نشده است.</li>"
+    repair = ""
+    if guidance.repair_prompt_fa_or_en:
+        repair = (
+            '<h2>Repair prompt / پرامپت اصلاح</h2>'
+            f'<pre dir="ltr"><code>{escape(guidance.repair_prompt_fa_or_en)}</code></pre>'
+        )
+    return (
+        '<h2>راهنمای عملیاتی</h2>'
+        f'<p><strong>کجا متوقف شد؟</strong> {escape(guidance.where_stopped_fa)}</p>'
+        f'<p><strong>مشکل فعلی چیست؟</strong> {escape(guidance.current_problem_fa)}</p>'
+        f'<p><strong>آیا خروجی مرحله بعد ساخته شد؟</strong> {escape(guidance.output_state_fa)}</p>'
+        '<h3>اقدام بعدی دقیق</h3>'
+        f'<ol>{actions}</ol>'
+        '<h3>گروه‌بندی diagnostics</h3>'
+        f'<ul>{groups}</ul>'
+        f'{repair}'
     )
 
 
