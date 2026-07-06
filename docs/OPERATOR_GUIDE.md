@@ -2,14 +2,24 @@
 
 این سند راهنمای استفاده از پنل محلی Project Gate است. پنل فقط یک لایه انسانی برای اجرای بررسی‌های Project Gate است و منطق transition، schema، validator یا قرارداد specialist جدید ایجاد نمی‌کند.
 
-## اصل عملیاتی
+## جریان عملیاتی
 
 ```text
 source Stage Evidence Bundle
+-> optional Local Repository Preflight
 -> Project Gate check / transition
 -> result.json + report.md + report.html
 -> optional downstream input bundle only when output is produced
 ```
+
+## روش پیشنهادی
+
+1. transition را انتخاب کن.
+2. JSON درست را بارگذاری یا paste کن.
+3. مسیرهای local checkout لازم را وارد کن.
+4. اول `بررسی مسیرها و ورودی‌ها` را بزن.
+5. اگر Preflight خطا داشت، مسیر یا فایل ورودی را اصلاح کن.
+6. بعد `اجرای بررسی Project Gate` را بزن.
 
 ## transitionها و ورودی مورد انتظار
 
@@ -28,12 +38,42 @@ source Stage Evidence Bundle
 
 | transition | مسیرهای لازم |
 |---|---|
+| `validate_bundle` | مسیر specialist لازم ندارد. |
+| `inspect_capabilities` | مسیر repo لازم ندارد. |
 | `architect_to_ce` | `architect_repo_path`, `ce_repo_path` |
 | `ce_to_builder` | `ce_repo_path`, `builder_repo_path` |
 | `builder_to_responsive` | `builder_repo_path`, `responsive_repo_path` |
 | `final_gate` | `project_gate_repo_path`, `responsive_repo_path` |
 
-اگر مسیر خالی، URL، اشتباه یا ناقص باشد، پنل باید آن را در «راهنمای عملیاتی» توضیح دهد و نباید ادامه را موفق نشان دهد.
+مسیرهای غیرلازم در Preflight خطا حساب نمی‌شوند و با `not_required_for_selected_transition` نمایش داده می‌شوند.
+
+## Preflight چه کار می‌کند؟
+
+بخش `بررسی آماده‌سازی مسیرها / Preflight` یک بررسی سبک و مستقل است. این بخش full transition را اجرا نمی‌کند، اما قبل از اجرای اصلی نشان می‌دهد:
+
+- برای transition انتخاب‌شده کدام مسیرها لازم هستند.
+- آیا مسیرهای لازم وجود دارند و directory هستند.
+- آیا GitHub URL به‌جای local path وارد شده است.
+- آیا checkout شبیه Git checkout است.
+- آیا فایل‌های pin‌شده لازم در local checkout دیده می‌شوند.
+- آیا JSON شبیه source bundle درست است یا `result.json` قبلی UI است.
+- آیا `validate_bundle` فقط validation-only است و خروجی CE/Builder/Responsive نمی‌سازد.
+
+Preflight hash verification، schema validation کامل، اجرای validator رسمی، اجرای adapter رسمی و اصلاح خودکار انجام نمی‌دهد. اجرای واقعی Project Gate همچنان مرجع نهایی است.
+
+## وقتی فایل pin‌شده گم است
+
+در GitHub Desktop:
+
+1. از `Current repository` همان ریپو را انتخاب کن.
+2. `Current branch` را روی `main` بگذار.
+3. `Fetch origin` را بزن.
+4. اگر `Pull origin` ظاهر شد، آن را هم بزن.
+5. دوباره Preflight را اجرا کن.
+
+## source bundle و result.json
+
+`result.json` خروجی گزارش UI است، نه ورودی transition بعدی. برای `architect_to_ce` باید source bundle خروجی Architect را بدهی. برای `ce_to_builder` باید خروجی CE از مرحله قبل را بدهی.
 
 ## معنی statusها
 
@@ -46,7 +86,7 @@ source Stage Evidence Bundle
 
 ## تفسیر `output: null`
 
-`output: null` یعنی downstream input package تولید نشده است. کاربر نباید فایل `result.json` یا report را به‌عنوان ورودی مرحله بعد استفاده کند.
+`output: null` یعنی downstream input package تولید نشده است. فایل `result.json` یا report را به‌عنوان ورودی مرحله بعد استفاده نکن.
 
 موارد رایج:
 
@@ -63,3 +103,5 @@ source Stage Evidence Bundle
 پنل نباید ادعا کند: production readiness، real Elementor validation، frontend correctness، responsive correctness، CE approval، Builder authorization، یا end-to-end EV4 readiness.
 
 شناسه‌های فنی مثل `diagnostic code`، `JSONPath`، `schema id`، `repo path`، `hash` و `transition id` باید LTR و copyable بمانند.
+
+جزئیات بیشتر: `docs/LOCAL_REPOSITORY_PREFLIGHT.md`.
