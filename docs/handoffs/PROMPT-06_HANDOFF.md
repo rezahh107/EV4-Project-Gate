@@ -117,3 +117,64 @@ remaining_insufficient_evidence:
 - `PRF-002` was fixed by making only directory-level fsync after `os.replace()` best-effort while preserving strict file fsync before replacement, plus regression tests for both cases.
 - `PRF-003` remains non-blocking. Optional HTML output should not be advertised as a real HTML report until renamed or converted/tested as true HTML.
 - This prompt intentionally did not change transition acceptance, invalid, repair-needed, or insufficient-evidence decision logic.
+
+## Patch 1 — Operator panel RTL visual polish
+
+```yaml
+patch_id: PROMPT-06-UI-PATCH-1
+branch: ux/operator-panel-rtl-visual-polish-patch-1
+base_branch: main
+base_head_sha: 26e79dbf117ea4d1195b47d4c9675967162d2bd9
+latest_head_sha_before_handoff_update: 7cffce600dca58613a75b67439247a0a27d57300
+pull_request: pending_at_handoff_write
+commits_before_handoff_update:
+  - bc78423be8122d7a49dad6b37b38b4c515be8813
+  - 094f31545b988db0b87b33a008c448d227a1d3a7
+  - 464e07af1836caa61303ea3a14fa8dc30f11a8ae
+  - 327df946713b8e0cc29bc35859d22bcd3178a4e6
+  - e5fa4c10a702c0cd13226a7236a34aa6258997af
+  - 7cffce600dca58613a75b67439247a0a27d57300
+files_changed:
+  - src/ev4_transition/presentation/theme_tokens.py
+  - src/ev4_transition/ui/app.py
+  - src/ev4_transition/ui/components.py
+  - tests/ui/test_operator_panel_visual_polish.py
+  - tests/theme_acceptance/test_operator_panel_theme_tokens.py
+  - docs/UI_OPERATOR_PANEL.md
+  - docs/handoffs/PROMPT-06_HANDOFF.md
+tests_run:
+  - not run locally; container DNS could not resolve github.com for clone, so repository checkout and local pytest were unavailable
+tests_not_run:
+  - python -m pytest -q
+  - uv run pytest tests/ui
+  - uv run pytest tests/theme_acceptance
+  - uv run pytest tests/ux_acceptance
+  - uv run pytest tests/typography_acceptance
+  - uv run pytest tests/reporting
+coverage_rules_advanced:
+  - PG-UNICODE-001: added UI-level tests for RTL container and LTR technical metadata in operator panel status markup
+  - PG-THEME-001: added UI-level tests for extended semantic theme tokens and CSS custom properties
+coverage_rules_still_gap:
+  - Browser accessibility remains insufficient_evidence; no screenshot/manual browser QA was available in this execution environment.
+  - This patch does not promote UX/report rules to downstream_contract_enforced.
+new_diagnostics:
+  - none
+cli_or_ci_changes:
+  - none
+important_design_decisions:
+  - The header was changed from Markdown-heavy text into a compact RTL operator card while keeping EV4 Project Gate as an LTR-isolated technical title.
+  - Visible labels were changed to Persian-first ordering without renaming internal service transition choices.
+  - Path, JSON, code, diagnostics, and preview surfaces use explicit LTR isolation/CSS classes.
+  - Theme tokens were extended semantically instead of hard-coding dark-mode colors in UI CSS.
+  - No proprietary font files were added; the existing Persian font stack remains CSS-only.
+web_sources_used:
+  - none
+next_allowed_prompt: visual polish patch 2 only after Patch 1 review/CI evidence, or PROMPT-07 if no further UI polish is needed
+blockers:
+  - Local pytest unavailable in this environment because github.com DNS resolution failed during clone attempt.
+remaining_insufficient_evidence:
+  - real Elementor/frontend/responsive/production readiness
+  - browser screenshot review
+  - accessibility completion evidence
+  - real non-synthetic downstream evidence for later transition claims
+```
