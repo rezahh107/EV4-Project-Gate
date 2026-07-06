@@ -144,12 +144,15 @@ def _transition_preflight(args: argparse.Namespace) -> dict[str, Any] | None:
     required = required_by_transition.get(args.transition_name, [])
     for field in required:
         value = getattr(args, field, None)
+        if isinstance(value, str):
+            value = value.strip()
+            setattr(args, field, value)
         option = "--" + field.replace("_", "-")
         if not value:
             return _simple_insufficient("CLI_LOCAL_PATH_REQUIRED", "A local checkout path is required for this guarded transition.", option=option, transition_name=args.transition_name)
         if _looks_like_url(value):
             return _simple_insufficient("CLI_GITHUB_URL_REJECTED", "GitHub URLs are rejected; provide a local checkout path so pinned file bytes and owner tools can be verified.", option=option, transition_name=args.transition_name)
-        if not Path(value).exists():
+        if not Path(value).is_dir():
             return _simple_insufficient("CLI_LOCAL_PATH_NOT_FOUND", "Local checkout path was not found.", option=option, path=value, transition_name=args.transition_name)
     return None
 
