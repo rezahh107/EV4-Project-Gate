@@ -43,6 +43,7 @@ _OUTPUT_STATE_FA = {
 
 _STATUS_PROBLEM_FA = {
     "accepted": "در محدوده همین بررسی، diagnostic مسدودکننده ثبت نشده است.",
+    "valid": "در محدوده همین بررسی، diagnostic مسدودکننده ثبت نشده است.",
     "repair_needed": "بسته قابل فهم است، اما اصلاح لازم دارد.",
     "insufficient_evidence": "شواهد لازم برای ادامه امن کامل نیست.",
     "invalid": "ورودی، مسیر، قرارداد یا اجرای Gate نامعتبر شده است.",
@@ -50,6 +51,7 @@ _STATUS_PROBLEM_FA = {
 
 _STATUS_NEXT_ACTION_FA = {
     "accepted": "نتیجه را فقط در محدوده همین Gate استفاده کن؛ این production/readiness proof نیست.",
+    "valid": "نتیجه را فقط در محدوده همین Gate استفاده کن؛ این production/readiness proof نیست.",
     "repair_needed": "diagnosticهای warning/error را اصلاح کن و دوباره اجرا کن.",
     "insufficient_evidence": "شواهد یا checkout رسمی گمشده را فراهم کن و دوباره اجرا کن.",
     "invalid": "اولین diagnostic خطادار را اصلاح کن و سپس دوباره اجرا کن.",
@@ -388,12 +390,12 @@ def _safe_ui_message(value: str) -> str:
 
 
 def _repair_prompt(result: dict[str, Any], diagnostics: list[dict[str, Any]], registry: dict[str, GuidanceItem]) -> str | None:
-    repairable = [
-        diagnostic
-        for diagnostic in diagnostics
-        if registry.get(str(diagnostic.get("code", "")))
-        and registry[str(diagnostic.get("code", ""))].repair_prompt_template == "architect_schema_repair_v1"
-    ]
+    repairable = []
+    for diagnostic in diagnostics:
+        code = str(diagnostic.get("code", ""))
+        item = registry.get(code)
+        if item and item.repair_prompt_template == "architect_schema_repair_v1":
+            repairable.append(diagnostic)
     if not repairable:
         return None
 
