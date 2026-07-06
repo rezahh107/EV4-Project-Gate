@@ -58,6 +58,7 @@ This section is updated by GitHub Actions after a pull request is merged. It rec
 
 | PR | Title | Head branch | Head commit | Merge commit | Skeleton Health | Recorded by |
 |---|---|---|---|---|---|---|
+| `#35` | `Polish operator panel RTL layout and visual theme` | `ux/operator-panel-rtl-visual-polish-patch-1` | `ec1775c16447ea65457b3dffd86c82c124712f9a` | `3e4a92ecf57f6045147e4b819e7f26d4915ff78f` | `CI_PASSED` | `rezahh107 on rezahh107/EV4-Project-Gate` |
 | `#34` | `Add double-click Windows launcher for the local UI` | `chore/windows-double-click-launcher` | `3a6720840002332a42087642d889ed6441d259f7` | `961d9665665849e23e519ec60d34931c852c1a6c` | `CI_PASSED` | `rezahh107 on rezahh107/EV4-Project-Gate` |
 | `#33` | `Make uv the default local and CI installer` | `codex/make-uv-the-default-installer` | `ae970cafc0454d322bab28e7fe687635f1da7dbd` | `23dcf5342706efb0c689f6503429cf20b7f6f703` | `CI_PASSED` | `rezahh107 on rezahh107/EV4-Project-Gate` |
 | `#32` | `Operator UI: route through internal service, add theme CSS/TYPEKIT, tests and docs for Prompt 06` | `codex/complete-ui/ux-and-service-integration-gaps-978dcl` | `c904cbac4227275474fab99a6264ecaa6447d31c` | `cf6bb8846ae705aa7f18476d569f566631803c94` | `CI_PASSED` | `rezahh107 on rezahh107/EV4-Project-Gate` |
