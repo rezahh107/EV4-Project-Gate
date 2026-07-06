@@ -20,8 +20,8 @@ HEADER_HELPER_FA = (
 
 def operator_header_html() -> str:
     return f"""
-<section lang="fa" dir="rtl" class="ev4-app ev4-rtl ev4-shell">
-  <header class="ev4-header" aria-label="EV4 Project Gate local operator panel">
+<section lang="fa" dir="rtl" class="ev4-app ev4-rtl">
+  <header class="ev4-header ev4-shell" aria-label="EV4 Project Gate local operator panel">
     <div class="ev4-header-kicker">Local Operator Panel</div>
     <div class="ev4-header-title-row">
       <h1 class="ev4-header-title"><bdi dir="ltr">EV4 Project Gate</bdi></h1>
