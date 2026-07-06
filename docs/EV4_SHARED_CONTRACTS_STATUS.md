@@ -58,6 +58,7 @@ This section is updated by GitHub Actions after a pull request is merged. It rec
 
 | PR | Title | Head branch | Head commit | Merge commit | Skeleton Health | Recorded by |
 |---|---|---|---|---|---|---|
+| `#29` | `Add Project Gate service API for UI integration` | `feature/gate-service-api` | `534873d1bf17bb95a12ff8701e9343710d098d20` | `89cf4f52abc7273989dccb51016e26c92d836fc1` | `CI_PASSED` | `rezahh107 on rezahh107/EV4-Project-Gate` |
 | `#26` | `PROMPT-07 Closure audit and stale prose cleanup` | `project-gate-prompt-07-closure-audit` | `cb8343bd273de616aa91e6c37daa628f5aefa68a` | `c69da17db3fb60e8b733905b81cde71645777805` | `CI_PASSED` | `rezahh107 on rezahh107/EV4-Project-Gate` |
 | `#25` | `Add capability-truth, exact-head, and workflow-permission CI gates` | `fix/ci-governance-evidence-gates` | `cda3121313bdb476bffe006f2c259755d742eb93` | `572bb6d78bdb8d56d10f48d27e37cd278731e876` | `CI_PASSED` | `rezahh107 on rezahh107/EV4-Project-Gate` |
 | `#24` | `PROMPT-06 Report UX, Persian RTL/LTR, and atomic writing hardening` | `project-gate-prompt-06-ux` | `c8522cf36e65243dfebc3f9b2f0b3feb97cbedf4` | `d522e7d4b434cc337bfe9314116f5b4af61466cf` | `CI_PASSED` | `rezahh107 on rezahh107/EV4-Project-Gate` |
