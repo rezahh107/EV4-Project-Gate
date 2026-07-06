@@ -156,6 +156,10 @@ jobs:
         working-directory: EV4-Project-Gate
         run: pytest tests/test_cli.py tests/test_canonical_json.py tests/test_bundle_validator.py
 
+      - name: Personal-use package tests
+        working-directory: EV4-Project-Gate
+        run: pytest --maxfail=1 --tb=short tests/personal_use tests/e2e
+
       - name: A2C valid transition smoke
         working-directory: EV4-Project-Gate
         env:

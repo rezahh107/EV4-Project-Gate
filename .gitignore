@@ -11,3 +11,9 @@ __pycache__/
 *.py[cod]
 *.egg-info/
 .pytest_cache/
+
+# Project Gate generated personal-use outputs
+outputs/runs/
+!outputs/
+!outputs/.gitkeep
+!outputs/README.md

@@ -236,6 +236,37 @@ npm run status
 npm run validate
 ```
 
+## Personal local use
+
+Personal-use setup and controlled demo docs:
+
+- `docs/LOCAL_SETUP_GUIDE.md`
+- `docs/PERSONAL_USE_GUIDE.md`
+- `docs/E2E_DEMO_WORKFLOW.md`
+
+Local launcher scripts:
+
+```bash
+python scripts/run-project-gate-ui.py
+python scripts/run-project-gate-demo.py
+```
+
+Windows helpers:
+
+```text
+scripts/run-project-gate-ui.ps1
+scripts/run-project-gate-ui.bat
+```
+
+Notes:
+
+- This section is packaging-only and does not own active capability truth.
+- UI/operator panel behavior depends on the Prompt 1 UI branch/merge.
+- Internal service/API integration depends on the Prompt 2 service branch/merge.
+- The controlled demo uses synthetic fixtures only and does not claim production readiness, real Elementor validation, frontend correctness, responsive correctness, accessibility completion, export validation, or real end-to-end readiness.
+- Controlled demo outputs belong under `outputs/runs/<timestamp-or-run-id>/` and should not be committed.
+- UI downloads may use UI-provided artifacts until a final integration PR aligns UI, service, and demo output conventions.
+
 ## Current Status
 
 ```yaml
