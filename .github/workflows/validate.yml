@@ -144,6 +144,10 @@ jobs:
         working-directory: EV4-Project-Gate
         run: python -m pip install -e '.[dev]'
 
+      - name: Service layer tests
+        working-directory: EV4-Project-Gate
+        run: pytest tests/service
+
       - name: CLI and bundle tests
         working-directory: EV4-Project-Gate
         run: pytest tests/test_cli.py tests/test_canonical_json.py tests/test_bundle_validator.py
