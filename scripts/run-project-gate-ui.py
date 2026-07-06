@@ -50,10 +50,10 @@ def _find_first_module(candidates: Iterable[str]) -> tuple[str | None, list[str]
     discovery_errors: list[str] = []
     for module_name in candidates:
         try:
+        try:
             if importlib.util.find_spec(module_name) is not None:
-                return module_name, discovery_errors
-        except Exception as exc:
-            discovery_errors.append(f"{module_name}: {type(exc).__name__}: {exc}")
+                return module_name
+        except Exception:
             continue
     return None, discovery_errors
 
