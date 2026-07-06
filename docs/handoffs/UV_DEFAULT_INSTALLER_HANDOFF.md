@@ -128,3 +128,27 @@ Additional validation after the follow-up fix:
 - `uv run --locked python scripts/run-project-gate-demo.py --run-id uv-ci-fix-smoke`
 
 Remote GitHub Actions still need to run on the updated head before CI can be reported as successful.
+
+## External validator and Node validation boundary follow-up
+
+A later CI review found two remaining environment-boundary failures. This branch now makes those boundaries explicit:
+
+- Project Gate policy checks invoked by `scripts/validate.js` use `uv run --locked python` instead of system `python`/`python3`.
+- Official owner-repository validators run from their owner repository working directories with the runner `python` provided by `actions/setup-python`, preserving the original owner-validator execution contract instead of running `uv` in an owner repository context.
+- Regression tests now cover both Node-mediated Python invocation and the explicit owner-validator system-Python boundary.
+
+Additional validation after this boundary fix:
+
+- `uv lock --check`
+- `uv sync --locked --extra dev --extra ui`
+- `uv run --locked pytest tests/personal_use tests/reporting/test_workflow_permissions.py tests/test_cli.py`
+- `uv run --locked python scripts/check-github-action-pinning.py`
+- `uv run --locked python scripts/check-workflow-permissions.py`
+- `uv run --locked python scripts/check-capability-truth.py`
+- `npm run validate`
+- `uv run --locked pytest`
+- `npm run status`
+- `uv run --locked ev4-transition inspect`
+- `uv run --locked python scripts/run-project-gate-demo.py --run-id uv-boundary-fix-smoke`
+
+Remote GitHub Actions still need to rerun on the updated head before CI success can be claimed.

@@ -385,11 +385,11 @@ jobs:
 
       - name: Official Architect validator fixture suite
         working-directory: EV4-Architect-Repo
-        run: uv run python scripts/check-architect-stage-payload.py
+        run: python scripts/check-architect-stage-payload.py
 
       - name: Official CE validator fixture suite
         working-directory: EV4-Constructability-Engineer-Repo
-        run: uv run python scripts/validate-ce-architect-stage-intake.py
+        run: python scripts/validate-ce-architect-stage-intake.py
 
       - name: Generated Architect-to-CE transition smoke and CE binding
         working-directory: EV4-Project-Gate

@@ -87,6 +87,12 @@ UV_WORKFLOWS = [
 BARE_PYTHON_COMMAND_RE = re.compile(r"(^|[;&|()]\s*)(python|pytest|ev4-transition)\b")
 
 
+OWNER_VALIDATOR_STEPS_ALLOW_SYSTEM_PYTHON = {
+    (".github/workflows/validate.yml", "Official Architect validator fixture suite"),
+    (".github/workflows/validate.yml", "Official CE validator fixture suite"),
+    (".github/workflows/prompt-05.yml", "Run pinned official Responsive validators"),
+}
+
 def _workflow(relative: str) -> dict:
     return yaml.safe_load((ROOT / relative).read_text(encoding="utf-8"))
 
@@ -137,4 +143,35 @@ def test_uv_workflow_python_commands_run_through_uv():
                 for line in _run_lines(step):
                     if line.startswith("uv run ") or line.startswith("uv lock ") or line.startswith("uv sync "):
                         continue
-                    assert not BARE_PYTHON_COMMAND_RE.search(line), f"{relative}:{job_name}:{step.get('name')}: {line}"
+                    step_name = str(step.get("name", ""))
+                    if (relative, step_name) in OWNER_VALIDATOR_STEPS_ALLOW_SYSTEM_PYTHON:
+                        assert line.startswith("python "), f"{relative}:{step_name} should use explicit owner-validator Python: {line}"
+                        continue
+                    assert not BARE_PYTHON_COMMAND_RE.search(line), f"{relative}:{job_name}:{step_name}: {line}"
+
+
+def test_node_skeleton_validation_uses_uv_managed_python_for_project_gate_checks():
+    text = (ROOT / "scripts/validate.js").read_text(encoding="utf-8")
+    assert "const pythonCmd = 'uv';" in text
+    assert "'run', '--locked', 'python', script" in text
+    assert "'python3'" not in text
+
+
+def test_external_owner_validator_steps_keep_system_python_boundary():
+    validate = _workflow(".github/workflows/validate.yml")
+    python_core_steps = validate["jobs"]["python-core"]["steps"]
+    owner_steps = {step["name"]: step for step in python_core_steps if step.get("name") in {
+        "Official Architect validator fixture suite",
+        "Official CE validator fixture suite",
+    }}
+    assert owner_steps["Official Architect validator fixture suite"]["working-directory"] == "EV4-Architect-Repo"
+    assert owner_steps["Official Architect validator fixture suite"]["run"] == "python scripts/check-architect-stage-payload.py"
+    assert owner_steps["Official CE validator fixture suite"]["working-directory"] == "EV4-Constructability-Engineer-Repo"
+    assert owner_steps["Official CE validator fixture suite"]["run"] == "python scripts/validate-ce-architect-stage-intake.py"
+
+    prompt_05 = _workflow(".github/workflows/prompt-05.yml")
+    prompt_steps = prompt_05["jobs"]["prompt-05"]["steps"]
+    responsive_step = next(step for step in prompt_steps if step.get("name") == "Run pinned official Responsive validators")
+    assert responsive_step["working-directory"] == "EV4-Responsive-Architect"
+    assert "python validation/e2e/run_builder_responsive_input_boundary_check.py" in responsive_step["run"]
+    assert "uv run python EV4-Responsive-Architect" not in responsive_step["run"]

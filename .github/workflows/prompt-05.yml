@@ -115,9 +115,10 @@ jobs:
           cmp /tmp/final-lock.json contracts/locks/final-gate.v1.lock.json
 
       - name: Run pinned official Responsive validators
+        working-directory: EV4-Responsive-Architect
         run: |
-          uv run python EV4-Responsive-Architect/validation/e2e/run_builder_responsive_input_boundary_check.py
-          uv run python EV4-Responsive-Architect/validation/e2e/run_responsive_tree_architecture_refactor_check.py
+          python validation/e2e/run_builder_responsive_input_boundary_check.py
+          python validation/e2e/run_responsive_tree_architecture_refactor_check.py
 
       - name: Upload recomputed lock evidence
         if: always()
