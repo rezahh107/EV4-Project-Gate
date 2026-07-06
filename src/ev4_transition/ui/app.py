@@ -67,7 +67,7 @@ def operator_panel_css() -> str:
           border: 1px solid var(--ev4-border-subtle);
           border-radius: 18px;
           padding: 1.15rem 1.25rem;
-          box-shadow: 0 14px 34px rgba(15, 23, 42, 0.08);
+          box-shadow: 0 14px 34px var(--ev4-shadow-raised);
         }
         .ev4-header-kicker {
           color: var(--ev4-text-secondary);
@@ -148,7 +148,6 @@ def operator_panel_css() -> str:
           color: var(--ev4-text-secondary);
           margin: 0.25rem 0 0;
         }
-        .ev4-ltr,
         .ev4-ltr textarea,
         .ev4-ltr input,
         .ev4-ltr code,
@@ -209,11 +208,6 @@ def operator_panel_css() -> str:
         .gradio-container button[variant="primary"]:hover {
           background: var(--ev4-accent-hover) !important;
           border-color: var(--ev4-accent-hover) !important;
-        }
-        @media (prefers-color-scheme: dark) {
-          .ev4-header {
-            box-shadow: 0 18px 44px rgba(0, 0, 0, 0.28);
-          }
         }
         """
     )
