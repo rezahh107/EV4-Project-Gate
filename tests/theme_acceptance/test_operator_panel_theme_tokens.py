@@ -17,6 +17,7 @@ def test_operator_panel_semantic_tokens_exist_across_light_and_dark():
         "accent.hover",
         "focus.ring",
         "code.bg",
+        "shadow.raised",
     }
 
     assert_theme_contract()
@@ -33,3 +34,4 @@ def test_operator_panel_css_exports_extended_custom_properties():
     assert "--ev4-accent-primary" in css
     assert "--ev4-accent-hover" in css
     assert "--ev4-code-bg" in css
+    assert "--ev4-shadow-raised" in css
