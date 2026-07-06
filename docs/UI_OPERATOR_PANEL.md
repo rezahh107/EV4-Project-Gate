@@ -38,6 +38,27 @@ uv run ev4-project-gate-ui
 | Final Evidence Gate | wired through service | از service layer اجرا می‌شود و بدون checkout/evidence معتبر fail-closed می‌ماند. |
 | Inspect Capabilities | wired | فقط `capability-status.v1.json` را read-only می‌خواند. |
 
+## Patch 1: visual / RTL / typography polish
+
+این patch فقط presentation را اصلاح می‌کند:
+
+- header به یک کارت compact operator-panel تبدیل شده است؛
+- labelهای قابل مشاهده فارسی-اول شده‌اند، بدون تغییر در internal transition choices؛
+- متن فارسی با `lang="fa"` و `dir="rtl"` و alignment راست نمایش داده می‌شود؛
+- JSON، path، repo name، diagnostic code، JSONPath، hash، command، و code-like text با LTR isolation و font کد نمایش داده می‌شوند؛
+- Gradio CSS از semantic tokens در `src/ev4_transition/presentation/theme_tokens.py` استفاده می‌کند؛
+- dark mode از near-black surfaces، elevated cards، focus ring، و status icon + text + semantic tone استفاده می‌کند.
+
+این patch عمداً موارد زیر را اضافه نمی‌کند:
+
+- diagnostic grouping logic؛
+- repair prompt generator؛
+- operator guidance registry؛
+- preflight pinned-file checking؛
+- repeated failure escape hatch؛
+- transition logic جدید؛
+- schema/validator/specialist contract جدید.
+
 ## هشدار محدوده
 
 این ابزار فقط بررسی گیت را اجرا می‌کند؛ اثبات نهایی تولید، فرانت‌اند، Elementor واقعی یا صحت Responsive نیست.
