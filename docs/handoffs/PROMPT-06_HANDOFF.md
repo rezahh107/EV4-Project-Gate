@@ -5,9 +5,9 @@
 ```yaml
 patch_id: PROMPT-06-UI-PATCH-3
 branch: ux/local-repo-preflight-setup-assistant-patch-3
+pull_request: 37
 base_branch: main
 base_head_sha: 7a8d7ea7b3e199bd8e1d4cd7b0c5a5e690fa9397
-pull_request: pending_at_handoff_write
 files_changed:
   - src/ev4_transition/service/preflight.py
   - src/ev4_transition/service/__init__.py
@@ -24,6 +24,11 @@ tests_not_run:
   - python -m pytest -q
   - targeted UI/service pytest in a live checkout
   - browser launch / screenshot QA
+ci_status_at_handoff_update:
+  - Skeleton Health: in_progress
+  - Prompt 05 Builder Responsive Final Gate: in_progress
+  - Prompt 06 Report UX: in_progress
+  - UI Runtime Smoke: in_progress
 coverage_rules_advanced:
   - PG-UNICODE-001: added UI rendering test for RTL Persian preflight checklist and LTR technical identifiers.
   - PG-OUTPUT-001: added validation-only warning for validate_bundle so users do not expect downstream output.
