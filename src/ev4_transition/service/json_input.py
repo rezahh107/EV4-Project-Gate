@@ -9,6 +9,12 @@ from typing import Any
 from .models import ServiceDiagnostic
 
 
+class _NonFiniteJsonConstant(ValueError):
+    def __init__(self, constant: str) -> None:
+        self.constant = constant
+        super().__init__(f"Non-finite JSON constant is not allowed: {constant}")
+
+
 @dataclass(frozen=True)
 class ParsedJsonInput:
     value: Any
@@ -65,27 +71,12 @@ def parse_json_input(
         return ParsedJsonInput(deepcopy(input_data), [], "dict")
 
     if input_json_text is not None:
-        try:
-            return ParsedJsonInput(json.loads(input_json_text), [], "json_text")
-        except json.JSONDecodeError as exc:
-            return ParsedJsonInput(
-                None,
-                [
-                    ServiceDiagnostic(
-                        "PG.SERVICE.MALFORMED_JSON",
-                        "error",
-                        "Pasted input is not valid JSON.",
-                        "$",
-                        {"line": exc.lineno, "column": exc.colno},
-                    )
-                ],
-                "json_text",
-            )
+        return _parse_json_text(input_json_text, "json_text")
 
     assert input_json_path is not None
     try:
         text = Path(input_json_path).read_text(encoding="utf-8")
-    except OSError as exc:
+    except (OSError, ValueError) as exc:
         return ParsedJsonInput(
             None,
             [
@@ -99,19 +90,47 @@ def parse_json_input(
             ],
             "file_path",
         )
+    return _parse_json_text(text, "file_path", input_json_path=input_json_path)
+
+
+def _parse_json_text(text: str, source: str, *, input_json_path: str | None = None) -> ParsedJsonInput:
     try:
-        return ParsedJsonInput(json.loads(text), [], "file_path")
+        return ParsedJsonInput(json.loads(text, parse_constant=_reject_non_finite_constant), [], source)
+    except _NonFiniteJsonConstant as exc:
+        details: dict[str, Any] = {"constant": exc.constant}
+        if input_json_path is not None:
+            details["path"] = input_json_path
+        return ParsedJsonInput(
+            None,
+            [
+                ServiceDiagnostic(
+                    "PG.SERVICE.NON_FINITE_JSON_CONSTANT",
+                    "error",
+                    "JSON input must not contain NaN, Infinity, or -Infinity.",
+                    "$",
+                    details,
+                )
+            ],
+            source,
+        )
     except json.JSONDecodeError as exc:
+        details: dict[str, Any] = {"line": exc.lineno, "column": exc.colno}
+        if input_json_path is not None:
+            details["path"] = input_json_path
         return ParsedJsonInput(
             None,
             [
                 ServiceDiagnostic(
                     "PG.SERVICE.MALFORMED_JSON",
                     "error",
-                    "JSON input file is not valid JSON.",
+                    "JSON input is not valid JSON.",
                     "$",
-                    {"line": exc.lineno, "column": exc.colno, "path": input_json_path},
+                    details,
                 )
             ],
-            "file_path",
+            source,
         )
+
+
+def _reject_non_finite_constant(constant: str) -> None:
+    raise _NonFiniteJsonConstant(constant)
