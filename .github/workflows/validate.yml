@@ -69,7 +69,7 @@ jobs:
         with:
           node-version: 20
 
-      - name: Verify required docs exist
+      - name: Skeleton documentation and Node checks
         run: |
           test -f README.md
           test -f docs/ROLE_BOUNDARY_MAP.md
@@ -82,18 +82,9 @@ jobs:
           test -f schemas/README.md
           test -f fixtures/README.md
           test -f scripts/README.md
-
-      - name: Verify package metadata
-        run: node -e "JSON.parse(require('fs').readFileSync('package.json','utf8')); console.log('package.json ok')"
-
-      - name: Run skeleton status
-        run: npm run status
-
-      - name: Run skeleton validation
-        run: npm run validate
-
-      - name: Verify no specialist canonical schema files exist
-        run: |
+          node -e "JSON.parse(require('fs').readFileSync('package.json','utf8')); console.log('package.json ok')"
+          npm run status
+          npm run validate
           allowed='^(schemas/README.md|schemas/stage-bundle/stage-bundle.v1.schema.json|schemas/transition-result/transition-result.v1.schema.json|schemas/architect-to-ce-transition-result/architect-to-ce-transition-result.v1.schema.json|schemas/ce-to-builder-transition-result/ce-to-builder-transition-result.v1.schema.json|schemas/builder-to-responsive-transition-result/builder-to-responsive-transition-result.v1.schema.json|schemas/final-gate-result/final-gate-result.v1.schema.json|schemas/diagnostic/diagnostic.v1.schema.json|schemas/lock-manifest/lock-manifest.v1.schema.json|schemas/behavioral-coverage/behavioral-coverage.v1.schema.json|schemas/validator-evidence/validator-evidence.v1.schema.json)$'
           unexpected=$(find schemas -type f | grep -Ev "$allowed" || true)
           if [ -n "$unexpected" ]; then
@@ -171,106 +162,58 @@ jobs:
         working-directory: EV4-Project-Gate
         run: uv sync --locked --extra dev --extra ui
 
-      - name: Service layer tests
-        working-directory: EV4-Project-Gate
-        run: uv run pytest tests/service
-
-      - name: Operator UI adapter tests
-        working-directory: EV4-Project-Gate
-        run: uv run pytest tests/ui
-
-      - name: CLI and bundle tests
-        working-directory: EV4-Project-Gate
-        run: uv run pytest tests/test_cli.py tests/test_canonical_json.py tests/test_bundle_validator.py
-
-      - name: Personal-use package tests
-        working-directory: EV4-Project-Gate
-        run: uv run pytest --maxfail=1 --tb=short tests/personal_use tests/e2e
-
-      - name: A2C valid transition smoke
+      - name: Project Gate Python validation suite
         working-directory: EV4-Project-Gate
         env:
           EV4_ARCHITECT_REPO: ${{ github.workspace }}/EV4-Architect-Repo
           EV4_CE_REPO: ${{ github.workspace }}/EV4-Constructability-Engineer-Repo
-        run: uv run pytest tests/test_architect_to_ce_transition.py::test_valid_transition_outputs_complete_ce_v1_1_bundle
-
-      - name: A2C mapping and order tests
-        working-directory: EV4-Project-Gate
-        env:
-          EV4_ARCHITECT_REPO: ${{ github.workspace }}/EV4-Architect-Repo
-          EV4_CE_REPO: ${{ github.workspace }}/EV4-Constructability-Engineer-Repo
-        run: uv run pytest tests/test_architect_to_ce_transition.py -k 'complete_mapping_trace or canonical_source_hash or validation_order'
-
-      - name: A2C fail-closed hook tests
-        working-directory: EV4-Project-Gate
-        env:
-          EV4_ARCHITECT_REPO: ${{ github.workspace }}/EV4-Architect-Repo
-          EV4_CE_REPO: ${{ github.workspace }}/EV4-Constructability-Engineer-Repo
-        run: uv run pytest tests/test_architect_to_ce_transition.py -k 'mapper_skipped or target_bundle_absent or invalid_identity'
-
-      - name: A2C source commit preservation test
-        working-directory: EV4-Project-Gate
-        env:
-          EV4_ARCHITECT_REPO: ${{ github.workspace }}/EV4-Architect-Repo
-          EV4_CE_REPO: ${{ github.workspace }}/EV4-Constructability-Engineer-Repo
-        run: uv run pytest tests/test_architect_to_ce_transition.py::test_explicit_source_commit_preserved_and_missing_commit_omitted
-
-      - name: A2C insufficient evidence test
-        working-directory: EV4-Project-Gate
-        env:
-          EV4_ARCHITECT_REPO: ${{ github.workspace }}/EV4-Architect-Repo
-          EV4_CE_REPO: ${{ github.workspace }}/EV4-Constructability-Engineer-Repo
-        run: uv run pytest tests/test_architect_to_ce_transition.py::test_insufficient_evidence_transition_keeps_output_and_status
-
-      - name: A2C lock enforcement test
-        working-directory: EV4-Project-Gate
-        env:
-          EV4_ARCHITECT_REPO: ${{ github.workspace }}/EV4-Architect-Repo
-          EV4_CE_REPO: ${{ github.workspace }}/EV4-Constructability-Engineer-Repo
-        run: uv run pytest tests/test_architect_to_ce_transition.py -k 'lock_enforcement'
-
-      - name: A2C repeat run determinism test
-        working-directory: EV4-Project-Gate
-        env:
-          EV4_ARCHITECT_REPO: ${{ github.workspace }}/EV4-Architect-Repo
-          EV4_CE_REPO: ${{ github.workspace }}/EV4-Constructability-Engineer-Repo
-        run: uv run pytest tests/test_architect_to_ce_transition.py::test_repeat_run_byte_identical
-
-      - name: A2C nonfinite edge test
-        working-directory: EV4-Project-Gate
-        env:
-          EV4_ARCHITECT_REPO: ${{ github.workspace }}/EV4-Architect-Repo
-          EV4_CE_REPO: ${{ github.workspace }}/EV4-Constructability-Engineer-Repo
-        run: uv run pytest tests/test_architect_to_ce_transition.py::test_no_live_timestamp_and_nonfinite_invalid
-
-      - name: Architect-to-CE CLI transition tests
-        working-directory: EV4-Project-Gate
-        env:
-          EV4_ARCHITECT_REPO: ${{ github.workspace }}/EV4-Architect-Repo
-          EV4_CE_REPO: ${{ github.workspace }}/EV4-Constructability-Engineer-Repo
-        run: uv run pytest tests/test_architect_to_ce_transition.py -k 'cli'
-
-      - name: Prompt 01 unit tests
-        working-directory: EV4-Project-Gate
-        run: uv run pytest tests/unit
-
-      - name: Static runner-boundary scanner
-        working-directory: EV4-Project-Gate
-        run: uv run python scripts/check-runner-boundary.py
-
-      - name: Runner tests
-        working-directory: EV4-Project-Gate
-        run: uv run pytest tests/runners
-
-      - name: CE-to-Builder transition pytest
-        working-directory: EV4-Project-Gate
+          EV4_CE_REPO_PROMPT04: ${{ github.workspace }}/EV4-Constructability-Engineer-Repo-Prompt04
+          EV4_BUILDER_REPO_PROMPT04: ${{ github.workspace }}/EV4-Builder-Assistant-Repo-Prompt04
         run: |
           set -o pipefail
+          uv run pytest tests/service
+          uv run pytest tests/ui
+          uv run pytest tests/test_cli.py tests/test_canonical_json.py tests/test_bundle_validator.py
+          uv run pytest --maxfail=1 --tb=short tests/personal_use tests/e2e
+          uv run pytest tests/test_architect_to_ce_transition.py::test_valid_transition_outputs_complete_ce_v1_1_bundle
+          uv run pytest tests/test_architect_to_ce_transition.py -k 'complete_mapping_trace or canonical_source_hash or validation_order'
+          uv run pytest tests/test_architect_to_ce_transition.py -k 'mapper_skipped or target_bundle_absent or invalid_identity'
+          uv run pytest tests/test_architect_to_ce_transition.py::test_explicit_source_commit_preserved_and_missing_commit_omitted
+          uv run pytest tests/test_architect_to_ce_transition.py::test_insufficient_evidence_transition_keeps_output_and_status
+          uv run pytest tests/test_architect_to_ce_transition.py -k 'lock_enforcement'
+          uv run pytest tests/test_architect_to_ce_transition.py::test_repeat_run_byte_identical
+          uv run pytest tests/test_architect_to_ce_transition.py::test_no_live_timestamp_and_nonfinite_invalid
+          uv run pytest tests/test_architect_to_ce_transition.py -k 'cli'
+          uv run pytest tests/unit
+          uv run python scripts/check-runner-boundary.py
+          uv run pytest tests/runners
           uv run pytest -vv --tb=short --maxfail=1 tests/transitions/test_ce_to_builder.py 2>&1 | tee c2b-pytest.log
-
-      - name: Prompt-05 transition tests
-        working-directory: EV4-Project-Gate
-        run: uv run pytest -q tests/transitions/test_builder_to_responsive.py tests/transitions/test_final_gate.py
+          uv run pytest -q tests/transitions/test_builder_to_responsive.py tests/transitions/test_final_gate.py
+          uv run pytest tests/progress
+          uv run pytest tests/boundary
+          uv run python scripts/validate-behavioral-rule-coverage.py docs/BEHAVIORAL_RULE_COVERAGE.md
+          uv run ev4-transition coverage validate docs/BEHAVIORAL_RULE_COVERAGE.md
+          uv run pytest tests/behavioral_coverage
+          uv run python scripts/verify-architect-to-ce-lock.py --architect-repo "$EV4_ARCHITECT_REPO" --ce-repo "$EV4_CE_REPO"
+          uv run python scripts/compute-ce-to-builder-lock.py \
+            --ce-repo "$EV4_CE_REPO_PROMPT04" \
+            --builder-repo "$EV4_BUILDER_REPO_PROMPT04" \
+            --output c2b-lock-computed.json
+          uv run python scripts/verify-ce-to-builder-lock.py --ce-repo "$EV4_CE_REPO_PROMPT04" --builder-repo "$EV4_BUILDER_REPO_PROMPT04" 2>&1 | tee c2b-lock-verify.log
+          uv run python scripts/ce-to-builder-smoke.py \
+            --ce-repo "$EV4_CE_REPO_PROMPT04" \
+            --builder-repo "$EV4_BUILDER_REPO_PROMPT04" \
+            --fixture "$EV4_CE_REPO_PROMPT04/tests/role-alignment/valid/executable_visual_reference_package.json" 2>&1 | tee c2b-smoke.log
+          uv run ev4-transition validate fixtures/valid/architect-stage-bundle.v1.json
+          set +e
+          uv run ev4-transition validate fixtures/invalid/array-input.v1.json
+          status=$?
+          test "$status" -eq 1
+          output=$(uv run ev4-transition validate fixtures/insufficient-evidence/architect-stage-bundle.v1.json --format persian)
+          status=$?
+          printf '%s\n' "$output"
+          test "$status" -eq 2
+          printf '%s' "$output" | grep 'شواهد کافی نیست'
 
       - name: Upload CE-to-Builder pytest log
         if: failure()
@@ -280,42 +223,6 @@ jobs:
           path: EV4-Project-Gate/c2b-pytest.log
           if-no-files-found: ignore
 
-      - name: Progress tests
-        working-directory: EV4-Project-Gate
-        run: uv run pytest tests/progress
-
-      - name: Runner boundary tests
-        working-directory: EV4-Project-Gate
-        run: uv run pytest tests/boundary
-
-      - name: Behavioral coverage validator
-        working-directory: EV4-Project-Gate
-        run: |
-          uv run python scripts/validate-behavioral-rule-coverage.py docs/BEHAVIORAL_RULE_COVERAGE.md
-          uv run ev4-transition coverage validate docs/BEHAVIORAL_RULE_COVERAGE.md
-
-      - name: Behavioral fixture validation
-        working-directory: EV4-Project-Gate
-        run: uv run pytest tests/behavioral_coverage
-
-      - name: Verify external contract lock hashes
-        working-directory: EV4-Project-Gate
-        env:
-          EV4_ARCHITECT_REPO: ${{ github.workspace }}/EV4-Architect-Repo
-          EV4_CE_REPO: ${{ github.workspace }}/EV4-Constructability-Engineer-Repo
-        run: uv run python scripts/verify-architect-to-ce-lock.py --architect-repo "$EV4_ARCHITECT_REPO" --ce-repo "$EV4_CE_REPO"
-
-      - name: Compute CE-to-Builder lock hashes
-        working-directory: EV4-Project-Gate
-        env:
-          EV4_CE_REPO_PROMPT04: ${{ github.workspace }}/EV4-Constructability-Engineer-Repo-Prompt04
-          EV4_BUILDER_REPO_PROMPT04: ${{ github.workspace }}/EV4-Builder-Assistant-Repo-Prompt04
-        run: |
-          uv run python scripts/compute-ce-to-builder-lock.py \
-            --ce-repo "$EV4_CE_REPO_PROMPT04" \
-            --builder-repo "$EV4_BUILDER_REPO_PROMPT04" \
-            --output c2b-lock-computed.json
-
       - name: Upload CE-to-Builder computed lock
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
@@ -323,15 +230,6 @@ jobs:
           name: c2b-lock-computed
           path: EV4-Project-Gate/c2b-lock-computed.json
           if-no-files-found: ignore
-
-      - name: CE-to-Builder lock verification
-        working-directory: EV4-Project-Gate
-        env:
-          EV4_CE_REPO_PROMPT04: ${{ github.workspace }}/EV4-Constructability-Engineer-Repo-Prompt04
-          EV4_BUILDER_REPO_PROMPT04: ${{ github.workspace }}/EV4-Builder-Assistant-Repo-Prompt04
-        run: |
-          set -o pipefail
-          uv run python scripts/verify-ce-to-builder-lock.py --ce-repo "$EV4_CE_REPO_PROMPT04" --builder-repo "$EV4_BUILDER_REPO_PROMPT04" 2>&1 | tee c2b-lock-verify.log
 
       - name: Upload CE-to-Builder lock verify log
         if: failure()
@@ -341,18 +239,6 @@ jobs:
           path: EV4-Project-Gate/c2b-lock-verify.log
           if-no-files-found: ignore
 
-      - name: CE-to-Builder live owner tool smoke
-        working-directory: EV4-Project-Gate
-        env:
-          EV4_CE_REPO_PROMPT04: ${{ github.workspace }}/EV4-Constructability-Engineer-Repo-Prompt04
-          EV4_BUILDER_REPO_PROMPT04: ${{ github.workspace }}/EV4-Builder-Assistant-Repo-Prompt04
-        run: |
-          set -o pipefail
-          uv run python scripts/ce-to-builder-smoke.py \
-            --ce-repo "$EV4_CE_REPO_PROMPT04" \
-            --builder-repo "$EV4_BUILDER_REPO_PROMPT04" \
-            --fixture "$EV4_CE_REPO_PROMPT04/tests/role-alignment/valid/executable_visual_reference_package.json" 2>&1 | tee c2b-smoke.log
-
       - name: Upload CE-to-Builder smoke log
         if: failure()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
@@ -361,35 +247,17 @@ jobs:
           path: EV4-Project-Gate/c2b-smoke.log
           if-no-files-found: ignore
 
-      - name: CLI smoke valid bundle
-        working-directory: EV4-Project-Gate
-        run: uv run ev4-transition validate fixtures/valid/architect-stage-bundle.v1.json
-
-      - name: CLI smoke invalid array
-        working-directory: EV4-Project-Gate
-        run: |
-          set +e
-          uv run ev4-transition validate fixtures/invalid/array-input.v1.json
-          status=$?
-          test "$status" -eq 1
-
-      - name: CLI smoke Persian insufficient evidence
-        working-directory: EV4-Project-Gate
-        run: |
-          set +e
-          output=$(uv run ev4-transition validate fixtures/insufficient-evidence/architect-stage-bundle.v1.json --format persian)
-          status=$?
-          printf '%s\n' "$output"
-          test "$status" -eq 2
-          printf '%s' "$output" | grep 'شواهد کافی نیست'
-
       - name: Official Architect validator fixture suite
         working-directory: EV4-Architect-Repo
-        run: python scripts/check-architect-stage-payload.py
+        env:
+          PROJECT_GATE_PYTHON: ${{ github.workspace }}/EV4-Project-Gate/.venv/bin/python
+        run: '"$PROJECT_GATE_PYTHON" scripts/check-architect-stage-payload.py'
 
       - name: Official CE validator fixture suite
         working-directory: EV4-Constructability-Engineer-Repo
-        run: python scripts/validate-ce-architect-stage-intake.py
+        env:
+          PROJECT_GATE_PYTHON: ${{ github.workspace }}/EV4-Project-Gate/.venv/bin/python
+        run: '"$PROJECT_GATE_PYTHON" scripts/validate-ce-architect-stage-intake.py'
 
       - name: Generated Architect-to-CE transition smoke and CE binding
         working-directory: EV4-Project-Gate
