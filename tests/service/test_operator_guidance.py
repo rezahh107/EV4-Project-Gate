@@ -48,6 +48,24 @@ def test_guidance_registry_loads_and_covers_known_diagnostic_codes():
     assert registry["PG_A2C_ARCHITECT_SCHEMA_VALIDATION_FAILED"].repair_prompt_template == "architect_schema_repair_v1"
 
 
+def test_valid_status_without_primary_diagnostic_uses_success_guidance_not_invalid_fallback():
+    result = {
+        "schema_version": "ev4-project-gate-ui-result.v1",
+        "result_type": "service_response",
+        "transition_choice": "architect_to_ce",
+        "status": "valid",
+        "diagnostics": [],
+        "output": {"stage": "ce"},
+    }
+    guidance = build_operator_guidance(result)
+
+    assert guidance.safe_to_continue is True
+    assert "diagnostic مسدودکننده ثبت نشده" in guidance.current_problem_fa
+    assert "production/readiness proof نیست" in " ".join(guidance.next_actions_fa)
+    assert "نامعتبر" not in guidance.current_problem_fa
+    assert all("خطادار" not in action for action in guidance.next_actions_fa)
+
+
 def test_repo_path_missing_produces_persian_next_action_about_local_paths():
     guidance = build_operator_guidance(_result("PG.SERVICE.REPO_PATH_MISSING", status="insufficient_evidence", path="$.repo_paths.ce_repo_path"))
     text = " ".join([guidance.current_problem_fa, *guidance.next_actions_fa, guidance.where_stopped_fa])
@@ -118,6 +136,13 @@ def test_repair_prompt_generation_includes_diagnostic_paths_and_messages():
     assert "$.payload.data.architect_intent.dynamic_loop_intent.status" in prompt
     assert "'old' is not one of" in prompt
     assert "Return only the corrected full JSON" in prompt
+
+
+def test_status_summary_group_count_uses_html_code_not_literal_markdown_backticks():
+    rendered = status_summary_markdown(_result("PG_A2C_ARCHITECT_SCHEMA_VALIDATION_FAILED"))
+
+    assert "count: <bdi dir=\"ltr\"><code>1</code></bdi>" in rendered
+    assert "count: `1`" not in rendered
 
 
 def test_report_html_preserves_persian_rtl_and_raw_json_ltr(tmp_path: Path):
