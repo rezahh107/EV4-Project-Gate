@@ -3,7 +3,6 @@ from __future__ import annotations
 from copy import deepcopy
 from dataclasses import dataclass
 import json
-from html import escape
 import logging
 from pathlib import Path
 import shutil
@@ -11,6 +10,7 @@ import tempfile
 from typing import Any
 
 from ev4_transition.canonical_json import canonical_dumps, load_json_file
+from ev4_transition.presentation.rtl import bdi_ltr, escape_html, ltr_code_block
 from ev4_transition.service import GateRequest, RepoPaths, ServiceDiagnostic, run_gate_request
 from ev4_transition.service.guidance import build_operator_guidance
 from ev4_transition.service.json_input import parse_json_input
@@ -315,6 +315,8 @@ def _clean_path(value: str | None) -> str | None:
 def _markdown_report(result: dict[str, Any]) -> str:
     guidance = build_operator_guidance(result)
     safe_json = _neutralize_markdown_fences(canonical_dumps(result))
+    raw_diagnostics = _neutralize_markdown_fences(json.dumps(result.get("diagnostics", []), ensure_ascii=False, indent=2))
+    preflight_summary = _preflight_summary_markdown(result)
     lines = [
         "# گزارش Project Gate Operator Panel",
         "",
@@ -322,15 +324,18 @@ def _markdown_report(result: dict[str, Any]) -> str:
         "",
         "## راهنمای عملیاتی",
         "",
+        f"- خلاصه: {guidance.headline_fa}",
         f"- کجا متوقف شد؟ {guidance.where_stopped_fa}",
         f"- مشکل فعلی چیست؟ {guidance.current_problem_fa}",
         f"- آیا خروجی مرحله بعد ساخته شد؟ {guidance.output_state_fa}",
         f"- safe_to_continue: `{str(guidance.safe_to_continue).lower()}`",
         "",
-        "### اقدام بعدی دقیق",
+        "### چه چیزی درست پیش رفت؟",
     ]
+    lines.extend(f"- {item}" for item in guidance.passed_steps_fa)
+    lines.extend(["", "### اقدام بعدی دقیق"])
     lines.extend(f"{index}. {action}" for index, action in enumerate(guidance.next_actions_fa, start=1))
-    lines.extend(["", "### گروه‌بندی diagnostics"])
+    lines.extend(["", "## Preflight summary", "", preflight_summary, "", "### گروه‌بندی diagnostics"])
     if guidance.diagnostic_groups:
         for group in guidance.diagnostic_groups:
             lines.append(f"- {group.title_fa} — count: `{group.count}` — اقدام: {group.next_action_fa}")
@@ -347,7 +352,23 @@ def _markdown_report(result: dict[str, Any]) -> str:
                 "```",
             ]
         )
-    lines.extend(["", "## Raw JSON result", "", "```json", safe_json, "```", ""])
+    lines.extend(
+        [
+            "",
+            "## Raw diagnostics",
+            "",
+            "```json",
+            raw_diagnostics,
+            "```",
+            "",
+            "## Raw JSON result",
+            "",
+            "```json",
+            safe_json,
+            "```",
+            "",
+        ]
+    )
     return "\n".join(lines)
 
 
@@ -355,29 +376,52 @@ def _neutralize_markdown_fences(value: str) -> str:
     return value.replace("```", "``\u200b`")
 
 
+def _preflight_summary_markdown(result: dict[str, Any]) -> str:
+    preflight = result.get("preflight_result") or result.get("preflight_summary")
+    if isinstance(preflight, dict):
+        status = preflight.get("status", "unknown")
+        summary = preflight.get("summary_fa", "Preflight summary موجود است.")
+        return f"- preflight_status: `{status}`\n- summary: {summary}"
+    if isinstance(preflight, str) and preflight.strip():
+        return preflight.strip()
+    return "- Preflight summary در این result ثبت نشده است یا این run مستقیماً از مسیر اجرای اصلی آمده است."
+
+
 def _html_report(result: dict[str, Any]) -> str:
     guidance = build_operator_guidance(result)
-    escaped_json = escape(json.dumps(result, ensure_ascii=False, indent=2))
+    escaped_json = json.dumps(result, ensure_ascii=False, indent=2)
+    escaped_diagnostics = json.dumps(result.get("diagnostics", []), ensure_ascii=False, indent=2)
     guidance_html = _report_guidance_html(guidance)
+    preflight_html = _preflight_summary_html(result)
+    diagnostics_html = _raw_diagnostics_html(result.get("diagnostics", []))
     return (
         '<!doctype html><html lang="fa" dir="rtl">'
         '<head><meta charset="utf-8"><title>Project Gate Report</title></head>'
         '<body>'
+        '<main lang="fa" dir="rtl">'
         '<section lang="fa" dir="rtl">'
         '<h1>گزارش Project Gate Operator Panel</h1>'
-        f'<p><strong>status:</strong> <bdi dir="ltr"><code>{escape(str(result.get("status", "invalid")))}</code></bdi></p>'
+        f'<p><strong>status:</strong> {bdi_ltr(result.get("status", "invalid"))}</p>'
         f'{guidance_html}'
+        '<h2>Preflight summary</h2>'
+        f'{preflight_html}'
+        '<h2>Raw diagnostics</h2>'
+        f'{diagnostics_html}'
+        '<h2>Raw diagnostics JSON</h2>'
+        f'{ltr_code_block(escaped_diagnostics)}'
         '<h2>Raw JSON result</h2>'
-        f'<pre dir="ltr"><code>{escaped_json}</code></pre>'
+        f'{ltr_code_block(escaped_json)}'
         '</section>'
+        '</main>'
         '</body></html>'
     )
 
 
 def _report_guidance_html(guidance: Any) -> str:
-    actions = "".join(f"<li>{escape(action)}</li>" for action in guidance.next_actions_fa)
+    passed = "".join(f"<li>{escape_html(item)}</li>" for item in guidance.passed_steps_fa)
+    actions = "".join(f"<li>{escape_html(action)}</li>" for action in guidance.next_actions_fa)
     groups = "".join(
-        f"<li>{escape(group.title_fa)} — count: <bdi dir=\"ltr\"><code>{group.count}</code></bdi> — {escape(group.next_action_fa)}</li>"
+        f"<li>{escape_html(group.title_fa)} — count: {bdi_ltr(group.count)} — {escape_html(group.next_action_fa)}</li>"
         for group in guidance.diagnostic_groups
     )
     if not groups:
@@ -386,19 +430,59 @@ def _report_guidance_html(guidance: Any) -> str:
     if guidance.repair_prompt_fa_or_en:
         repair = (
             '<h2>Repair prompt / پرامپت اصلاح</h2>'
-            f'<pre dir="ltr"><code>{escape(guidance.repair_prompt_fa_or_en)}</code></pre>'
+            f'{ltr_code_block(guidance.repair_prompt_fa_or_en)}'
         )
+    safe_label = "true" if guidance.safe_to_continue else "false"
     return (
         '<h2>راهنمای عملیاتی</h2>'
-        f'<p><strong>کجا متوقف شد؟</strong> {escape(guidance.where_stopped_fa)}</p>'
-        f'<p><strong>مشکل فعلی چیست؟</strong> {escape(guidance.current_problem_fa)}</p>'
-        f'<p><strong>آیا خروجی مرحله بعد ساخته شد؟</strong> {escape(guidance.output_state_fa)}</p>'
+        f'<p><strong>خلاصه:</strong> {escape_html(guidance.headline_fa)}</p>'
+        f'<p><strong>کجا متوقف شد؟</strong> {escape_html(guidance.where_stopped_fa)}</p>'
+        '<p><strong>چه چیزی درست پیش رفت؟</strong></p>'
+        f'<ul>{passed}</ul>'
+        f'<p><strong>مشکل فعلی چیست؟</strong> {escape_html(guidance.current_problem_fa)}</p>'
+        f'<p><strong>آیا خروجی مرحله بعد ساخته شد؟</strong> {escape_html(guidance.output_state_fa)}</p>'
+        f'<p><strong>safe_to_continue:</strong> {bdi_ltr(safe_label)}</p>'
         '<h3>اقدام بعدی دقیق</h3>'
         f'<ol>{actions}</ol>'
         '<h3>گروه‌بندی diagnostics</h3>'
         f'<ul>{groups}</ul>'
         f'{repair}'
     )
+
+
+def _preflight_summary_html(result: dict[str, Any]) -> str:
+    preflight = result.get("preflight_result") or result.get("preflight_summary")
+    if isinstance(preflight, dict):
+        status = preflight.get("status", "unknown")
+        summary = preflight.get("summary_fa", "Preflight summary موجود است.")
+        return f'<p><strong>preflight_status:</strong> {bdi_ltr(status)}</p><p>{escape_html(summary)}</p>'
+    if isinstance(preflight, str) and preflight.strip():
+        return f"<p>{escape_html(preflight.strip())}</p>"
+    return "<p>Preflight summary در این result ثبت نشده است یا این run مستقیماً از مسیر اجرای اصلی آمده است.</p>"
+
+
+def _raw_diagnostics_html(diagnostics: Any) -> str:
+    if not isinstance(diagnostics, list) or not diagnostics:
+        return "<p>diagnostic خام ثبت نشده است.</p>"
+    items: list[str] = []
+    for diagnostic in diagnostics:
+        if not isinstance(diagnostic, dict):
+            continue
+        code = diagnostic.get("code", "UNKNOWN_DIAGNOSTIC")
+        severity = diagnostic.get("severity", "unknown")
+        path = diagnostic.get("path", "$")
+        message = diagnostic.get("message", "")
+        items.append(
+            "<li>"
+            f"<strong>code:</strong> {bdi_ltr(code)} "
+            f"<strong>severity:</strong> {bdi_ltr(severity)} "
+            f"<strong>path:</strong> {bdi_ltr(path)} "
+            f"<span>{escape_html(message)}</span>"
+            "</li>"
+        )
+    if not items:
+        return "<p>diagnostic خام قابل نمایش ثبت نشده است.</p>"
+    return "<ul>" + "".join(items) + "</ul>"
 
 
 def _finalize(result: dict[str, Any], output_dir: str | Path | None) -> UiRunOutput:
