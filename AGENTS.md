@@ -48,6 +48,8 @@ capabilities:
     real_non_synthetic_evidence: insufficient_evidence
     verification_state: verified_by_exact_head_ci
   user_interface:
+    browser_accessibility_evidence: insufficient_evidence
+    service_routing: implemented_prompt_06_fail_closed
     status: implemented_initial_operator_panel
 public_cli_transitions:
   - architect-to-ce

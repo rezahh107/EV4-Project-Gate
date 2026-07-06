@@ -127,10 +127,10 @@ def capability_rows_from_payload(payload: dict[str, Any]) -> list[list[str]]:
         ],
         [
             "UI",
-            ltr_token("this panel"),
+            ltr_token(ui.get("service_routing", "unknown")),
             ltr_token("not a public CLI transition"),
+            ltr_token(ui.get("browser_accessibility_evidence", ui.get("status", "unknown"))),
             ltr_token(ui.get("status", "unknown")),
-            ltr_token("local operator panel"),
-            "این ردیف فقط وضعیت پنل محلی را توضیح می‌دهد و capability inspector در زمان اجرا فایل را تغییر نمی‌دهد.",
+            "این ردیف وضعیت runtime capability truth پنل محلی را نشان می‌دهد؛ browser accessibility بدون QA واقعی insufficient_evidence می‌ماند.",
         ],
     ]

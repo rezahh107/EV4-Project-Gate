@@ -122,6 +122,19 @@ def test_capability_inspector_reads_without_mutating_source_file():
     assert before == after
 
 
+def test_packaged_capability_truth_exposes_ui_service_routing():
+    payload = load_capability_payload()
+    ui = payload["capabilities"]["user_interface"]
+    rows = build_capability_rows()
+    ui_row = next(row for row in rows if row[0] == "UI")
+
+    assert ui["status"] == "implemented_initial_operator_panel"
+    assert ui["service_routing"] == "implemented_prompt_06_fail_closed"
+    assert ui["browser_accessibility_evidence"] == "insufficient_evidence"
+    assert "implemented_prompt_06_fail_closed" in " ".join(ui_row)
+    assert "insufficient_evidence" in " ".join(ui_row)
+
+
 def test_unavailable_transition_is_marked_and_does_not_fake_execution(tmp_path: Path):
     for transition in ["CE → Builder", "Builder → Responsive", "Final Evidence Gate"]:
         output = run_operator_check(transition, pasted_json='{"schema_version": "x"}', output_dir=tmp_path / transition.replace(" ", "_"))
