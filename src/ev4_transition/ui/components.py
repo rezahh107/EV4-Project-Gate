@@ -16,7 +16,9 @@ CAPABILITY_HEADERS = ["بخش", "orchestration", "CLI", "evidence", "UI status",
 def ltr_token(value: object) -> str:
     """Return a copyable LTR-isolated token for tables and plain-text cells."""
 
-    return isolate_ltr_text(value)
+    if value is None:
+        return ""
+    return isolate_ltr_text(str(value))
 
 
 def status_summary_markdown(result: dict[str, Any]) -> str:
