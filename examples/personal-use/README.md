@@ -20,4 +20,7 @@ sample-malformed-json-note.md
 - `sample-insufficient-evidence-stage-bundle.synthetic.json`: باید `insufficient_evidence` بدهد.
 - `sample-malformed-json-note.md`: JSON نیست؛ برای توضیح سناریوی `invalid` استفاده می‌شود.
 
+
+برای بررسی نمونه‌ها مسیر پیش‌فرض `uv sync --extra dev --extra ui` و سپس `uv run ev4-transition validate <path>` است.
+
 </section>

@@ -40,7 +40,7 @@ def _check_package_import() -> bool:
     except Exception as exc:  # pragma: no cover - defensive user-facing path
         print("❌ Python package import failed.")
         print("بسته Python قابل import نیست. اول وابستگی‌ها را نصب کن:")
-        print("python -m pip install -e '.[dev]'")
+        print("uv sync --extra dev --extra ui")
         print(f"error: {type(exc).__name__}: {exc}")
         return False
     return True

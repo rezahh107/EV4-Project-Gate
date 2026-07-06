@@ -97,7 +97,7 @@ if (syntaxCheck.status !== 0) {
   process.exit(syntaxCheck.status || 1);
 }
 
-const pythonCmd = process.platform === 'win32' ? 'python' : 'python3';
+const pythonCmd = 'uv';
 const pythonChecks = [
   'scripts/check-capability-truth.py',
   'scripts/check-workflow-permissions.py',
@@ -105,7 +105,7 @@ const pythonChecks = [
 ];
 
 for (const script of pythonChecks) {
-  const completed = spawnSync(pythonCmd, [script], { encoding: 'utf8' });
+  const completed = spawnSync(pythonCmd, ['run', '--locked', 'python', script], { encoding: 'utf8' });
   if (completed.error) {
     process.stderr.write(completed.error.message + '\n');
     process.exit(1);

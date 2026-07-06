@@ -98,30 +98,45 @@ The CE-to-Builder, Builder-to-Responsive, and Final Evidence Gate orchestration 
 
 Do not claim real EV4 end-to-end compatibility from synthetic transition fixtures, owner-fixture integration, pinned-owner validator execution, or the local operator UI shell.
 
-## CLI
+## Default setup with uv
+
+`uv` is the default Python installer and project environment manager for this repository. The package still supports Python `>=3.11`; the committed `.python-version` selects Python `3.11` as the default local interpreter for reproducible `uv` setup without raising the supported minimum above `>=3.11`.
+
+`uv.lock` is committed so local setup and CI resolve the same dependency graph. The `dev` and `ui` installs are optional dependency extras from `[project.optional-dependencies]`, not uv dependency groups, so they must be requested explicitly.
 
 ```bash
-python -m pip install -e '.[dev]'
-ev4-transition validate fixtures/valid/architect-stage-bundle.v1.json
-ev4-transition validate fixtures/insufficient-evidence/architect-stage-bundle.v1.json --format persian
-ev4-transition transition architect-to-ce path/to/architect-stage-bundle.json \
-  --architect-repo ../EV4-Architect-Repo \
-  --ce-repo ../EV4-Constructability-Engineer-Repo \
-  --format json
-ev4-transition inspect
+uv python install 3.11
+uv sync --extra dev --extra ui
+uv run ev4-transition inspect
+```
+
+`uv sync` manages the project environment from `pyproject.toml` and `uv.lock`; it is exact by default and may remove packages that are not part of the locked project environment. Use `uv run` for CLI, scripts, and tests so commands run inside that managed environment.
+
+### Windows setup
+
+Install `uv` with one of the official Windows options, then run the repository setup script:
+
+```powershell
+winget install --id=astral-sh.uv -e
+# or inspect and run the official PowerShell installer from https://docs.astral.sh/uv/getting-started/installation/
+
+cd EV4-Project-Gate
+.\scripts\setup-windows-uv.ps1
+```
+
+The setup script does not silently install remote tools. If `uv` is missing, it prints the official install commands for the user to run explicitly.
+
+### Run CLI
+
+```bash
+uv run ev4-transition validate fixtures/valid/architect-stage-bundle.v1.json
+uv run ev4-transition validate fixtures/insufficient-evidence/architect-stage-bundle.v1.json --format persian
+uv run ev4-transition inspect
+uv run ev4-transition transition architect-to-ce path/to/architect-stage-bundle.json   --architect-repo ../EV4-Architect-Repo   --ce-repo ../EV4-Constructability-Engineer-Repo   --format json
 # Guarded fail-closed entries; these require local owner checkouts and real evidence.
-ev4-transition transition ce-to-builder path/to/ce-stage-bundle.json \
-  --ce-repo ../EV4-Constructability-Engineer-Repo \
-  --builder-repo ../EV4-Builder-Assistant-Repo \
-  --format json
-ev4-transition transition builder-to-responsive path/to/builder-stage-bundle.json \
-  --builder-repo ../EV4-Builder-Assistant-Repo \
-  --responsive-repo ../EV4-Responsive-Architect \
-  --format json
-ev4-transition transition final-evidence-gate path/to/final-evidence.json \
-  --project-gate-repo . \
-  --responsive-repo ../EV4-Responsive-Architect \
-  --format json
+uv run ev4-transition transition ce-to-builder path/to/ce-stage-bundle.json   --ce-repo ../EV4-Constructability-Engineer-Repo   --builder-repo ../EV4-Builder-Assistant-Repo   --format json
+uv run ev4-transition transition builder-to-responsive path/to/builder-stage-bundle.json   --builder-repo ../EV4-Builder-Assistant-Repo   --responsive-repo ../EV4-Responsive-Architect   --format json
+uv run ev4-transition transition final-evidence-gate path/to/final-evidence.json   --project-gate-repo .   --responsive-repo ../EV4-Responsive-Architect   --format json
 ```
 
 Exit codes:
@@ -132,22 +147,70 @@ Exit codes:
 2 = insufficient_evidence
 ```
 
-## Local operator UI
+### Run local operator UI
 
 ```bash
-python -m pip install -e '.[dev,ui]'
-python -m ev4_transition.ui.app
+uv sync --extra dev --extra ui
+uv run python -m ev4_transition.ui.app
 ```
 
-Optional script entry point after installing the `ui` extra:
+Optional script entry point after syncing the `ui` extra:
 
 ```bash
-ev4-project-gate-ui
+uv run ev4-project-gate-ui
 ```
 
 The UI is Persian-first and local. It supports JSON upload/paste, safe malformed-JSON handling, local checkout path inputs, read-only capability inspection, service-routed checks for `validate_bundle`, `inspect_capabilities`, `architect_to_ce`, `ce_to_builder`, `builder_to_responsive`, and `final_gate`, diagnostics display, and downloads for `result.json`, `report.md`, and `report.html`.
 
 The UI does not prove production readiness, real Elementor validation, frontend correctness, responsive correctness, accessibility completion, or export validation. It does not change transition semantics; guarded CLI entries for CE→Builder, Builder→Responsive, and Final Evidence Gate remain fail-closed and do not prove real readiness.
+
+### Run controlled demo
+
+```bash
+uv run python scripts/run-project-gate-demo.py
+```
+
+The controlled demo uses synthetic fixtures only and does not claim production readiness, real Elementor validation, frontend correctness, responsive correctness, accessibility completion, export validation, or real end-to-end readiness.
+
+### Run tests and checks
+
+```bash
+uv lock --check
+uv sync --locked --extra dev --extra ui
+uv run pytest
+uv run python scripts/check-capability-truth.py
+uv run python scripts/check-workflow-permissions.py
+uv run python scripts/check-github-action-pinning.py
+uv run ev4-transition validate fixtures/valid/architect-stage-bundle.v1.json
+uv run ev4-transition validate fixtures/invalid/array-input.v1.json
+uv run ev4-transition validate fixtures/insufficient-evidence/architect-stage-bundle.v1.json --format persian
+```
+
+Existing Node skeleton checks remain available temporarily:
+
+```bash
+npm run status
+npm run validate
+```
+
+### Lockfile and dependency updates
+
+- Run `uv lock` after intentional dependency metadata changes.
+- Run `uv lock --check` before committing to verify `uv.lock` is up to date.
+- Run `uv sync --locked --extra dev --extra ui` in CI or release-like local checks to fail instead of updating a stale lockfile.
+- Run commands through `uv run --locked ...` when you want execution to fail rather than refresh an out-of-date lockfile.
+
+### Fallback if uv is unavailable
+
+Use this only when `uv` cannot be installed:
+
+```bash
+python -m pip install -e '.[dev,ui]'
+pytest
+python -m ev4_transition.ui.app
+```
+
+The pip path is a compatibility fallback, not the primary setup workflow.
 
 ## Stage Evidence Bundle
 
@@ -226,19 +289,27 @@ EV4-Project-Gate
 Python checks:
 
 ```bash
-python -m pip install -e '.[dev]'
+uv lock --check
+uv sync --locked --extra dev --extra ui
+uv run pytest
+uv run python scripts/check-capability-truth.py
+uv run python scripts/check-workflow-permissions.py
+uv run ev4-transition validate fixtures/valid/architect-stage-bundle.v1.json
+uv run ev4-transition validate fixtures/invalid/array-input.v1.json
+uv run ev4-transition validate fixtures/insufficient-evidence/architect-stage-bundle.v1.json --format persian
+uv run python scripts/verify-architect-to-ce-lock.py \
+  --architect-repo ../EV4-Architect-Repo \
+  --ce-repo ../EV4-Constructability-Engineer-Repo
+uv run python scripts/transition-smoke.py \
+  --architect-repo ../EV4-Architect-Repo \
+  --ce-repo ../EV4-Constructability-Engineer-Repo
+```
+
+Fallback if uv is unavailable:
+
+```bash
+python -m pip install -e '.[dev,ui]'
 pytest
-python scripts/check-capability-truth.py
-python scripts/check-workflow-permissions.py
-ev4-transition validate fixtures/valid/architect-stage-bundle.v1.json
-ev4-transition validate fixtures/invalid/array-input.v1.json
-ev4-transition validate fixtures/insufficient-evidence/architect-stage-bundle.v1.json --format persian
-python scripts/verify-architect-to-ce-lock.py \
-  --architect-repo ../EV4-Architect-Repo \
-  --ce-repo ../EV4-Constructability-Engineer-Repo
-python scripts/transition-smoke.py \
-  --architect-repo ../EV4-Architect-Repo \
-  --ce-repo ../EV4-Constructability-Engineer-Repo
 ```
 
 Existing Node skeleton checks remain available temporarily:
@@ -259,8 +330,8 @@ Personal-use setup and controlled demo docs:
 Local launcher scripts:
 
 ```bash
-python scripts/run-project-gate-ui.py
-python scripts/run-project-gate-demo.py
+uv run python scripts/run-project-gate-ui.py
+uv run python scripts/run-project-gate-demo.py
 ```
 
 Windows helpers:

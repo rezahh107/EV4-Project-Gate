@@ -15,17 +15,17 @@
 ## اجرای محلی
 
 ```bash
-python -m pip install -e '.[dev,ui]'
-python -m ev4_transition.ui.app
+uv sync --extra dev --extra ui
+uv run python -m ev4_transition.ui.app
 ```
 
-همچنین بعد از نصب extra مربوط به UI، entry point زیر در دسترس است:
+همچنین بعد از sync کردن extra مربوط به UI، entry point زیر در محیط uv در دسترس است:
 
 ```bash
-ev4-project-gate-ui
+uv run ev4-project-gate-ui
 ```
 
-اگر `gradio` نصب نشده باشد، entry point باید با پیام روشن خطا بدهد و کاربر را به نصب `.[ui]` راهنمایی کند. `gradio` وابستگی اجباری core package نیست.
+اگر `gradio` نصب نشده باشد، entry point باید با پیام روشن خطا بدهد و کاربر را به `uv sync --extra ui` راهنمایی کند. `gradio` وابستگی اجباری core package نیست. مسیر `pip install -e ".[dev,ui]"` فقط fallback است اگر `uv` در دسترس نباشد.
 
 ## محدوده اجرایی Prompt 06
 

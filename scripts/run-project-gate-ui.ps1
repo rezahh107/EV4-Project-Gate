@@ -16,6 +16,6 @@ if ($Python) {
     exit $LASTEXITCODE
 }
 
-Write-Host "Python was not found. Install Python 3.11+ and run: python -m pip install -e '.[dev]'"
+Write-Host "Python was not found. Install uv, then run: uv python install 3.11; uv sync --extra dev --extra ui"
 Write-Host "Python پیدا نشد. ابتدا Python 3.11 یا جدیدتر را نصب کن."
 exit 1

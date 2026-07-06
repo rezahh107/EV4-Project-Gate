@@ -2,7 +2,7 @@
 
 <section lang="fa" dir="rtl">
 
-این راهنما برای استفاده شخصی و محلی از `EV4-Project-Gate` است؛ یعنی یک نفر، روی یک کامپیوتر، با چند checkout محلی از ریپوهای EV4.
+این راهنما برای استفاده شخصی و محلی از `EV4-Project-Gate` است. مسیر پیش‌فرض نصب و اجرا از این نسخه به بعد `uv` است، نه `pip`.
 
 ## این ابزار چیست؟
 
@@ -10,12 +10,7 @@
 
 ## این ابزار چه چیزی نیست؟
 
-این ابزار:
-
-- جایگزین `EV4-Architect-Repo`، `EV4-Constructability-Engineer-Repo`، `EV4-Builder-Assistant-Repo` یا `EV4-Responsive-Architect` نیست.
-- منطق CE، منطق Builder، منطق Responsive یا اعتبارسنجی واقعی Elementor را خودش نمی‌سازد.
-- بدون شواهد واقعی نباید ادعای `accepted`، production readiness، frontend correctness، accessibility completion یا export validation کند.
-- cloud، account، database، secret storage یا deployment platform لازم ندارد.
+این ابزار جایگزین ریپوهای specialist نیست، منطق CE/Builder/Responsive یا validation واقعی Elementor را خودش نمی‌سازد، و بدون شواهد واقعی نباید ادعای `accepted`، production readiness، frontend correctness، accessibility completion یا export validation کند.
 
 ## پوشه‌های محلی لازم
 
@@ -29,30 +24,51 @@ EV4-Builder-Assistant-Repo
 EV4-Responsive-Architect
 ```
 
-این‌ها باید کنار هم روی کامپیوترت باشند تا `Project Gate` بتواند فایل‌های رسمی هر ریپو را بخواند.
+## نصب پیش‌فرض با uv
 
-## نصب Python و وابستگی‌ها
+`Python >=3.11` پشتیبانی می‌شود. فایل `.python-version` مقدار `3.11` دارد تا `uv` برای setup محلی یک interpreter پیش‌فرض و تکرارپذیر انتخاب کند؛ این به معنی نیاز به Python جدیدتر از `>=3.11` نیست.
 
-از داخل پوشه `EV4-Project-Gate` اجرا کن:
-
-```bash
-python -m pip install -e '.[dev]'
-```
-
-در Windows اگر `python` کار نکرد، این را امتحان کن:
+در Windows ابتدا `uv` را با یکی از روش‌های رسمی نصب کن:
 
 ```powershell
-py -3 -m pip install -e '.[dev]'
+winget install --id=astral-sh.uv -e
 ```
+
+یا قبل از اجرای installer رسمی PowerShell آن را بررسی کن:
+
+```powershell
+powershell -c "irm https://astral.sh/uv/install.ps1 | more"
+powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"
+```
+
+سپس داخل `EV4-Project-Gate` اجرا کن:
+
+```powershell
+.\scripts\setup-windows-uv.ps1
+```
+
+مسیر cross-platform:
+
+```bash
+uv python install 3.11
+uv sync --extra dev --extra ui
+uv run ev4-transition inspect
+```
+
+`uv.lock` در repo commit شده است تا dependency graph بین local و CI ثابت بماند. extraهای `dev` و `ui` در `[project.optional-dependencies]` تعریف شده‌اند و dependency group نیستند؛ بنابراین برای test و UI باید با `--extra dev --extra ui` sync شوند.
+
+`uv sync` محیط پروژه را مدیریت می‌کند و به‌صورت exact می‌تواند packageهای خارج از lockfile را از محیط حذف کند.
 
 ## اجرای UI محلی
 
-UI توسط Prompt 1 ساخته می‌شود. این بسته فقط launcher امن اضافه می‌کند.
+```bash
+uv run python -m ev4_transition.ui.app
+```
 
-روش ساده:
+یا launcher امن:
 
 ```bash
-python scripts/run-project-gate-ui.py
+uv run python scripts/run-project-gate-ui.py
 ```
 
 در Windows:
@@ -61,54 +77,35 @@ python scripts/run-project-gate-ui.py
 .\scripts\run-project-gate-ui.ps1
 ```
 
-یا فایل زیر را اجرا کن:
-
-```text
-scripts/run-project-gate-ui.bat
-```
-
-اگر UI هنوز merge نشده باشد، پیام روشن می‌بینی:
-
-```text
-UI is not installed yet. Merge Prompt 1 UI branch first.
-```
-
-اگر UI نصب شده باشد، رفتار download خروجی‌ها توسط خود UI تعیین می‌شود. تا قبل از PR integration نهایی، این رفتار را با قرارداد demo یکی فرض نکن.
-
 ## اجرای demo کنترل‌شده
 
 این demo فقط fixtureهای synthetic را بررسی می‌کند:
 
 ```bash
-python scripts/run-project-gate-demo.py
+uv run python scripts/run-project-gate-demo.py
 ```
 
-خروجی demo زیر ساخته می‌شود:
+## بررسی lockfile و testها
 
-```text
-outputs/runs/demo-<timestamp-or-run-id>/
+```bash
+uv lock --check
+uv sync --locked --extra dev --extra ui
+uv run pytest
+uv run python scripts/check-capability-truth.py
+uv run python scripts/check-workflow-permissions.py
 ```
 
-## خروجی‌ها کجا ذخیره می‌شوند؟
+## Fallback if uv is unavailable
 
-`outputs/runs/<timestamp-or-run-id>/` قرارداد خروجی demo کنترل‌شده و script محلی است:
+فقط اگر `uv` قابل نصب نیست:
 
-```text
-result.json
-report.md
-report.html
-input.snapshot.json
-diagnostics.json
+```bash
+python -m pip install -e '.[dev,ui]'
+pytest
+python -m ev4_transition.ui.app
 ```
 
-خروجی‌های واقعی run نباید commit شوند. UI ممکن است artifactهای download جداگانه بسازد تا وقتی integration نهایی مسیرها را یکسان کند.
-
-## معنی statusها
-
-- `accepted`: مدارک لازم برای همان بررسی کامل است و بسته می‌تواند در همان محدوده عبور کند.
-- `invalid`: ساختار یا schema اشتباه است و سیستم بدون حدس یا اصلاح خودکار آن را رد می‌کند.
-- `insufficient_evidence`: بسته قابل فهم است، اما شواهد کافی نیست. این وضعیت هشدار/مسدودکننده است.
-- `repair_needed`: بسته قابل فهم است، اما موارد قابل اصلاح دارد و نباید به‌عنوان نتیجه نهایی عبور کند.
+این مسیر fallback است و مسیر اصلی repo نیست.
 
 ## جلوگیری از ادعای اشتباه
 

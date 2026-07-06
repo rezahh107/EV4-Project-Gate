@@ -4,6 +4,18 @@
 
 مدل ذهنی ساده: `Project Gate` مثل گمرک بین ریپوهاست. اگر مدارک کامل باشد، بسته عبور می‌کند. اگر مدارک ناقص باشد، `insufficient_evidence` می‌دهد. اگر ساختار اشتباه باشد، `invalid` می‌دهد.
 
+## آماده‌سازی پیش‌فرض
+
+مسیر پیش‌فرض repo با `uv` است:
+
+```bash
+uv python install 3.11
+uv sync --extra dev --extra ui
+uv run ev4-transition inspect
+```
+
+`dev` و `ui` extraهای `[project.optional-dependencies]` هستند، نه dependency group. برای اجرای UI و testها آن‌ها را با `--extra dev --extra ui` sync کن. `uv.lock` برای تکرارپذیری commit شده و `uv sync` محیط پروژه را از lockfile مدیریت می‌کند.
+
 ## جریان کاری اصلی
 
 1. UI را باز کن.
@@ -15,18 +27,22 @@
 7. خروجی‌های UI را از همان UI دانلود کن؛ معمولاً `result.json`، `report.md` و `report.html` یا artifactهای downloadشده توسط UI هستند.
 8. تصمیم بگیر: عبور، اصلاح، یا تهیه شواهد بیشتر.
 
-## وقتی UI هنوز آماده نیست
-
-این بسته launcher اضافه کرده است:
+## اجرای UI
 
 ```bash
-python scripts/run-project-gate-ui.py
+uv run python -m ev4_transition.ui.app
 ```
 
-اگر Prompt 1 هنوز merge نشده باشد، launcher به‌جای traceback پیام روشن می‌دهد و پیشنهاد می‌کند demo synthetic را اجرا کنی:
+اگر launcher لازم داری:
 
 ```bash
-python scripts/run-project-gate-demo.py
+uv run python scripts/run-project-gate-ui.py
+```
+
+## اجرای demo synthetic
+
+```bash
+uv run python scripts/run-project-gate-demo.py
 ```
 
 ## معنی statusها
@@ -49,8 +65,6 @@ python scripts/run-project-gate-demo.py
 
 ## قرارداد خروجی demo کنترل‌شده
 
-مسیر زیر قرارداد خروجی demo کنترل‌شده و script محلی است:
-
 ```text
 outputs/runs/<timestamp-or-run-id>/
 ```
@@ -65,14 +79,14 @@ input.snapshot.json
 diagnostics.json
 ```
 
-این قرارداد به معنی الزام نهایی برای رفتار download در UI نیست. UI می‌تواند artifactهای download خودش را ارائه کند تا وقتی یک PR integration نهایی مسیر UI، service و demo را هم‌راستا کند.
+## Fallback if uv is unavailable
 
-## تصمیم بعد از نتیجه
+فقط اگر `uv` قابل نصب نیست:
 
-- اگر `accepted` بود: فقط در همان محدوده شواهد ثبت‌شده استفاده کن.
-- اگر `invalid` بود: ساختار JSON، schema identity، مسیرها و hashها را اصلاح کن.
-- اگر `insufficient_evidence` بود: مدرک گمشده را از owner repository یا validator رسمی تهیه کن.
-- اگر `repair_needed` بود: diagnosticهای قابل اصلاح را رفع کن و دوباره اجرا کن.
+```bash
+python -m pip install -e '.[dev,ui]'
+python -m ev4_transition.ui.app
+```
 
 ## محدودیت مهم demo
 

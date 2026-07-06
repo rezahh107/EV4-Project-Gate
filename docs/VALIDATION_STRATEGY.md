@@ -11,13 +11,21 @@ architect_to_ce:
   verification_state: synthetic_fixture_only
 ce_to_builder:
   orchestration_baseline: implemented
-  cli_exposure: not_implemented
+  cli_exposure: guarded
   owner_fixture_integration: verified
   real_non_synthetic_handoff: insufficient_evidence
 builder_to_responsive:
-  orchestration_baseline: not_implemented
+  orchestration_baseline: implemented
+  cli_exposure: guarded
+  official_responsive_validator_integration: implemented
+  verification_state: verified_by_exact_head_ci
+  real_non_synthetic_handoff: insufficient_evidence
 final_evidence_gate:
-  orchestration_baseline: not_implemented
+  orchestration_baseline: implemented
+  cli_exposure: guarded
+  official_responsive_validator_integration: implemented
+  verification_state: verified_by_exact_head_ci
+  real_non_synthetic_evidence: insufficient_evidence
 ```
 
 ## Foundation validation
@@ -40,12 +48,13 @@ Current Python checks validate:
 Current commands:
 
 ```bash
-python -m pip install -e '.[dev]'
-pytest
-ev4-transition validate fixtures/valid/architect-stage-bundle.v1.json
-ev4-transition validate fixtures/invalid/array-input.v1.json
-ev4-transition validate fixtures/insufficient-evidence/architect-stage-bundle.v1.json --format persian
-python scripts/check-github-action-pinning.py
+uv lock --check
+uv sync --locked --extra dev --extra ui
+uv run pytest
+uv run ev4-transition validate fixtures/valid/architect-stage-bundle.v1.json
+uv run ev4-transition validate fixtures/invalid/array-input.v1.json
+uv run ev4-transition validate fixtures/insufficient-evidence/architect-stage-bundle.v1.json --format persian
+uv run python scripts/check-github-action-pinning.py
 npm run status
 npm run validate
 ```
@@ -103,14 +112,14 @@ owner_fixture_integration:
 real_non_synthetic_handoff:
   status: insufficient_evidence
 public_cli_exposure:
-  status: not_implemented
+  status: guarded
 ```
 
-The owner-fixture smoke is integration evidence only. It is not real non-synthetic handoff evidence and does not authorize a public `ce-to-builder` CLI command.
+The owner-fixture smoke is integration evidence only. It is not real non-synthetic handoff evidence and does not prove a real non-synthetic handoff; the public `ce-to-builder` CLI entry remains guarded and fail-closed.
 
 ## Builder → Responsive baseline
 
-Builder→Responsive remains not implemented in Project Gate. Existing freeze documentation may guide future work, but Project Gate must remain fail-closed until Builder-owned output/evidence artifacts and Responsive-owned input requirements are explicit, pinned, and validated.
+Builder→Responsive has an implemented guarded orchestration baseline with official Responsive validator integration. It remains fail-closed for real handoff claims until Builder-owned output/evidence artifacts and Responsive-owned input requirements are explicit, pinned, and validated; real non-synthetic handoff evidence is `insufficient_evidence`.
 
 ## Local schemas
 

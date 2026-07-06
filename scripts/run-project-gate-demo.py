@@ -169,7 +169,7 @@ def main(argv: list[str] | None = None) -> int:
         from ev4_transition import BundleValidator
     except Exception as exc:  # pragma: no cover - defensive user-facing path
         print("❌ EV4 Project Gate package import failed.")
-        print("Run: python -m pip install -e '.[dev]'")
+        print("Run: uv sync --extra dev --extra ui")
         print(f"error: {type(exc).__name__}: {exc}")
         return 1
 

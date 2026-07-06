@@ -24,4 +24,7 @@ diagnostics.json
 
 رفتار download در UI ممکن است از artifactهای UI استفاده کند. این قرارداد، رفتار نهایی UI را تعیین نمی‌کند تا یک PR integration مسیر UI، service و demo را هم‌راستا کند.
 
+
+برای اجرای demo از مسیر پیش‌فرض `uv run python scripts/run-project-gate-demo.py` استفاده کن؛ `pip` فقط fallback است اگر `uv` در دسترس نباشد.
+
 </section>
