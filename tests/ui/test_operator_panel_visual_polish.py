@@ -29,6 +29,7 @@ def test_operator_panel_css_uses_rtl_ltr_and_token_classes():
     assert "var(--ev4-surface-raised)" in css
     assert "var(--ev4-border-subtle)" in css
     assert "var(--ev4-code-bg)" in css
+    assert "var(--ev4-shadow-raised)" in css
     assert "prefers-color-scheme: dark" in css
 
 
