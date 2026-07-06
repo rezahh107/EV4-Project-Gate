@@ -1,0 +1,10 @@
+{
+  "fixture_schema": "project-gate-common-contract-lock-fixture-recipe.v1",
+  "synthetic": true,
+  "canonical_commit_sha": "0123456789abcdef0123456789abcdef01234567",
+  "canonical_path": "contracts/common/producer-gate-export.v1.schema.json",
+  "vendored_repository": "rezahh107/EV4-Architect-Repo",
+  "vendored_path": "contracts/project-gate/producer-gate-export.v1.schema.json",
+  "copy_canonical_bytes": true,
+  "compute_file_sha256": true
+}

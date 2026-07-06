@@ -1,0 +1,62 @@
+{
+  "fixture_schema": "project-gate-common-contract-lock-invalid-recipes.v1",
+  "synthetic": true,
+  "cases": [
+    {
+      "name": "canonical_ref_main",
+      "expected_code": "PG_COMMON_LOCK_MOVING_REF_FORBIDDEN"
+    },
+    {
+      "name": "malformed_commit_sha",
+      "expected_code": "PG_COMMON_LOCK_SCHEMA_INVALID"
+    },
+    {
+      "name": "canonical_hash_mismatch",
+      "expected_code": "PG_COMMON_CONTRACT_CANONICAL_HASH_MISMATCH"
+    },
+    {
+      "name": "vendored_hash_mismatch",
+      "expected_code": "PG_COMMON_CONTRACT_VENDORED_HASH_MISMATCH"
+    },
+    {
+      "name": "byte_mismatch_semantically_equal",
+      "expected_code": "PG_COMMON_CONTRACT_BYTE_MISMATCH"
+    },
+    {
+      "name": "local_copy_authoritative_true",
+      "expected_code": "PG_COMMON_LOCK_LOCAL_COPY_AUTHORITY_FORBIDDEN"
+    },
+    {
+      "name": "moving_default_branch_comparison_enabled",
+      "expected_code": "PG_COMMON_LOCK_MOVING_DEFAULT_BRANCH_COMPARISON_FORBIDDEN"
+    },
+    {
+      "name": "contract_owner_drift",
+      "expected_code": "PG_COMMON_LOCK_OWNER_DRIFT"
+    },
+    {
+      "name": "canonical_path_drift",
+      "expected_code": "PG_COMMON_LOCK_PATH_DRIFT"
+    },
+    {
+      "name": "root_relative_path",
+      "expected_code": "PG_COMMON_LOCK_PATH_DRIFT"
+    },
+    {
+      "name": "path_traversal",
+      "expected_code": "PG_COMMON_LOCK_PATH_DRIFT"
+    },
+    {
+      "name": "absolute_path",
+      "expected_code": "PG_COMMON_LOCK_PATH_DRIFT"
+    },
+    {
+      "name": "backslash_path",
+      "expected_code": "PG_COMMON_LOCK_PATH_DRIFT"
+    },
+    {
+      "name": "missing_file",
+      "expected_code": "PG_COMMON_CONTRACT_FILE_READ_ERROR"
+    }
+  ]
+}

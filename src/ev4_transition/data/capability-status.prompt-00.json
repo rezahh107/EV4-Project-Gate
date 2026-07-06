@@ -1,0 +1,20 @@
+{
+  "schema_version": "ev4-project-gate-capability-status-prompt-00.v1",
+  "scope": "common_contract_foundation",
+  "pinned_owner_file_computation": {
+    "status": "implemented_at_documented_scopes"
+  },
+  "producer_emitted_gate_artifact": {
+    "common_contract": "implemented",
+    "reusable_verifier": "implemented",
+    "producer_adoption": "not_started",
+    "project_gate_runtime_integration": "not_implemented",
+    "real_non_synthetic_handoff": "insufficient_evidence"
+  },
+  "silent_fallback": {
+    "allowed": false
+  },
+  "canonical_release_pin": {
+    "status": "pending_merge"
+  }
+}

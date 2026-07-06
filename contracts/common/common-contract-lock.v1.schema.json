@@ -1,0 +1,47 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ev4.local/contracts/common/common-contract-lock.v1.schema.json",
+  "title": "EV4 Project Gate Common Contract Lock v1",
+  "x-ev4-contract-id": "project-gate-common-contract-lock.v1",
+  "x-ev4-contract-version": "1.0.0",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["lock_schema", "contract_owner", "contract_id", "contract_version", "canonical", "vendored", "verification"],
+  "properties": {
+    "lock_schema": {"const": "project-gate-common-contract-lock.v1"},
+    "contract_owner": {"const": "rezahh107/EV4-Project-Gate"},
+    "contract_id": {"const": "producer-gate-export.v1"},
+    "contract_version": {"const": "1.0.0"},
+    "canonical": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["repository", "path", "commit_sha", "file_sha256"],
+      "properties": {
+        "repository": {"const": "rezahh107/EV4-Project-Gate"},
+        "path": {"const": "contracts/common/producer-gate-export.v1.schema.json"},
+        "commit_sha": {"type": "string", "pattern": "^[a-f0-9]{40}$"},
+        "file_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"}
+      }
+    },
+    "vendored": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["repository", "path", "file_sha256", "local_copy_authoritative"],
+      "properties": {
+        "repository": {"type": "string", "minLength": 3},
+        "path": {"type": "string", "minLength": 1},
+        "file_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+        "local_copy_authoritative": {"const": false}
+      }
+    },
+    "verification": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["byte_equality_required", "compare_against_moving_default_branch"],
+      "properties": {
+        "byte_equality_required": {"const": true},
+        "compare_against_moving_default_branch": {"const": false}
+      }
+    }
+  }
+}

@@ -1,0 +1,90 @@
+{
+  "fixture_schema": "producer-gate-export-invalid-fixture-recipes.v1",
+  "synthetic": true,
+  "cases": [
+    {
+      "name": "competing_single_stage_envelope_identity",
+      "expected_code": "PG_EXPORT_SCHEMA_INVALID"
+    },
+    {
+      "name": "missing_pipeline_id",
+      "expected_code": "PG_EXPORT_SCHEMA_INVALID"
+    },
+    {
+      "name": "missing_run_id",
+      "expected_code": "PG_EXPORT_SCHEMA_INVALID"
+    },
+    {
+      "name": "duplicate_stage_id",
+      "expected_code": "PG_EXPORT_DUPLICATE_STAGE_ID"
+    },
+    {
+      "name": "duplicate_stage_ordinal",
+      "expected_code": "PG_EXPORT_DUPLICATE_STAGE_ORDINAL"
+    },
+    {
+      "name": "missing_mandatory_stage",
+      "expected_code": "PG_EXPORT_HANDOFF_ALLOWED_WITH_MISSING_MANDATORY_STAGE"
+    },
+    {
+      "name": "out_of_order_stage_manifest",
+      "expected_code": "PG_EXPORT_STAGE_MANIFEST_OUT_OF_ORDER"
+    },
+    {
+      "name": "complete_stage_without_output",
+      "expected_code": "PG_EXPORT_COMPLETE_STAGE_WITHOUT_OUTPUT"
+    },
+    {
+      "name": "output_without_sha256",
+      "expected_code": "PG_EXPORT_OUTPUT_INTEGRITY_MISSING"
+    },
+    {
+      "name": "handoff_allowed_with_blocker",
+      "expected_code": "PG_EXPORT_HANDOFF_ALLOWED_WITH_BLOCKED_MANDATORY_STAGE"
+    },
+    {
+      "name": "handoff_disallowed_without_failure_reason",
+      "expected_code": "PG_EXPORT_HANDOFF_DISALLOWED_WITHOUT_FAILURE_REASON"
+    },
+    {
+      "name": "final_stage_bundle_producer_mismatch",
+      "expected_code": "PG_EXPORT_FINAL_BUNDLE_PRODUCER_MISMATCH"
+    },
+    {
+      "name": "final_stage_bundle_payload_owner_mismatch",
+      "expected_code": "PG_EXPORT_FINAL_BUNDLE_PAYLOAD_OWNER_MISMATCH"
+    },
+    {
+      "name": "silent_fallback_allowed",
+      "expected_code": "PG_EXPORT_SILENT_FALLBACK_FORBIDDEN"
+    },
+    {
+      "name": "unknown_acquisition_mode",
+      "expected_code": "PG_EXPORT_ACQUISITION_MODE_UNKNOWN"
+    },
+    {
+      "name": "non_contiguous_stage_manifest",
+      "expected_code": "PG_EXPORT_STAGE_MANIFEST_NON_CONTIGUOUS"
+    },
+    {
+      "name": "output_without_artifact_ref",
+      "expected_code": "PG_EXPORT_OUTPUT_REF_MISSING"
+    },
+    {
+      "name": "handoff_allowed_with_blocking_diagnostics",
+      "expected_code": "PG_EXPORT_HANDOFF_ALLOWED_WITH_BLOCKING_DIAGNOSTICS"
+    },
+    {
+      "name": "final_stage_bundle_commit_mismatch",
+      "expected_code": "PG_EXPORT_FINAL_BUNDLE_COMMIT_MISMATCH"
+    },
+    {
+      "name": "final_stage_bundle_stage_mismatch",
+      "expected_code": "PG_EXPORT_FINAL_BUNDLE_STAGE_MISMATCH"
+    },
+    {
+      "name": "self_validation_overclaim",
+      "expected_code": "PG_EXPORT_SELF_VALIDATION_OVERCLAIM"
+    }
+  ]
+}
