@@ -453,8 +453,8 @@ def _report_guidance_html(guidance: Any) -> str:
 def _preflight_summary_html(result: dict[str, Any]) -> str:
     preflight = result.get("preflight_result") or result.get("preflight_summary")
     if isinstance(preflight, dict):
-        status = preflight.get("status", "unknown")
-        summary = preflight.get("summary_fa", "Preflight summary موجود است.")
+        status = preflight.get("status") or "unknown"
+        summary = preflight.get("summary_fa") or "Preflight summary موجود است."
         return f'<p><strong>preflight_status:</strong> {bdi_ltr(status)}</p><p>{escape_html(summary)}</p>'
     if isinstance(preflight, str) and preflight.strip():
         return f"<p>{escape_html(preflight.strip())}</p>"
