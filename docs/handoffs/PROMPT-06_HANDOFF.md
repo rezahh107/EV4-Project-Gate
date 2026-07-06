@@ -5,7 +5,7 @@
 ```yaml
 patch_id: PROMPT-06-UI-PATCH-4
 branch: ux/operator-panel-final-hardening-patch-4
-pull_request: pending_at_handoff_commit
+pull_request: 38
 base_branch: main
 base_context:
   patch_3_pr: 37
@@ -45,6 +45,7 @@ commits_created_before_this_handoff:
   - d3afe21f1ebbd87ee7bd1cb3d8bc2d5d2f30e4ad
   - ff20741386e9288e0b35163e796897a43bc39999
   - 16868ef971e4e95c1da117ed6053da720d074e1d
+  - 5d283368f70bd174525ced673694d88932a977d0
 tests_run:
   - local syntax check in sandbox on generated Python patch files: python -m py_compile /mnt/data/patch4/*.py
 tests_not_run:
@@ -101,7 +102,7 @@ repository_sources_inspected:
 next_allowed_prompt: PROMPT-06 patch review after PR CI evidence, then PROMPT-07 closure audit
 blockers:
   - full pytest and browser launch were not executed from this connector environment.
-  - CI status must be checked on the opened PR before merge.
+  - CI status must be checked on PR 38 before merge.
 remaining_insufficient_evidence:
   - production readiness
   - real Elementor validation
