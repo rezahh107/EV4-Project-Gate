@@ -116,9 +116,11 @@ jobs:
 
       - name: Run pinned official Responsive validators
         working-directory: EV4-Responsive-Architect
+        env:
+          PROJECT_GATE_PYTHON: ${{ github.workspace }}/EV4-Project-Gate/.venv/bin/python
         run: |
-          python validation/e2e/run_builder_responsive_input_boundary_check.py
-          python validation/e2e/run_responsive_tree_architecture_refactor_check.py
+          "$PROJECT_GATE_PYTHON" validation/e2e/run_builder_responsive_input_boundary_check.py
+          "$PROJECT_GATE_PYTHON" validation/e2e/run_responsive_tree_architecture_refactor_check.py
 
       - name: Upload recomputed lock evidence
         if: always()
