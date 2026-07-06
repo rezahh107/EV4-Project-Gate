@@ -148,6 +148,10 @@ jobs:
         working-directory: EV4-Project-Gate
         run: pytest tests/service
 
+      - name: Operator UI adapter tests
+        working-directory: EV4-Project-Gate
+        run: pytest tests/ui
+
       - name: CLI and bundle tests
         working-directory: EV4-Project-Gate
         run: pytest tests/test_cli.py tests/test_canonical_json.py tests/test_bundle_validator.py

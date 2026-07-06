@@ -8,13 +8,18 @@ version = "0.1.0"
 description = "Deterministic EV4 Project Gate core for Stage Evidence Bundle validation."
 readme = "README.md"
 requires-python = ">=3.11"
-dependencies = ["jsonschema>=4.22,<5", "PyYAML>=6,<7"]
+dependencies = [
+    "jsonschema>=4.22,<5",
+    "PyYAML>=6,<7",
+]
 
 [project.optional-dependencies]
 dev = ["pytest>=8,<9"]
+ui = ["gradio>=4,<6"]
 
 [project.scripts]
 ev4-transition = "ev4_transition.cli:main"
+ev4-project-gate-ui = "ev4_transition.ui.app:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]

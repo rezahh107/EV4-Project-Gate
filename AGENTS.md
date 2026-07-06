@@ -17,7 +17,7 @@ EV4-Responsive-Architect
 
 The specialist repositories remain authoritative for their own schemas, validators, adapters, fixtures, and domain behavior.
 
-This repository owns cross-repository verification orchestration, gate configuration, report and evidence formats, package container formats, the user-facing stage state, Project Gate CI, the deterministic Python foundation for Stage Evidence Bundle validation, `ev4-architect-to-ce-transition@1.0.0`, and the narrow CE→Builder, Builder→Responsive, and Final Evidence Gate orchestration baselines documented by the active capability source.
+This repository owns cross-repository verification orchestration, gate configuration, report and evidence formats, package container formats, the user-facing stage state, Project Gate CI, the deterministic Python foundation for Stage Evidence Bundle validation, `ev4-architect-to-ce-transition@1.0.0`, the narrow CE→Builder, Builder→Responsive, and Final Evidence Gate orchestration baselines documented by the active capability source, and the initial local operator UI shell.
 
 ## Current Status
 
@@ -48,7 +48,7 @@ capabilities:
     real_non_synthetic_evidence: insufficient_evidence
     verification_state: verified_by_exact_head_ci
   user_interface:
-    status: not_implemented
+    status: implemented_initial_operator_panel
 public_cli_transitions:
   - architect-to-ce
 python_deterministic_core: implemented_initial_v1
@@ -58,7 +58,7 @@ runtime_dependency_of_specialist_repos: false
 node_skeleton: preserved_temporarily
 ```
 
-Describe every capability only with the layered status above. Do not describe CE→Builder, Builder→Responsive, or Final Evidence Gate as general public CLI workflows or as verified real non-synthetic handoffs. Do not describe real Elementor artifact validation or UI behavior as implemented.
+Describe every capability only with the layered status above. Do not describe CE→Builder, Builder→Responsive, or Final Evidence Gate as general public CLI workflows or as verified real non-synthetic handoffs. Do not describe real Elementor artifact validation, production readiness, frontend correctness, responsive correctness, accessibility completion, export validation, or UI transition wiring beyond the initial local operator panel as implemented.
 
 ## Read First
 
@@ -196,7 +196,7 @@ The GitHub workflow must keep both the existing skeleton health checks and the P
 
 ## User Experience Boundary
 
-The normal user is non-technical. The primary interaction is planned as upload, check, and download.
+The normal user is non-technical. The primary interaction is upload, check, understand, and download through the local operator UI.
 
 User-facing summaries are Persian and must clearly distinguish accepted, repair-needed, and insufficient-evidence states. Meaning must not depend on color alone. Technical identifiers and evidence remain available as optional details.
 
