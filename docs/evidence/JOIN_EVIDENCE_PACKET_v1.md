@@ -30,7 +30,14 @@ Purpose: reconcile live Producer evidence before Prompt 5 without modifying Prod
 
 ## Project Gate branch CI note
 
-CI evidence is head-specific. Head `2d21ae9a4e8934513cb427714e76a4e7a0f6e29b` was observed with Project Gate workflow conclusions `success` before the later documentation synchronization updates. If the PR head changes after that observation, exact-head CI must be rechecked before merge.
+CI evidence is head-specific. Head `321999282693dc818d34bfaa3bc81204324bb808` was observed with these Project Gate workflow conclusions: `success`.
+
+- `UI Runtime Smoke`
+- `Prompt 05 Builder Responsive Final Gate`
+- `Prompt 06 Report UX`
+- `Skeleton Health`
+
+This note records the exact-head CI evidence that was current when the PRF-001 stale-CI-text repair was applied. If the PR head changes after this documentation update, exact-head CI must be rechecked before merge.
 
 ## Handoff discrepancy table
 
