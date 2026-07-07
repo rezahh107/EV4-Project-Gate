@@ -1,0 +1,95 @@
+{
+  "acquisition_mode": {
+    "mode": "producer_emitted_gate_artifact",
+    "silent_fallback_allowed": false
+  },
+  "export_id": "synthetic-ce-export",
+  "final_stage_bundle": {
+    "bundle_id": "synthetic-ce-bundle",
+    "evidence": [
+      {
+        "artifact_hash": {
+          "algorithm": "sha256",
+          "scope": "canonical_json",
+          "value": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        },
+        "description": "Synthetic Prompt 5 fixture evidence.",
+        "id": "synthetic-evidence",
+        "kind": "fixture",
+        "source": {
+          "reference": "fixtures/producer-emitted/valid/ce-export.v1.json",
+          "type": "synthetic_fixture"
+        },
+        "state": "exported"
+      }
+    ],
+    "evidence_status": "complete",
+    "payload": {
+      "data": {
+        "fixture": "synthetic"
+      },
+      "schema_id": "ev4-ce-stage-payload"
+    },
+    "payload_schema": {
+      "id": "ev4-ce-stage-payload",
+      "owner_repository": "rezahh107/EV4-Constructability-Engineer-Repo",
+      "version": "1.0.0"
+    },
+    "produced_by": {
+      "commit_sha": "189163669cca0caf5adb62c97d78dae580129f15",
+      "ref": "189163669cca0caf5adb62c97d78dae580129f15",
+      "repository": "rezahh107/EV4-Constructability-Engineer-Repo"
+    },
+    "provenance": {
+      "created_by": "Project Gate Prompt 5 synthetic fixture",
+      "source": "synthetic Prompt 5 fixture"
+    },
+    "schema_version": "stage-evidence-bundle.v1",
+    "stage": "ce",
+    "synthetic": true
+  },
+  "handoff": {
+    "allowed": true,
+    "blocking_diagnostics": [],
+    "failure_reasons": [],
+    "status": "successful",
+    "target": "builder-intake",
+    "unresolved_evidence": []
+  },
+  "pipeline_id": "synthetic-pipeline",
+  "producer": {
+    "commit_sha": "189163669cca0caf5adb62c97d78dae580129f15",
+    "ref": "189163669cca0caf5adb62c97d78dae580129f15",
+    "repository": "rezahh107/EV4-Constructability-Engineer-Repo",
+    "stage": "ce"
+  },
+  "run_id": "synthetic-run",
+  "schema_version": "producer-gate-export.v1",
+  "stage_manifest": [
+    {
+      "blockers": [],
+      "mandatory": true,
+      "ordinal": 1,
+      "output": {
+        "artifact_hash": {
+          "algorithm": "sha256",
+          "scope": "canonical_json",
+          "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        "artifact_ref": "final_stage_bundle",
+        "present": true
+      },
+      "stage_id": "ce-final",
+      "stage_version": "1.0.0",
+      "status": "complete",
+      "unknowns": []
+    }
+  ],
+  "validation": {
+    "diagnostics": [],
+    "schema_valid": true,
+    "semantic_valid": true,
+    "validator_id": "ev4-producer-gate-export-validator",
+    "validator_version": "1.0.0"
+  }
+}

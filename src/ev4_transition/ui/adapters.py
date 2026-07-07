@@ -14,6 +14,7 @@ from ev4_transition.presentation.rtl import bdi_ltr, escape_html, ltr_code_block
 from ev4_transition.service import GateRequest, RepoPaths, ServiceDiagnostic, run_gate_request
 from ev4_transition.service.guidance import build_operator_guidance
 from ev4_transition.service.json_input import parse_json_input
+from ev4_transition.producer_integration.intake import transition_producer_export
 
 from .components import capability_rows_from_payload, diagnostics_to_rows, status_summary_markdown
 from .state import option_for_label
@@ -78,6 +79,7 @@ def run_operator_check(
     builder_repo_path: str | None = None,
     responsive_repo_path: str | None = None,
     *,
+    acquisition_mode: str = "pinned_owner_file_computation",
     output_dir: str | Path | None = None,
 ) -> UiRunOutput:
     """Run the selected UI action through the internal Project Gate service API."""
@@ -95,12 +97,18 @@ def run_operator_check(
             builder_repo_path=builder_repo_path,
             responsive_repo_path=responsive_repo_path,
         )
-        preflight_diagnostics = _ui_preflight_diagnostics(request)
-        if preflight_diagnostics:
-            result = _preflight_result(choice, preflight_diagnostics)
+        if acquisition_mode == "producer_emitted_gate_artifact":
+            parsed = parse_json_input(input_json_text=request.input_json_text, input_json_path=request.input_json_path)
+            result = transition_producer_export(choice.replace("_", "-").replace("final-gate", "final-evidence-gate"), parsed.payload)
+            result["ui_acquisition_mode"] = acquisition_mode
         else:
-            response = run_gate_request(request)
-            result = _result_from_response(response)
+            preflight_diagnostics = _ui_preflight_diagnostics(request)
+            if preflight_diagnostics:
+                result = _preflight_result(choice, preflight_diagnostics)
+            else:
+                response = run_gate_request(request)
+                result = _result_from_response(response)
+                result["ui_acquisition_mode"] = acquisition_mode
     except Exception as exc:  # Defensive UI boundary; primary view must not expose traceback.
         LOGGER.exception("Unhandled exception in UI operator check")
         result = ErrorState(

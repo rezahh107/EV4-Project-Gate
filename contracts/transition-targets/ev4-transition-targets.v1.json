@@ -1,0 +1,26 @@
+{
+  "schema_id": "ev4-transition-targets.v1",
+  "schema_version": "1.0.0",
+  "targets": [
+    {
+      "handoff_target": "ce-intake",
+      "producer_stage": "architect",
+      "transition_id": "architect-to-ce"
+    },
+    {
+      "handoff_target": "builder-intake",
+      "producer_stage": "ce",
+      "transition_id": "ce-to-builder"
+    },
+    {
+      "handoff_target": "responsive-intake",
+      "producer_stage": "builder",
+      "transition_id": "builder-to-responsive"
+    },
+    {
+      "handoff_target": "final-evidence-gate",
+      "producer_stage": "responsive",
+      "transition_id": "final-evidence-gate"
+    }
+  ]
+}

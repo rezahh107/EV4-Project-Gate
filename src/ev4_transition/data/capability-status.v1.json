@@ -28,18 +28,18 @@
       "real_non_synthetic_evidence": "insufficient_evidence",
       "verification_state": "verified_by_exact_head_ci"
     },
+    "producer_emitted_gate_artifact": {
+      "common_contract": "implemented",
+      "downstream_producer_ci_enforcement": "implemented_immutable_sha_workflow",
+      "producer_adoption": "implemented",
+      "project_gate_runtime_integration": "implemented_prompt_05_explicit_mode",
+      "real_non_synthetic_handoff": "insufficient_evidence",
+      "reusable_verifier": "implemented"
+    },
     "user_interface": {
       "browser_accessibility_evidence": "insufficient_evidence",
       "service_routing": "implemented_prompt_06_fail_closed",
       "status": "implemented_initial_operator_panel"
-    },
-    "producer_emitted_gate_artifact": {
-      "common_contract": "implemented",
-      "reusable_verifier": "implemented",
-      "producer_adoption": "not_started",
-      "project_gate_runtime_integration": "not_implemented",
-      "downstream_producer_ci_enforcement": "not_implemented",
-      "real_non_synthetic_handoff": "insufficient_evidence"
     }
   },
   "evidence": {
@@ -90,12 +90,18 @@
     "builder-to-responsive orchestration baseline",
     "final evidence gate orchestration baseline",
     "local operator UI shell",
-    "minimal_cli"
+    "minimal_cli",
+    "producer adoption registry",
+    "explicit producer_emitted_gate_artifact intake",
+    "Prompt 5 immutable-SHA producer CI workflow"
   ],
   "not_implemented": [
     "real EV4 artifact validation"
   ],
   "package": "ev4-project-gate",
+  "pinned_owner_file_computation": {
+    "status": "implemented_at_documented_scopes"
+  },
   "public_cli_transitions": [
     "architect-to-ce",
     "ce-to-builder",
@@ -103,8 +109,5 @@
     "final-evidence-gate"
   ],
   "repository": "rezahh107/EV4-Project-Gate",
-  "schema_version": "ev4-project-gate-capability-status.v1",
-  "pinned_owner_file_computation": {
-    "status": "implemented_at_documented_scopes"
-  }
+  "schema_version": "ev4-project-gate-capability-status.v1"
 }

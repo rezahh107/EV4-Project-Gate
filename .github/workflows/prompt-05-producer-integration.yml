@@ -1,0 +1,109 @@
+name: Prompt 05 Producer Integration Immutable SHA
+
+on:
+  pull_request:
+    paths:
+      - 'contracts/producer-adoption/**'
+      - 'contracts/transition-targets/**'
+      - 'src/ev4_transition/producer_integration/**'
+      - 'tests/producer_integration/**'
+      - '.github/workflows/prompt-05-producer-integration.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  immutable-sha-producer-integration:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Project Gate
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+        with:
+          persist-credentials: false
+      - name: Set up uv
+        uses: astral-sh/setup-uv@08807647e7069bb48b6ef5acd8ec9567f424441b
+      - name: Sync Project Gate dependencies
+        run: uv sync --locked --extra dev --extra ui
+      - name: Validate adoption registry and Prompt 5 tests
+        run: |
+          uv run python - <<'PY'
+          from ev4_transition.producer_integration.registry import validate_adoption_registry
+          r = validate_adoption_registry()
+          assert r["status"] == "valid", r
+          PY
+          uv run pytest -q tests/producer_integration/test_prompt05_producer_integration.py
+      - name: Checkout Architect immutable SHA
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+        with:
+          repository: rezahh107/EV4-Architect-Repo
+          ref: bf0b63c1f5d78725e7ea24371bab3360d9452a4f
+          path: producers/architect
+          persist-credentials: false
+      - name: Checkout CE immutable SHA
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+        with:
+          repository: rezahh107/EV4-Constructability-Engineer-Repo
+          ref: 189163669cca0caf5adb62c97d78dae580129f15
+          path: producers/ce
+          persist-credentials: false
+      - name: Checkout Builder immutable SHA
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+        with:
+          repository: rezahh107/EV4-Builder-Assistant-Repo
+          ref: 45459d0246f5d14486867224d26c2d2ba8a563b6
+          path: producers/builder
+          persist-credentials: false
+      - name: Checkout Responsive immutable SHA
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+        with:
+          repository: rezahh107/EV4-Responsive-Architect
+          ref: 28a995a603a5a383b8592d6beae7db8943f20acf
+          path: producers/responsive
+          persist-credentials: false
+      - name: Exact Git blob hash checks from adoption registry
+        run: |
+          uv run python - <<'PY'
+          import json, subprocess, hashlib, pathlib
+          registry=json.load(open('contracts/producer-adoption/ev4-producer-adoption-set.v1.json'))
+          roots={'architect':'producers/architect','ce':'producers/ce','builder':'producers/builder','responsive':'producers/responsive'}
+          for producer in registry['producers']:
+              root=roots[producer['stage']]
+              sha=producer['runtime_pin']['merged_commit_sha']
+              for rec in producer['hash_verification']['records']:
+                  data=subprocess.check_output(['git','-C',root,'show',f"{sha}:{rec['path']}"])
+                  actual=hashlib.sha256(data).hexdigest()
+                  if actual != rec['sha256']:
+                      raise SystemExit(f"hash mismatch: {producer['stage']} {rec['path']} {actual} != {rec['sha256']}")
+          PY
+      - name: Official producer validators recorded by adoption registry
+        run: |
+          uv run python - <<'PY'
+          import json
+          from pathlib import Path
+
+          registry = json.load(open('contracts/producer-adoption/ev4-producer-adoption-set.v1.json'))
+          roots = {
+              'architect': Path('producers/architect'),
+              'ce': Path('producers/ce'),
+              'builder': Path('producers/builder'),
+              'responsive': Path('producers/responsive'),
+          }
+          missing = []
+          for producer in registry['producers']:
+              stage = producer['stage']
+              validator_paths = [
+                  artifact['path']
+                  for artifact in producer.get('artifacts', [])
+                  if artifact.get('role') == 'validator'
+              ]
+              if not validator_paths:
+                  missing.append(f'{stage}: no validator artifact recorded')
+                  continue
+              for validator_path in validator_paths:
+                  if not (roots[stage] / validator_path).is_file():
+                      missing.append(f'{stage}: missing {validator_path}')
+          if missing:
+              raise SystemExit('\n'.join(missing))
+          print('All adoption-registry validator paths are present in immutable producer checkouts.')
+          PY

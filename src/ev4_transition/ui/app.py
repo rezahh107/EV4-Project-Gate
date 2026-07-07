@@ -153,6 +153,7 @@ def build_demo():
         with gr.Group(elem_classes=["ev4-section", "ev4-transition-section"]):
             with gr.Row():
                 transition = gr.Radio(choices=transition_choices(), value=transition_choices()[0], label="انتخاب بررسی / Transition")
+                acquisition_mode = gr.Radio(choices=["pinned_owner_file_computation", "producer_emitted_gate_artifact"], value="pinned_owner_file_computation", label="Acquisition mode / روش دریافت شواهد")
                 run_button = gr.Button("اجرای بررسی Project Gate", variant="primary")
 
         with gr.Accordion("ورودی JSON", open=True, elem_classes=["ev4-section", "ev4-json-section"]):
@@ -199,7 +200,7 @@ def build_demo():
             )
             return preflight_result_html(run_preflight(request))
 
-        def _run(selected_transition, pasted, uploaded, project_gate, architect, ce, builder, responsive):
+        def _run(selected_transition, selected_acquisition_mode, pasted, uploaded, project_gate, architect, ce, builder, responsive):
             output = run_operator_check(
                 selected_transition,
                 pasted_json=pasted,
@@ -209,6 +210,7 @@ def build_demo():
                 ce_repo_path=ce,
                 builder_repo_path=builder,
                 responsive_repo_path=responsive,
+                acquisition_mode=selected_acquisition_mode,
             )
             return output.status_markdown, output.diagnostics_rows, output.capability_rows, output.json_preview, output.download_paths
 
@@ -220,7 +222,7 @@ def build_demo():
 
         run_button.click(lambda: "⏳ در حال پردازش…", outputs=[status_summary], queue=False).then(
             _run,
-            inputs=[transition, json_text, json_file, project_gate_path, architect_path, ce_path, builder_path, responsive_path],
+            inputs=[transition, acquisition_mode, json_text, json_file, project_gate_path, architect_path, ce_path, builder_path, responsive_path],
             outputs=[status_summary, diagnostics, capabilities, json_preview, downloads],
         )
 

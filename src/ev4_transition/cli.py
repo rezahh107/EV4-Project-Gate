@@ -15,6 +15,7 @@ from .canonical_json import canonical_dumps, load_json_file
 from .presentation.status_mapping import exit_code_for_status
 from .reports import render_plain_summary
 from .validator_runner import run_architect_validator, run_ce_validator
+from .producer_integration.intake import transition_producer_export
 
 _CAPABILITY_STATUS_PATH = Path(__file__).resolve().parent / "data" / "capability-status.v1.json"
 
@@ -40,6 +41,7 @@ def main(argv: list[str] | None = None) -> int:
     transition_parser.add_argument("--project-gate-repo")
     transition_parser.add_argument("--lock")
     transition_parser.add_argument("--format", choices=["json", "persian"], default="json")
+    transition_parser.add_argument("--acquisition-mode", choices=["pinned_owner_file_computation", "producer_emitted_gate_artifact"], default="pinned_owner_file_computation")
 
     coverage_parser = sub.add_parser("coverage", help="Inspect or validate Behavioral Rule Coverage.")
     coverage_sub = coverage_parser.add_subparsers(dest="coverage_command", required=True)
@@ -73,6 +75,10 @@ def main(argv: list[str] | None = None) -> int:
             payload = _simple_invalid("FILE_READ_ERROR", "File could not be read.", error_type=type(exc).__name__)
             _emit(payload, args.format)
             return 1
+        if args.acquisition_mode == "producer_emitted_gate_artifact":
+            result = transition_producer_export(args.transition_name, bundle, repository_root=args.schema_root and ".")
+            _emit(result, args.format)
+            return _exit_for_status(result["status"])
         preflight = _transition_preflight(args)
         if preflight is not None:
             _emit(preflight, args.format)

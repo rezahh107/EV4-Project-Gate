@@ -386,9 +386,9 @@ capabilities:
   producer_emitted_gate_artifact:
     common_contract: implemented
     reusable_verifier: implemented
-    producer_adoption: not_started
-    project_gate_runtime_integration: not_implemented
-    downstream_producer_ci_enforcement: not_implemented
+    producer_adoption: implemented
+    project_gate_runtime_integration: implemented_prompt_05_explicit_mode
+    downstream_producer_ci_enforcement: implemented_immutable_sha_workflow
     real_non_synthetic_handoff: insufficient_evidence
 public_cli_transitions:
   - architect-to-ce

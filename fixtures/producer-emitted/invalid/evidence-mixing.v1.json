@@ -1,0 +1,99 @@
+{
+  "acquisition_mode": {
+    "evidence_sources": [
+      "producer_emitted_gate_artifact",
+      "pinned_owner_file_computation"
+    ],
+    "mode": "producer_emitted_gate_artifact",
+    "silent_fallback_allowed": false
+  },
+  "export_id": "synthetic-architect-export",
+  "final_stage_bundle": {
+    "bundle_id": "synthetic-architect-bundle",
+    "evidence": [
+      {
+        "artifact_hash": {
+          "algorithm": "sha256",
+          "scope": "canonical_json",
+          "value": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        },
+        "description": "Synthetic Prompt 5 fixture evidence.",
+        "id": "synthetic-evidence",
+        "kind": "fixture",
+        "source": {
+          "reference": "fixtures/producer-emitted/valid/architect-export.v1.json",
+          "type": "synthetic_fixture"
+        },
+        "state": "exported"
+      }
+    ],
+    "evidence_status": "complete",
+    "payload": {
+      "data": {
+        "fixture": "synthetic"
+      },
+      "schema_id": "ev4-architect-stage-payload"
+    },
+    "payload_schema": {
+      "id": "ev4-architect-stage-payload",
+      "owner_repository": "rezahh107/EV4-Architect-Repo",
+      "version": "1.0.0"
+    },
+    "produced_by": {
+      "commit_sha": "bf0b63c1f5d78725e7ea24371bab3360d9452a4f",
+      "ref": "bf0b63c1f5d78725e7ea24371bab3360d9452a4f",
+      "repository": "rezahh107/EV4-Architect-Repo"
+    },
+    "provenance": {
+      "created_by": "Project Gate Prompt 5 synthetic fixture",
+      "source": "synthetic Prompt 5 fixture"
+    },
+    "schema_version": "stage-evidence-bundle.v1",
+    "stage": "architect",
+    "synthetic": true
+  },
+  "handoff": {
+    "allowed": true,
+    "blocking_diagnostics": [],
+    "failure_reasons": [],
+    "status": "successful",
+    "target": "ce-intake",
+    "unresolved_evidence": []
+  },
+  "pipeline_id": "synthetic-pipeline",
+  "producer": {
+    "commit_sha": "bf0b63c1f5d78725e7ea24371bab3360d9452a4f",
+    "ref": "bf0b63c1f5d78725e7ea24371bab3360d9452a4f",
+    "repository": "rezahh107/EV4-Architect-Repo",
+    "stage": "architect"
+  },
+  "run_id": "synthetic-run",
+  "schema_version": "producer-gate-export.v1",
+  "stage_manifest": [
+    {
+      "blockers": [],
+      "mandatory": true,
+      "ordinal": 1,
+      "output": {
+        "artifact_hash": {
+          "algorithm": "sha256",
+          "scope": "canonical_json",
+          "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        "artifact_ref": "final_stage_bundle",
+        "present": true
+      },
+      "stage_id": "architect-final",
+      "stage_version": "1.0.0",
+      "status": "complete",
+      "unknowns": []
+    }
+  ],
+  "validation": {
+    "diagnostics": [],
+    "schema_valid": true,
+    "semantic_valid": true,
+    "validator_id": "ev4-producer-gate-export-validator",
+    "validator_version": "1.0.0"
+  }
+}

@@ -1,0 +1,95 @@
+{
+  "acquisition_mode": {
+    "mode": "producer_emitted_gate_artifact",
+    "silent_fallback_allowed": false
+  },
+  "export_id": "synthetic-responsive-export",
+  "final_stage_bundle": {
+    "bundle_id": "synthetic-responsive-bundle",
+    "evidence": [
+      {
+        "artifact_hash": {
+          "algorithm": "sha256",
+          "scope": "canonical_json",
+          "value": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        },
+        "description": "Synthetic Prompt 5 fixture evidence.",
+        "id": "synthetic-evidence",
+        "kind": "fixture",
+        "source": {
+          "reference": "fixtures/producer-emitted/valid/responsive-export.v1.json",
+          "type": "synthetic_fixture"
+        },
+        "state": "exported"
+      }
+    ],
+    "evidence_status": "complete",
+    "payload": {
+      "data": {
+        "fixture": "synthetic"
+      },
+      "schema_id": "ev4-responsive-stage-payload"
+    },
+    "payload_schema": {
+      "id": "ev4-responsive-stage-payload",
+      "owner_repository": "rezahh107/EV4-Responsive-Architect",
+      "version": "1.0.0"
+    },
+    "produced_by": {
+      "commit_sha": "28a995a603a5a383b8592d6beae7db8943f20acf",
+      "ref": "28a995a603a5a383b8592d6beae7db8943f20acf",
+      "repository": "rezahh107/EV4-Responsive-Architect"
+    },
+    "provenance": {
+      "created_by": "Project Gate Prompt 5 synthetic fixture",
+      "source": "synthetic Prompt 5 fixture"
+    },
+    "schema_version": "stage-evidence-bundle.v1",
+    "stage": "responsive",
+    "synthetic": true
+  },
+  "handoff": {
+    "allowed": true,
+    "blocking_diagnostics": [],
+    "failure_reasons": [],
+    "status": "successful",
+    "target": "final-evidence-gate",
+    "unresolved_evidence": []
+  },
+  "pipeline_id": "synthetic-pipeline",
+  "producer": {
+    "commit_sha": "28a995a603a5a383b8592d6beae7db8943f20acf",
+    "ref": "28a995a603a5a383b8592d6beae7db8943f20acf",
+    "repository": "rezahh107/EV4-Responsive-Architect",
+    "stage": "responsive"
+  },
+  "run_id": "synthetic-run",
+  "schema_version": "producer-gate-export.v1",
+  "stage_manifest": [
+    {
+      "blockers": [],
+      "mandatory": true,
+      "ordinal": 1,
+      "output": {
+        "artifact_hash": {
+          "algorithm": "sha256",
+          "scope": "canonical_json",
+          "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        "artifact_ref": "final_stage_bundle",
+        "present": true
+      },
+      "stage_id": "responsive-final",
+      "stage_version": "1.0.0",
+      "status": "complete",
+      "unknowns": []
+    }
+  ],
+  "validation": {
+    "diagnostics": [],
+    "schema_valid": true,
+    "semantic_valid": true,
+    "validator_id": "ev4-producer-gate-export-validator",
+    "validator_version": "1.0.0"
+  }
+}
