@@ -38,6 +38,7 @@ blocking_insufficient_evidence:
   - `builder`
   - `responsive`
 - Changed CE `stage_bundle_schema` from `not_applicable` to `insufficient_evidence` because the common Producer Gate Export contract requires `final_stage_bundle` and no CE exception was verified.
+- Added terminology clarification that path-observed artifact status does not mean hash-verified readiness.
 - Kept `prompt_5_ready: false`.
 
 ## Tests run
@@ -48,11 +49,24 @@ python -m json.tool docs/evidence/JOIN_EVIDENCE_PACKET_v1.json >/tmp/join-eviden
 
 Result: `passed` on the generated repair JSON before repository write.
 
+## CI observation
+
+CI evidence is head-specific.
+
+For head `2d21ae9a4e8934513cb427714e76a4e7a0f6e29b`, the following Project Gate workflows were observed as `completed` / `success` before this documentation synchronization update:
+
+- `UI Runtime Smoke`
+- `Prompt 06 Report UX`
+- `Prompt 05 Builder Responsive Final Gate`
+- `Skeleton Health`
+
+After any later documentation-only commit, exact-head CI must be rechecked before merge. Do not treat an older head's CI result as current if the PR head SHA has changed.
+
 ## Tests not run
 
-- Project Gate branch CI after this repair commit has not been observed yet.
 - Repository validator was not run locally because no checkout was available.
 - `git show <commit_sha>:<path> | sha256sum` was not run; local GitHub network access failed.
+- CI job logs were not downloaded; only workflow run status/conclusion metadata was inspected.
 
 ## Capability limitations
 
@@ -97,5 +111,5 @@ Prompt 5 must not proceed until blockers are resolved.
 
 - Producer repositories were not modified.
 - Project Gate runtime code was not modified.
-- CI pass is not claimed for this repair commit.
+- CI pass is claimed only for the previously observed head `2d21ae9a4e8934513cb427714e76a4e7a0f6e29b`; current exact-head CI must be rechecked after this documentation update.
 - No `accepted` or Prompt 5 readiness claim is emitted.
