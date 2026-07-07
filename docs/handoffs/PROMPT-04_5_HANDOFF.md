@@ -53,14 +53,14 @@ Result: `passed` on the generated repair JSON before repository write.
 
 CI evidence is head-specific.
 
-For head `2d21ae9a4e8934513cb427714e76a4e7a0f6e29b`, the following Project Gate workflows were observed as `completed` / `success` before the later documentation synchronization updates:
+Head `321999282693dc818d34bfaa3bc81204324bb808` was observed with these Project Gate workflow conclusions: `success`.
 
 - `UI Runtime Smoke`
-- `Prompt 06 Report UX`
 - `Prompt 05 Builder Responsive Final Gate`
+- `Prompt 06 Report UX`
 - `Skeleton Health`
 
-After any later documentation-only commit, exact-head CI must be rechecked before merge. Do not treat an older head's CI result as current if the PR head SHA has changed.
+This section records the exact-head CI evidence that was current when the PRF-001 stale-CI-text repair was applied. If the PR head changes after this documentation update, exact-head CI must be rechecked before merge.
 
 ## Tests not run
 
@@ -111,5 +111,5 @@ Prompt 5 must not proceed until blockers are resolved.
 
 - Producer repositories were not modified.
 - Project Gate runtime code was not modified.
-- CI pass is claimed only for the previously observed head `2d21ae9a4e8934513cb427714e76a4e7a0f6e29b`; current exact-head CI must be rechecked after documentation updates.
+- CI pass is claimed for observed head `321999282693dc818d34bfaa3bc81204324bb808`; exact-head CI must be rechecked if later commits move the PR head.
 - No `accepted` or Prompt 5 readiness claim is emitted.
