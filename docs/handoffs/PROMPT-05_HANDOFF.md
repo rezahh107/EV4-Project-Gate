@@ -27,15 +27,25 @@ Prompt 5 implemented the explicit `producer_emitted_gate_artifact` Project Gate 
 
 - `uv sync --locked --extra dev --extra ui`
 - `uv run pytest -q tests/producer_integration/test_prompt05_producer_integration.py`
+- `uv run pytest -q`
+- `uv run python scripts/check-capability-truth.py`
+- `uv run python scripts/check-workflow-permissions.py`
+- `uv run python scripts/check-github-action-pinning.py`
+- `uv run python scripts/validate-behavioral-rule-coverage.py`
+- `uv run ev4-transition validate fixtures/valid/architect-stage-bundle.v1.json`
+- `uv run ev4-transition validate fixtures/invalid/array-input.v1.json` returned exit 1 as expected for invalid input.
+- `uv run ev4-transition validate fixtures/insufficient-evidence/architect-stage-bundle.v1.json --format persian` returned exit 2 as expected for insufficient evidence.
+- `npm run status`
+- `npm run validate`
 
 ## Tests not run at handoff creation time
 
-Full repository validation and Node checks are intended before final PR handoff.
+Remote GitHub Actions re-run on the repaired PR head was not observed in this local environment.
 
 ## Coverage rules advanced
 
-- Join Evidence Packet preflight: fixture-tested by the repaired packet.
-- Producer adoption registry: validator-backed and fixture-tested by Prompt 5 tests.
+- Join Evidence Packet preflight: fixture-tested by the repaired packet and enforced in the producer-emitted transition runtime before accepted results are returned.
+- Producer adoption registry: validator-backed and fixture-tested by Prompt 5 tests, including malformed-registry fail-closed cases.
 - Exact Git blob unavailable behavior: fixture-tested with a local empty git repository.
 - Producer-emitted intake: fixture-tested across all four stages.
 - Explicit acquisition mode, no fallback, and no evidence mixing: fixture-tested.
@@ -53,10 +63,11 @@ Full repository validation and Node checks are intended before final PR handoff.
 
 - CLI: `ev4-transition transition ... --acquisition-mode producer_emitted_gate_artifact` selects the explicit Producer-emitted path.
 - UI: local operator panel exposes acquisition-mode selection and includes selected mode in machine-readable results.
-- CI: `.github/workflows/prompt-05-producer-integration.yml` checks out Producer repositories only by immutable merged SHAs with `persist-credentials: false`.
+- CI: `.github/workflows/prompt-05-producer-integration.yml` checks out Producer repositories only by immutable merged SHAs with `persist-credentials: false` and verifies validator paths recorded in the adoption registry.
 
 ## Important design decisions
 
+- Join Evidence Packet preflight is enforced before producer-emitted transition acceptance.
 - No auto-detection and no automatic fallback between acquisition modes.
 - Runtime pins use merged commits; PR heads are retained only as CI provenance.
 - Project Gate validates orchestration boundaries and does not copy Producer semantics.
@@ -72,13 +83,13 @@ Human review and merge decision for Prompt 5 PR; a later prompt may deepen offic
 
 ## Blockers
 
-No implementation blocker after Join Evidence Packet preflight passed.
+Review blockers repaired locally: Join Evidence Packet runtime enforcement, schema allowlist governance, registry malformed-input fail-closed behavior, and adoption-registry-based producer validator path checks.
 
 ## Remaining insufficient_evidence
 
 - Real non-synthetic cross-repository E2E chain.
 - Production readiness.
-- Exact PR-head CI observation for this new PR until remote CI is observed.
+- Exact PR-head CI observation for the repaired PR head until remote CI is observed.
 
 ## No-false-execution notes
 

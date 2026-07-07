@@ -76,10 +76,34 @@ jobs:
                   if actual != rec['sha256']:
                       raise SystemExit(f"hash mismatch: {producer['stage']} {rec['path']} {actual} != {rec['sha256']}")
           PY
-      - name: Official producer validators when available
+      - name: Official producer validators recorded by adoption registry
         run: |
-          set -euo pipefail
-          test -f producers/architect/scripts/check-architect-producer-gate-adoption.py
-          test -f producers/ce/scripts/check-project-gate-producer-adoption.py || test -f producers/ce/scripts/validate-ce-producer-gate-adoption.py
-          test -f producers/builder/scripts/check-project-gate-producer-adoption.mjs || test -f producers/builder/scripts/validate-project-gate-producer-adoption.mjs
-          test -f producers/responsive/scripts/check-project-gate-producer-adoption.py || test -f producers/responsive/scripts/validate-project-gate-producer-adoption.py
+          uv run python - <<'PY'
+          import json
+          from pathlib import Path
+
+          registry = json.load(open('contracts/producer-adoption/ev4-producer-adoption-set.v1.json'))
+          roots = {
+              'architect': Path('producers/architect'),
+              'ce': Path('producers/ce'),
+              'builder': Path('producers/builder'),
+              'responsive': Path('producers/responsive'),
+          }
+          missing = []
+          for producer in registry['producers']:
+              stage = producer['stage']
+              validator_paths = [
+                  artifact['path']
+                  for artifact in producer.get('artifacts', [])
+                  if artifact.get('role') == 'validator'
+              ]
+              if not validator_paths:
+                  missing.append(f'{stage}: no validator artifact recorded')
+                  continue
+              for validator_path in validator_paths:
+                  if not (roots[stage] / validator_path).is_file():
+                      missing.append(f'{stage}: missing {validator_path}')
+          if missing:
+              raise SystemExit('\n'.join(missing))
+          print('All adoption-registry validator paths are present in immutable producer checkouts.')
+          PY

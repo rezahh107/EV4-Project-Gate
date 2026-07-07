@@ -72,3 +72,36 @@ def test_cli_explicit_producer_mode_smoke():
     payload = json.loads(proc.stdout)
     assert payload["status"] == "accepted"
     assert payload["acquisition_mode"] == "producer_emitted_gate_artifact"
+
+
+def write_json(path: Path, payload):
+    path.write_text(json.dumps(payload, sort_keys=True))
+
+
+def test_transition_runtime_enforces_join_packet_preflight(tmp_path):
+    packet = tmp_path / "not-ready.json"
+    write_json(packet, {"prompt_5_ready": False, "blocking_insufficient_evidence": ["x"], "ready_decision": "blocked"})
+    result = transition_producer_export(
+        "architect-to-ce",
+        load("fixtures/producer-emitted/valid/architect-export.v1.json"),
+        join_packet_path=packet,
+    )
+    assert result["status"] == "invalid"
+    assert any(d["code"] == "PG-P05-JOIN-EVIDENCE-NOT-READY" for d in result["diagnostics"])
+    assert result["join_evidence_preflight"]["prompt_5_execution_allowed"] is False
+
+
+def test_adoption_registry_malformed_inputs_return_invalid_without_traceback(tmp_path):
+    cases = [
+        ["not", "object"],
+        {"schema_id": "ev4-producer-adoption-set.v1", "prompt_0": {}, "producers": ["bad"]},
+        {"schema_id": "ev4-producer-adoption-set.v1", "prompt_0": {}, "producers": [{"stage": "architect", "runtime_pin": [], "artifacts": ["bad"]}]},
+        {"schema_id": "ev4-producer-adoption-set.v1", "prompt_0": {}, "producers": [{"stage": "architect", "runtime_pin": {}, "artifacts": [{"role": 7}]}]},
+    ]
+    for index, payload in enumerate(cases):
+        path = tmp_path / f"registry-{index}.json"
+        write_json(path, payload)
+        result = validate_adoption_registry(path)
+        assert result["status"] == "invalid"
+        assert result["diagnostics"]
+        assert all(d["code"] == "PG-P05-PRODUCER-REGISTRY-INVALID" for d in result["diagnostics"] if d["path"] != "$.producers[0].runtime_pin.merged_commit_sha")
