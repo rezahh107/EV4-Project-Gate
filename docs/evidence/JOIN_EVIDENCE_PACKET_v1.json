@@ -1,0 +1,516 @@
+{
+  "schema_id": "ev4-project-gate-join-evidence-packet",
+  "schema_version": "1.0.0",
+  "packet_id": "join-evidence-packet-prompt-04-5",
+  "project_gate_repository": "rezahh107/EV4-Project-Gate",
+  "capability_handshake": {
+    "read_all_five_github_repositories": "AVAILABLE",
+    "inspect_pr_merged_state": "AVAILABLE",
+    "inspect_exact_pr_head_sha": "AVAILABLE",
+    "inspect_merge_commit_sha": "AVAILABLE",
+    "inspect_ci_workflow_run_conclusion_for_exact_pr_head_sha": "AVAILABLE",
+    "read_files_at_immutable_commit_refs": "AVAILABLE",
+    "compute_sha256_from_git_show_blob_bytes": "UNAVAILABLE",
+    "write_branch_and_pr_in_project_gate": "AVAILABLE"
+  },
+  "project_gate_prompt_0": {
+    "repository": "rezahh107/EV4-Project-Gate",
+    "expected_pr": 40,
+    "expected_merge_commit_sha": "ea19c22c32458068e167b267da8b819e9263cdf7",
+    "producer_gate_export_path": "contracts/common/producer-gate-export.v1.schema.json",
+    "stage_bundle_path": "schemas/stage-bundle/stage-bundle.v1.schema.json",
+    "expected_producer_gate_export_sha256": "c556bb9deeccdcafeb885a1c8b3dbd660e4e06f452b8ac3c7040d21377465fcc",
+    "expected_stage_bundle_sha256": "fc1ec6d3f7aecbabaeb0a3455d9eb42788779d2fa1531e8c7b2cb3bde706a886",
+    "git_show_sha256_verified": false,
+    "hash_verification": {
+      "method": "git_show_blob",
+      "all_required_hashes_verified": false,
+      "records": [
+        {
+          "path": "contracts/common/producer-gate-export.v1.schema.json",
+          "commit_sha": "ea19c22c32458068e167b267da8b819e9263cdf7",
+          "method": "git show ea19c22c32458068e167b267da8b819e9263cdf7:contracts/common/producer-gate-export.v1.schema.json",
+          "sha256": null,
+          "status": "insufficient_evidence",
+          "notes": ["git_blob_bytes_unavailable"]
+        },
+        {
+          "path": "schemas/stage-bundle/stage-bundle.v1.schema.json",
+          "commit_sha": "ea19c22c32458068e167b267da8b819e9263cdf7",
+          "method": "git show ea19c22c32458068e167b267da8b819e9263cdf7:schemas/stage-bundle/stage-bundle.v1.schema.json",
+          "sha256": null,
+          "status": "insufficient_evidence",
+          "notes": ["git_blob_bytes_unavailable"]
+        }
+      ]
+    }
+  },
+  "producers": {
+    "architect": {
+      "repository": "rezahh107/EV4-Architect-Repo",
+      "prompt": "Prompt 1",
+      "pr": {
+        "number": 14,
+        "merged": true,
+        "draft": false,
+        "head_sha": "be64ea1a90dd0ad66c2e721597a4c35056f71b4f",
+        "merge_commit_sha": "bf0b63c1f5d78725e7ea24371bab3360d9452a4f",
+        "base_branch": "main",
+        "merged_at": "2026-07-07T06:27:16Z",
+        "exact_expected_head_sha_match": true,
+        "exact_expected_merge_commit_sha_match": true
+      },
+      "ci": {
+        "exact_head_ci_verified": true,
+        "runs": [
+          {
+            "workflow_name": "verify-project-gate-contract",
+            "commit_sha": "be64ea1a90dd0ad66c2e721597a4c35056f71b4f",
+            "status": "completed",
+            "conclusion": "success",
+            "url": "https://github.com/rezahh107/EV4-Architect-Repo/actions/runs/28840102941",
+            "exact_head_evidence": true
+          },
+          {
+            "workflow_name": "validate-architect-producer-gate-adoption",
+            "commit_sha": "be64ea1a90dd0ad66c2e721597a4c35056f71b4f",
+            "status": "completed",
+            "conclusion": "success",
+            "url": "https://github.com/rezahh107/EV4-Architect-Repo/actions/runs/28840102788",
+            "exact_head_evidence": true
+          }
+        ]
+      },
+      "handoff": {
+        "expected_path": "docs/handoffs/PROMPT-01_HANDOFF.md",
+        "found": true,
+        "source_path_used": "docs/handoffs/PROMPT-01_HANDOFF.md",
+        "stale": true,
+        "stale_reasons": ["pending_merge", "old_head_sha"],
+        "blob_sha": "85e8c24a29b21ba1ca810003fa7bc48ec1844102"
+      },
+      "artifacts": {
+        "pipeline_manifest": {"path": "manifests/architect-pipeline-manifest.v1.json", "status": "verified"},
+        "stage_payload_schema": {"path": "schemas/ev4-architect-stage-payload.v1.schema.json", "status": "verified"},
+        "producer_gate_export_schema": {"path": "contracts/project-gate/producer-gate-export.v1.schema.json", "status": "verified"},
+        "producer_gate_export_lock": {"path": "contracts/project-gate/producer-gate-export.v1.lock.json", "status": "verified"},
+        "stage_bundle_schema": {"path": "contracts/project-gate/stage-bundle.v1.schema.json", "status": "verified"},
+        "validator": {"path": "scripts/check-architect-producer-gate-adoption.py", "status": "verified"},
+        "ci_workflow": {"path": ".github/workflows/verify-project-gate-contract.yml", "status": "verified"},
+        "fixtures": [
+          {"path": "fixtures/build-tree/valid/voice-assistant-reference.v1.json", "kind": "valid", "status": "verified"},
+          {"path": "fixtures/project-gate-export/valid/blocked-run.v1.json", "kind": "valid", "status": "verified"},
+          {"path": "fixtures/build-tree/invalid/cases.v1.json", "kind": "invalid", "status": "verified"},
+          {"path": "fixtures/project-gate-export/invalid/cases.v1.json", "kind": "invalid", "status": "verified"}
+        ]
+      },
+      "hash_verification": {
+        "method": "git_show_blob",
+        "all_required_hashes_verified": false,
+        "records": [
+          {
+            "path": "required_artifacts",
+            "commit_sha": "bf0b63c1f5d78725e7ea24371bab3360d9452a4f",
+            "method": "git show bf0b63c1f5d78725e7ea24371bab3360d9452a4f:<artifact_path>",
+            "sha256": null,
+            "status": "insufficient_evidence",
+            "notes": ["git_blob_bytes_unavailable", "all required artifact path hashes must be expanded by evidence repair before Prompt 5"]
+          }
+        ]
+      },
+      "readiness": {
+        "merged_commit_verified": true,
+        "ci_verified": true,
+        "handoff_usable": false,
+        "artifacts_verified": false,
+        "ready_for_prompt_5": false
+      }
+    },
+    "ce": {
+      "repository": "rezahh107/EV4-Constructability-Engineer-Repo",
+      "prompt": "Prompt 2",
+      "pr": {
+        "number": 28,
+        "merged": true,
+        "draft": false,
+        "head_sha": "50235056f2b6ca72a3372ae68ba2d76f358e15e5",
+        "merge_commit_sha": "189163669cca0caf5adb62c97d78dae580129f15",
+        "base_branch": "main",
+        "merged_at": "2026-07-07T06:28:18Z",
+        "exact_expected_head_sha_match": true,
+        "exact_expected_merge_commit_sha_match": true
+      },
+      "ci": {
+        "exact_head_ci_verified": true,
+        "runs": [
+          {
+            "workflow_name": "verify-project-gate-contract",
+            "commit_sha": "50235056f2b6ca72a3372ae68ba2d76f358e15e5",
+            "status": "completed",
+            "conclusion": "success",
+            "url": "https://github.com/rezahh107/EV4-Constructability-Engineer-Repo/actions/runs/28829665976",
+            "exact_head_evidence": true
+          },
+          {
+            "workflow_name": "validate-fixtures",
+            "commit_sha": "50235056f2b6ca72a3372ae68ba2d76f358e15e5",
+            "status": "completed",
+            "conclusion": "success",
+            "url": "https://github.com/rezahh107/EV4-Constructability-Engineer-Repo/actions/runs/28829665211",
+            "exact_head_evidence": true
+          }
+        ]
+      },
+      "handoff": {
+        "expected_path": "docs/handoffs/PROMPT-02_HANDOFF.md",
+        "found": false,
+        "source_path_used": "patch-reports/CE_PROJECT_GATE_PRODUCER_ADOPTION.md",
+        "stale": true,
+        "stale_reasons": ["missing_standard_handoff", "fallback_report_used"],
+        "blob_sha": null,
+        "fallback_reconciliation_source": {
+          "path": "patch-reports/CE_PROJECT_GATE_PRODUCER_ADOPTION.md",
+          "found": true,
+          "blob_sha": "d088bd8f3a281ca47f2aaa4312379ceaa6c2818a",
+          "status": "fallback_only_requires_human_acceptance"
+        }
+      },
+      "artifacts": {
+        "pipeline_manifest": {"path": "manifests/ce_pipeline_manifest.v1.json", "status": "verified"},
+        "stage_payload_schema": {"path": "schemas/ce_stage_payload.v1.schema.json", "status": "verified"},
+        "producer_gate_export_schema": {"path": "contracts/project-gate/producer-gate-export.v1.schema.json", "status": "verified"},
+        "producer_gate_export_lock": {"path": "contracts/project-gate/producer-gate-export.v1.lock.json", "status": "verified"},
+        "stage_bundle_schema": {
+          "path": null,
+          "status": "insufficient_evidence",
+          "notes": [
+            "common_producer_gate_export_requires_final_stage_bundle",
+            "no_ce_stage_bundle_schema_path_verified",
+            "not_applicable_removed_after_prf_002"
+          ]
+        },
+        "validator": {"path": "validator/project_gate_export.py", "status": "verified"},
+        "ci_workflow": {"path": ".github/workflows/verify-project-gate-contract.yml", "status": "verified"},
+        "fixtures": [
+          {"path": "fixtures/project_gate_export/valid_blocked_ce_producer_gate_export.json", "kind": "valid", "status": "verified"},
+          {"path": "fixtures/project_gate_export/invalid_silent_fallback_true.json", "kind": "invalid", "status": "verified"}
+        ]
+      },
+      "hash_verification": {
+        "method": "git_show_blob",
+        "all_required_hashes_verified": false,
+        "records": [
+          {
+            "path": "required_artifacts",
+            "commit_sha": "189163669cca0caf5adb62c97d78dae580129f15",
+            "method": "git show 189163669cca0caf5adb62c97d78dae580129f15:<artifact_path>",
+            "sha256": null,
+            "status": "insufficient_evidence",
+            "notes": ["git_blob_bytes_unavailable", "all required artifact path hashes must be expanded by evidence repair before Prompt 5"]
+          }
+        ]
+      },
+      "readiness": {
+        "merged_commit_verified": true,
+        "ci_verified": true,
+        "handoff_usable": false,
+        "artifacts_verified": false,
+        "ready_for_prompt_5": false
+      }
+    },
+    "builder": {
+      "repository": "rezahh107/EV4-Builder-Assistant-Repo",
+      "prompt": "Prompt 3",
+      "pr": {
+        "number": 47,
+        "merged": true,
+        "draft": false,
+        "head_sha": "5606f561f8a28555c4f8ee7afa37446daae7e8bb",
+        "merge_commit_sha": "45459d0246f5d14486867224d26c2d2ba8a563b6",
+        "base_branch": "main",
+        "merged_at": "2026-07-07T06:27:48Z",
+        "exact_expected_head_sha_match": true,
+        "exact_expected_merge_commit_sha_match": true
+      },
+      "ci": {
+        "exact_head_ci_verified": true,
+        "runs": [
+          {
+            "workflow_name": "Verify Project Gate Contract Pin",
+            "commit_sha": "5606f561f8a28555c4f8ee7afa37446daae7e8bb",
+            "status": "completed",
+            "conclusion": "success",
+            "url": "https://github.com/rezahh107/EV4-Builder-Assistant-Repo/actions/runs/28839739083",
+            "exact_head_evidence": true
+          },
+          {
+            "workflow_name": "Schema validation",
+            "commit_sha": "5606f561f8a28555c4f8ee7afa37446daae7e8bb",
+            "status": "completed",
+            "conclusion": "success",
+            "url": "https://github.com/rezahh107/EV4-Builder-Assistant-Repo/actions/runs/28839738912",
+            "exact_head_evidence": true
+          }
+        ]
+      },
+      "handoff": {
+        "expected_path": "docs/handoffs/PROMPT-03_HANDOFF.md",
+        "found": true,
+        "source_path_used": "docs/handoffs/PROMPT-03_HANDOFF.md",
+        "stale": true,
+        "stale_reasons": ["pending_merge"],
+        "blob_sha": "2d2559f5cf29358e9e02250d70640b779f2bde1d"
+      },
+      "artifacts": {
+        "pipeline_manifest": {"path": "data/builder-pipeline-manifest.v1.json", "status": "verified"},
+        "stage_payload_schema": {"path": "schemas/builder-stage-payload.schema.json", "status": "verified"},
+        "producer_gate_export_schema": {"path": "contracts/project-gate/producer-gate-export.v1.schema.json", "status": "verified"},
+        "producer_gate_export_lock": {"path": "contracts/project-gate/producer-gate-export.v1.lock.json", "status": "verified"},
+        "stage_bundle_schema": {"path": "contracts/project-gate/stage-bundle.v1.schema.json", "status": "verified"},
+        "validator": {"path": "scripts/validate-builder-producer-adoption.mjs", "status": "verified"},
+        "ci_workflow": {"path": ".github/workflows/verify-project-gate-contract.yml", "status": "verified"},
+        "fixtures": [
+          {"path": "tests/valid/builder_stage_payload_minimal.json", "kind": "valid", "status": "verified"},
+          {"path": "tests/invalid/builder_stage_payload_completed_claims_production_ready.json", "kind": "invalid", "status": "verified"}
+        ]
+      },
+      "hash_verification": {
+        "method": "git_show_blob",
+        "all_required_hashes_verified": false,
+        "records": [
+          {
+            "path": "required_artifacts",
+            "commit_sha": "45459d0246f5d14486867224d26c2d2ba8a563b6",
+            "method": "git show 45459d0246f5d14486867224d26c2d2ba8a563b6:<artifact_path>",
+            "sha256": null,
+            "status": "insufficient_evidence",
+            "notes": ["git_blob_bytes_unavailable", "all required artifact path hashes must be expanded by evidence repair before Prompt 5"]
+          }
+        ]
+      },
+      "readiness": {
+        "merged_commit_verified": true,
+        "ci_verified": true,
+        "handoff_usable": false,
+        "artifacts_verified": false,
+        "ready_for_prompt_5": false
+      }
+    },
+    "responsive": {
+      "repository": "rezahh107/EV4-Responsive-Architect",
+      "prompt": "Prompt 4",
+      "pr": {
+        "number": 142,
+        "merged": true,
+        "draft": false,
+        "head_sha": "f565f0bdd48b53c5a3c70706cbfce1d44fcb72e1",
+        "merge_commit_sha": "28a995a603a5a383b8592d6beae7db8943f20acf",
+        "base_branch": "main",
+        "merged_at": "2026-07-07T08:00:04Z",
+        "exact_expected_head_sha_match": true,
+        "exact_expected_merge_commit_sha_match": true
+      },
+      "ci": {
+        "exact_head_ci_verified": true,
+        "runs": [
+          {
+            "workflow_name": "Verify vendored Project Gate common contract",
+            "commit_sha": "f565f0bdd48b53c5a3c70706cbfce1d44fcb72e1",
+            "status": "completed",
+            "conclusion": "success",
+            "url": "https://github.com/rezahh107/EV4-Responsive-Architect/actions/runs/28850615732",
+            "exact_head_evidence": true
+          },
+          {
+            "workflow_name": "Validate",
+            "commit_sha": "f565f0bdd48b53c5a3c70706cbfce1d44fcb72e1",
+            "status": "completed",
+            "conclusion": "success",
+            "url": "https://github.com/rezahh107/EV4-Responsive-Architect/actions/runs/28850615288",
+            "exact_head_evidence": true
+          }
+        ]
+      },
+      "handoff": {
+        "expected_path": "docs/handoffs/PROMPT-04_HANDOFF.md",
+        "found": true,
+        "source_path_used": "docs/handoffs/PROMPT-04_HANDOFF.md",
+        "stale": true,
+        "stale_reasons": ["pending_merge", "head_branch_mismatch"],
+        "blob_sha": "598ac0e080aa29ee043e25fc138fdd849f605e51"
+      },
+      "artifacts": {
+        "pipeline_manifest": {"path": "manifests/ev4-responsive-pipeline-manifest.v1.json", "status": "verified"},
+        "stage_payload_schema": {"path": "schemas/ev4-responsive-stage-payload.v1.schema.json", "status": "verified"},
+        "producer_gate_export_schema": {"path": "contracts/project-gate/producer-gate-export.v1.schema.json", "status": "verified"},
+        "producer_gate_export_lock": {"path": "contracts/project-gate/producer-gate-export.v1.lock.json", "status": "verified"},
+        "stage_bundle_schema": {"path": "schemas/project-gate/stage-bundle.v1.schema.json", "status": "verified"},
+        "validator": {"path": "validation/project_gate/validate_responsive_producer_adoption.py", "status": "verified"},
+        "ci_workflow": {"path": ".github/workflows/verify-vendored-common-contract.yml", "status": "verified"},
+        "fixtures": [
+          {"path": "validation/fixtures/prompt04/valid/responsive_producer_gate_export.valid.json", "kind": "valid", "status": "verified"},
+          {"path": "validation/fixtures/prompt04/valid/responsive_stage_payload.valid.json", "kind": "valid", "status": "verified"},
+          {"path": "validation/fixtures/prompt04/invalid/responsive_producer_gate_export_silent_fallback.invalid.json", "kind": "invalid", "status": "verified"},
+          {"path": "validation/fixtures/prompt04/invalid/responsive_stage_payload_cross_viewport.invalid.json", "kind": "invalid", "status": "verified"}
+        ]
+      },
+      "hash_verification": {
+        "method": "git_show_blob",
+        "all_required_hashes_verified": false,
+        "records": [
+          {
+            "path": "required_artifacts",
+            "commit_sha": "28a995a603a5a383b8592d6beae7db8943f20acf",
+            "method": "git show 28a995a603a5a383b8592d6beae7db8943f20acf:<artifact_path>",
+            "sha256": null,
+            "status": "insufficient_evidence",
+            "notes": ["git_blob_bytes_unavailable", "all required artifact path hashes must be expanded by evidence repair before Prompt 5"]
+          }
+        ]
+      },
+      "readiness": {
+        "merged_commit_verified": true,
+        "ci_verified": true,
+        "handoff_usable": false,
+        "artifacts_verified": false,
+        "ready_for_prompt_5": false
+      }
+    }
+  },
+  "discrepancies": [
+    {
+      "code": "hash_not_recorded",
+      "producer": "project_gate_prompt_0",
+      "severity": "blocking",
+      "source_path": "contracts/common/producer-gate-export.v1.schema.json",
+      "detail": "Required git show SHA-256 verification unavailable for Producer Gate Export schema."
+    },
+    {
+      "code": "hash_not_recorded",
+      "producer": "project_gate_prompt_0",
+      "severity": "blocking",
+      "source_path": "schemas/stage-bundle/stage-bundle.v1.schema.json",
+      "detail": "Required git show SHA-256 verification unavailable for Stage Bundle schema."
+    },
+    {
+      "code": "producer_required_artifact_hashes_not_git_show_verified",
+      "producer": "architect",
+      "severity": "blocking",
+      "source_path": "required_artifacts",
+      "detail": "Required artifact hashes for architect were not computed from git blob bytes; see producers.architect.hash_verification.records."
+    },
+    {
+      "code": "producer_required_artifact_hashes_not_git_show_verified",
+      "producer": "ce",
+      "severity": "blocking",
+      "source_path": "required_artifacts",
+      "detail": "Required artifact hashes for ce were not computed from git blob bytes; see producers.ce.hash_verification.records."
+    },
+    {
+      "code": "producer_required_artifact_hashes_not_git_show_verified",
+      "producer": "builder",
+      "severity": "blocking",
+      "source_path": "required_artifacts",
+      "detail": "Required artifact hashes for builder were not computed from git blob bytes; see producers.builder.hash_verification.records."
+    },
+    {
+      "code": "producer_required_artifact_hashes_not_git_show_verified",
+      "producer": "responsive",
+      "severity": "blocking",
+      "source_path": "required_artifacts",
+      "detail": "Required artifact hashes for responsive were not computed from git blob bytes; see producers.responsive.hash_verification.records."
+    },
+    {
+      "code": "ce_stage_bundle_schema_insufficient_evidence",
+      "producer": "ce",
+      "severity": "blocking",
+      "source_path": "producers.ce.artifacts.stage_bundle_schema",
+      "detail": "CE stage_bundle_schema is insufficient_evidence, not not_applicable; common Producer Gate Export requires final_stage_bundle and no contract-backed CE exception was verified."
+    },
+    {
+      "code": "missing_standard_handoff",
+      "producer": "ce",
+      "severity": "blocking",
+      "source_path": "docs/handoffs/PROMPT-02_HANDOFF.md",
+      "detail": "Expected standard handoff not found; fallback report requires human acceptance."
+    },
+    {
+      "code": "stale_handoff_pending_merge",
+      "producer": "architect",
+      "severity": "warning",
+      "source_path": "docs/handoffs/PROMPT-01_HANDOFF.md",
+      "detail": "Handoff says pending_merge but PR is merged."
+    },
+    {
+      "code": "stale_handoff_old_head_sha",
+      "producer": "architect",
+      "severity": "warning",
+      "source_path": "docs/handoffs/PROMPT-01_HANDOFF.md",
+      "detail": "Handoff references an old head SHA."
+    },
+    {
+      "code": "stale_handoff_pending_merge",
+      "producer": "builder",
+      "severity": "warning",
+      "source_path": "docs/handoffs/PROMPT-03_HANDOFF.md",
+      "detail": "Handoff says pending_merge but PR is merged."
+    },
+    {
+      "code": "stale_handoff_pending_merge",
+      "producer": "responsive",
+      "severity": "warning",
+      "source_path": "docs/handoffs/PROMPT-04_HANDOFF.md",
+      "detail": "Handoff says pending_merge but PR is merged."
+    },
+    {
+      "code": "stale_handoff_branch_mismatch",
+      "producer": "responsive",
+      "severity": "warning",
+      "source_path": "docs/handoffs/PROMPT-04_HANDOFF.md",
+      "detail": "Handoff branch differs from merged PR head branch."
+    }
+  ],
+  "evidence_state": {
+    "producer_prs_merged": "verified",
+    "expected_shas_match": "verified",
+    "exact_head_ci": "verified",
+    "git_show_blob_sha256": "insufficient_evidence",
+    "ce_standard_handoff": "missing",
+    "ce_stage_bundle_schema": "insufficient_evidence",
+    "discrepancy_ledger": "repaired_for_known_blockers",
+    "ready_decision": "blocked"
+  },
+  "prompt_5_substitution": {
+    "FROM_PROMPT_1_FINAL_REPORT": {
+      "source": "docs/evidence/JOIN_EVIDENCE_PACKET_v1.json#/producers/architect",
+      "replacement_status": "blocked",
+      "notes": ["Do not use as Prompt 5 input until blocking_insufficient_evidence is empty."]
+    },
+    "FROM_PROMPT_2_FINAL_REPORT": {
+      "source": "docs/evidence/JOIN_EVIDENCE_PACKET_v1.json#/producers/ce",
+      "replacement_status": "blocked",
+      "notes": ["Do not use as Prompt 5 input until blocking_insufficient_evidence is empty."]
+    },
+    "FROM_PROMPT_3_FINAL_REPORT": {
+      "source": "docs/evidence/JOIN_EVIDENCE_PACKET_v1.json#/producers/builder",
+      "replacement_status": "blocked",
+      "notes": ["Do not use as Prompt 5 input until blocking_insufficient_evidence is empty."]
+    },
+    "FROM_PROMPT_4_FINAL_REPORT": {
+      "source": "docs/evidence/JOIN_EVIDENCE_PACKET_v1.json#/producers/responsive",
+      "replacement_status": "blocked",
+      "notes": ["Do not use as Prompt 5 input until blocking_insufficient_evidence is empty."]
+    }
+  },
+  "prompt_5_ready": false,
+  "blocking_insufficient_evidence": [
+    "project_gate_prompt_0_producer_gate_export_hash_not_git_show_verified",
+    "project_gate_prompt_0_stage_bundle_hash_not_git_show_verified",
+    "architect_required_artifact_hashes_not_git_show_verified",
+    "ce_required_artifact_hashes_not_git_show_verified",
+    "builder_required_artifact_hashes_not_git_show_verified",
+    "responsive_required_artifact_hashes_not_git_show_verified",
+    "ce_stage_bundle_schema_not_verified",
+    "ce_standard_handoff_missing_requires_human_acceptance"
+  ]
+}
