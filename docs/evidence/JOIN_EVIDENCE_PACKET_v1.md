@@ -17,29 +17,40 @@ Purpose: reconcile live Producer evidence before Prompt 5 without modifying Prod
 
 ## Producer evidence
 
-| Producer | PR | Merged | Expected SHA match | Exact-head CI | Handoff | Hashes | Prompt 5 |
-|---|---:|---|---|---|---|---|---|
-| `architect` | `14` | `verified` | `verified` | `verified` | `stale` | `insufficient_evidence` | `blocked` |
-| `ce` | `28` | `verified` | `verified` | `verified` | `missing` | `insufficient_evidence` | `blocked` |
-| `builder` | `47` | `verified` | `verified` | `verified` | `stale` | `insufficient_evidence` | `blocked` |
-| `responsive` | `142` | `verified` | `verified` | `verified` | `stale` | `insufficient_evidence` | `blocked` |
+| Producer | PR | Merged | Expected SHA match | Exact-head CI | Handoff | Hashes | Stage Bundle | Prompt 5 |
+|---|---:|---|---|---|---|---|---|---|
+| `architect` | `14` | `verified` | `verified` | `verified` | `stale` | `insufficient_evidence` | `verified_path_unhashed` | `blocked` |
+| `ce` | `28` | `verified` | `verified` | `verified` | `missing` | `insufficient_evidence` | `insufficient_evidence` | `blocked` |
+| `builder` | `47` | `verified` | `verified` | `verified` | `stale` | `insufficient_evidence` | `verified_path_unhashed` | `blocked` |
+| `responsive` | `142` | `verified` | `verified` | `verified` | `stale` | `insufficient_evidence` | `verified_path_unhashed` | `blocked` |
 
-## Handoff discrepancies
+## Handoff discrepancy table
 
 | Producer | Source | Status | Detail |
 |---|---|---|---|
 | `ce` | `docs/handoffs/PROMPT-02_HANDOFF.md` | `blocking` | Expected standard handoff not found; fallback report requires human acceptance. |
-| `architect` | `docs/handoffs/PROMPT-01_HANDOFF.md` | `warning` | Handoff says pending_merge but PR is merged. |
+| `architect` | `docs/handoffs/PROMPT-01_HANDOFF.md` | `warning` | Handoff says `pending_merge` but PR is merged. |
 | `architect` | `docs/handoffs/PROMPT-01_HANDOFF.md` | `warning` | Handoff references an old head SHA. |
-| `builder` | `docs/handoffs/PROMPT-03_HANDOFF.md` | `warning` | Handoff says pending_merge but PR is merged. |
-| `responsive` | `docs/handoffs/PROMPT-04_HANDOFF.md` | `warning` | Handoff says pending_merge but PR is merged. |
+| `builder` | `docs/handoffs/PROMPT-03_HANDOFF.md` | `warning` | Handoff says `pending_merge` but PR is merged. |
+| `responsive` | `docs/handoffs/PROMPT-04_HANDOFF.md` | `warning` | Handoff says `pending_merge` but PR is merged. |
 | `responsive` | `docs/handoffs/PROMPT-04_HANDOFF.md` | `warning` | Handoff branch differs from merged PR head branch. |
 
-## Hash verification
+## Hash verification table
 
 Required method: `git show <commit_sha>:<path> | sha256sum`.
 
-Status: `insufficient_evidence` for Prompt 0 contracts and all Producer required artifact records because git blob bytes were unavailable. GitHub connector file/PR evidence is fallback only.
+| Scope | Status | Discrepancy coverage |
+|---|---|---|
+| `project_gate_prompt_0` / `contracts/common/producer-gate-export.v1.schema.json` | `insufficient_evidence` | `recorded` |
+| `project_gate_prompt_0` / `schemas/stage-bundle/stage-bundle.v1.schema.json` | `insufficient_evidence` | `recorded` |
+| `architect` required artifacts | `insufficient_evidence` | `recorded` |
+| `ce` required artifacts | `insufficient_evidence` | `recorded` |
+| `builder` required artifacts | `insufficient_evidence` | `recorded` |
+| `responsive` required artifacts | `insufficient_evidence` | `recorded` |
+
+## CE Stage Bundle repair note
+
+Earlier packet text treated CE `stage_bundle_schema` as `not_applicable`. This has been repaired to `insufficient_evidence` because the common Producer Gate Export contract requires `final_stage_bundle`, and no contract-backed CE exception was verified in this Prompt 4.5 run.
 
 ## Prompt 5 readiness decision
 
@@ -74,8 +85,13 @@ FROM_PROMPT_4_FINAL_REPORT:
 
 ## Remaining blockers
 
-- `project_gate_prompt_0_hashes_not_git_show_verified`
-- `producer_required_artifact_hashes_not_git_show_verified`
+- `project_gate_prompt_0_producer_gate_export_hash_not_git_show_verified`
+- `project_gate_prompt_0_stage_bundle_hash_not_git_show_verified`
+- `architect_required_artifact_hashes_not_git_show_verified`
+- `ce_required_artifact_hashes_not_git_show_verified`
+- `builder_required_artifact_hashes_not_git_show_verified`
+- `responsive_required_artifact_hashes_not_git_show_verified`
+- `ce_stage_bundle_schema_not_verified`
 - `ce_standard_handoff_missing_requires_human_acceptance`
 
 ## Read-only statement
