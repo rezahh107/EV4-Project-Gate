@@ -58,6 +58,7 @@ This section is updated by GitHub Actions after a pull request is merged. It rec
 
 | PR | Title | Head branch | Head commit | Merge commit | Skeleton Health | Recorded by |
 |---|---|---|---|---|---|---|
+| `#42` | `Repair Prompt 4.5 join evidence packet` | `codex/repair-prompt-4.5-join-evidence-packet` | `22e0915561dafb6f7857edf76b5fb31027614924` | `c92af08573463d7732d795f67e8376e5796f2975` | `CI_PASSED` | `rezahh107 on rezahh107/EV4-Project-Gate` |
 | `#41` | `Add Prompt 4.5 join evidence packet` | `project-gate-prompt-04-5-join-evidence-packet` | `befdc25e9e2c4607a7d9dc12923c451834118bbc` | `bb02dd6c0e4ff5d00324568c9cd432332d5d86b0` | `CI_PASSED` | `rezahh107 on rezahh107/EV4-Project-Gate` |
 | `#40` | `feat: Prompt 0 — Add Producer Gate Export validator and harden vendored common-contract verifier` | `codex/complete-pr-#39-for-prompt-0-requirements` | `ff75e319ee382e7c024d088e8794b4b5ece845cc` | `ea19c22c32458068e167b267da8b819e9263cdf7` | `CI_PASSED` | `rezahh107 on rezahh107/EV4-Project-Gate` |
 | `#38` | `Harden operator panel UX contracts and regression tests` | `ux/operator-panel-final-hardening-patch-4` | `c5ddda6cc43d27a46d056876aa7ea0c2afe73eba` | `e44edeb4d4c0ea49ec2632856c5b140d2a2aefe1` | `CI_PASSED` | `rezahh107 on rezahh107/EV4-Project-Gate` |
