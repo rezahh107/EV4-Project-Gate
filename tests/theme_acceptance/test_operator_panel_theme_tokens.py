@@ -31,6 +31,12 @@ REQUIRED_OPERATOR_PANEL_TOKENS = {
     "input.bg",
     "input.border",
     "input.text",
+    "control.indicator.bg",
+    "control.indicator.border",
+    "control.indicator.checked.bg",
+    "control.indicator.checked.dot",
+    "control.indicator.hover.bg",
+    "control.indicator.focus.ring",
     "button.primary.bg",
     "button.primary.text",
     "button.primary.hover.bg",
@@ -52,6 +58,20 @@ def test_operator_panel_semantic_tokens_exist_across_light_and_dark():
         assert REQUIRED_OPERATOR_PANEL_TOKENS <= set(THEME_TOKENS[theme])
 
 
+def test_operator_panel_control_indicator_tokens_exist_across_light_and_dark():
+    required = {
+        "control.indicator.bg",
+        "control.indicator.border",
+        "control.indicator.checked.bg",
+        "control.indicator.checked.dot",
+        "control.indicator.hover.bg",
+        "control.indicator.focus.ring",
+    }
+
+    for theme in ("light", "dark"):
+        assert required <= set(THEME_TOKENS[theme])
+
+
 def test_operator_panel_css_exports_extended_custom_properties():
     css = css_custom_properties()
 
@@ -70,6 +90,12 @@ def test_operator_panel_css_exports_extended_custom_properties():
         "--ev4-input-bg",
         "--ev4-input-border",
         "--ev4-input-text",
+        "--ev4-control-indicator-bg",
+        "--ev4-control-indicator-border",
+        "--ev4-control-indicator-checked-bg",
+        "--ev4-control-indicator-checked-dot",
+        "--ev4-control-indicator-hover-bg",
+        "--ev4-control-indicator-focus-ring",
         "--ev4-button-primary-bg",
         "--ev4-button-primary-text",
         "--ev4-button-primary-hover-bg",
