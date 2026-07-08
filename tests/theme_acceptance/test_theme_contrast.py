@@ -35,14 +35,18 @@ TEXT_PAIRS = {
     "light.secondary_on_raised": ("light", "text.secondary", "surface.raised"),
     "light.muted_on_raised": ("light", "text.muted", "surface.raised"),
     "light.primary_button_text": ("light", "button.primary.text", "button.primary.bg"),
+    "light.primary_button_hover_text": ("light", "button.primary.hover.text", "button.primary.hover.bg"),
     "light.secondary_button_text": ("light", "button.secondary.text", "button.secondary.bg"),
+    "light.secondary_button_hover_text": ("light", "button.secondary.hover.text", "button.secondary.hover.bg"),
     "light.disabled_text": ("light", "disabled.text", "disabled.bg"),
     "dark.primary_on_base": ("dark", "text.primary", "surface.base"),
     "dark.primary_on_raised": ("dark", "text.primary", "surface.raised"),
     "dark.secondary_on_raised": ("dark", "text.secondary", "surface.raised"),
     "dark.muted_on_raised": ("dark", "text.muted", "surface.raised"),
     "dark.primary_button_text": ("dark", "button.primary.text", "button.primary.bg"),
+    "dark.primary_button_hover_text": ("dark", "button.primary.hover.text", "button.primary.hover.bg"),
     "dark.secondary_button_text": ("dark", "button.secondary.text", "button.secondary.bg"),
+    "dark.secondary_button_hover_text": ("dark", "button.secondary.hover.text", "button.secondary.hover.bg"),
     "dark.disabled_text": ("dark", "disabled.text", "disabled.bg"),
 }
 
