@@ -1,4 +1,4 @@
-from ev4_transition.presentation.theme_tokens import THEME_TOKENS, assert_theme_contract
+from ev4_transition.presentation.theme_tokens import THEME_TOKENS, REQUIRED_TOKEN_KEYS, assert_theme_contract
 
 
 def test_dark_theme_is_not_simple_inversion():
@@ -17,12 +17,19 @@ def test_light_and_dark_tokens_exist_if_themed_report_exists():
         "status.invalid",
         "surface.base",
         "surface.raised",
+        "surface.dialog",
         "text.primary",
         "text.secondary",
+        "text.disabled",
         "border.default",
+        "accent.active",
+        "button.primary.text",
+        "input.border",
+        "disabled.text",
     }
     for theme in ("light", "dark"):
         assert required <= set(THEME_TOKENS[theme])
+        assert set(REQUIRED_TOKEN_KEYS) <= set(THEME_TOKENS[theme])
 
 
 def test_focus_token_exists_for_light_and_dark_if_themed_report_exists():
@@ -54,4 +61,5 @@ def test_gradio_css_uses_semantic_custom_properties():
     css = css_custom_properties()
     assert "--ev4-surface-base" in css
     assert "--ev4-focus-ring" in css
+    assert "--ev4-button-primary-text" in css
     assert "prefers-color-scheme: dark" in css

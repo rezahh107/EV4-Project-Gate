@@ -97,9 +97,29 @@ HTML report باید از `<html lang="fa" dir="rtl">` استفاده کند و 
 - شناسه‌های فنی: LTR-isolated با `<bdi dir="ltr">` یا `<pre dir="ltr">`.
 - JSON، path، repo، diagnostic code، JSONPath، hash، transition id و CLI command نباید RTL شوند.
 
-## Dark-mode/token rules
+## Theme/token rules
 
 UI باید از semantic tokens در `src/ev4_transition/presentation/theme_tokens.py` استفاده کند. status باید icon + label + semantic tone داشته باشد، نه color-only. focus ring و code background token اجباری هستند.
+
+Theme behavior باید این شرایط را حفظ کند:
+
+- Light Mode readable باشد.
+- Dark Mode readable باشد و pure black / pure white inversion نباشد.
+- System Mode فقط fallback باشد و انتخاب صریح کاربر یا Gradio theme class را خراب نکند.
+- EV4 custom CSS و Gradio theme variables باید از یک token source مشتق شوند.
+- primary button باید explicit foreground/background داشته باشد.
+- input، upload، radio، accordion، footer، disabled و Settings modal باید token-backed و readable باشند.
+- disabled state نباید فقط با opacity نمایش داده شود.
+
+## Contrast rules
+
+Contrast-critical pairs باید با تست token-level پوشش داده شوند:
+
+- متن عادی حداقل `4.5:1`؛
+- متن بزرگ حداقل `3:1`؛
+- component/focus boundary حداقل `3:1`.
+
+Browser/computed-style visual QA همچنان evidence جدا لازم دارد و فقط با token tests کامل محسوب نمی‌شود.
 
 ## No-readiness-claim rules
 
@@ -120,6 +140,5 @@ UI باید از semantic tokens در `src/ev4_transition/presentation/theme_tok
 - automatic git clone/pull/fetch؛
 - telemetry؛
 - background monitoring؛
-- browser screenshot automation؛
 - new transition feature؛
 - specialist schema/validator/adapter changes.

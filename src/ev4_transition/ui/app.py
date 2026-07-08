@@ -1,6 +1,8 @@
 from __future__ import annotations
 
-from ev4_transition.presentation.theme_tokens import css_custom_properties
+from typing import Any
+
+from ev4_transition.presentation.theme_tokens import THEME_TOKENS, css_custom_properties
 from ev4_transition.service.preflight import run_preflight
 
 from .adapters import build_capability_rows, build_gate_request, run_operator_check
@@ -42,6 +44,134 @@ def operator_header_html() -> str:
 """
 
 
+def operator_gradio_theme(gr: Any) -> Any:
+    """Return a Gradio theme mapped to the EV4 semantic token palette.
+
+    Gradio owns its Settings modal and internal component variables. Mapping those
+    variables here keeps Gradio light/dark rendering aligned with the EV4 custom
+    properties instead of relying only on broad CSS overrides.
+    """
+
+    light = THEME_TOKENS["light"]
+    dark = THEME_TOKENS["dark"]
+    return gr.themes.Base(
+        primary_hue="blue",
+        secondary_hue="slate",
+        neutral_hue="slate",
+        spacing_size="md",
+        radius_size="lg",
+        text_size="md",
+        font=["Vazirmatn", "Vazir", "IRANSansX", "IranSansXV", "Tahoma", "system-ui", "sans-serif"],
+        font_mono=["Cascadia Code", "JetBrains Mono", "Fira Code", "Consolas", "monospace"],
+    ).set(
+        body_background_fill=light["surface.base"],
+        body_background_fill_dark=dark["surface.base"],
+        body_text_color=light["text.primary"],
+        body_text_color_dark=dark["text.primary"],
+        body_text_color_subdued=light["text.secondary"],
+        body_text_color_subdued_dark=dark["text.secondary"],
+        background_fill_primary=light["surface.raised"],
+        background_fill_primary_dark=dark["surface.raised"],
+        background_fill_secondary=light["surface.overlay"],
+        background_fill_secondary_dark=dark["surface.overlay"],
+        block_background_fill=light["surface.raised"],
+        block_background_fill_dark=dark["surface.raised"],
+        block_border_color=light["border.default"],
+        block_border_color_dark=dark["border.default"],
+        block_label_background_fill=light["surface.overlay"],
+        block_label_background_fill_dark=dark["surface.overlay"],
+        block_label_border_color=light["border.default"],
+        block_label_border_color_dark=dark["border.default"],
+        block_label_text_color=light["text.primary"],
+        block_label_text_color_dark=dark["text.primary"],
+        block_title_text_color=light["text.primary"],
+        block_title_text_color_dark=dark["text.primary"],
+        panel_background_fill=light["surface.dialog"],
+        panel_background_fill_dark=dark["surface.dialog"],
+        panel_border_color=light["border.default"],
+        panel_border_color_dark=dark["border.default"],
+        accordion_text_color=light["text.primary"],
+        accordion_text_color_dark=dark["text.primary"],
+        input_background_fill=light["input.bg"],
+        input_background_fill_dark=dark["input.bg"],
+        input_background_fill_focus=light["input.bg"],
+        input_background_fill_focus_dark=dark["input.bg"],
+        input_background_fill_hover=light["input.bg"],
+        input_background_fill_hover_dark=dark["input.bg"],
+        input_border_color=light["input.border"],
+        input_border_color_dark=dark["input.border"],
+        input_border_color_focus=light["focus.ring"],
+        input_border_color_focus_dark=dark["focus.ring"],
+        input_border_color_hover=light["border.strong"],
+        input_border_color_hover_dark=dark["border.strong"],
+        input_placeholder_color=light["text.muted"],
+        input_placeholder_color_dark=dark["text.muted"],
+        button_primary_background_fill=light["button.primary.bg"],
+        button_primary_background_fill_dark=dark["button.primary.bg"],
+        button_primary_background_fill_hover=light["button.primary.hover.bg"],
+        button_primary_background_fill_hover_dark=dark["button.primary.hover.bg"],
+        button_primary_border_color=light["button.primary.bg"],
+        button_primary_border_color_dark=dark["button.primary.bg"],
+        button_primary_border_color_hover=light["button.primary.hover.bg"],
+        button_primary_border_color_hover_dark=dark["button.primary.hover.bg"],
+        button_primary_text_color=light["button.primary.text"],
+        button_primary_text_color_dark=dark["button.primary.text"],
+        button_primary_text_color_hover=light["button.primary.hover.text"],
+        button_primary_text_color_hover_dark=dark["button.primary.hover.text"],
+        button_secondary_background_fill=light["button.secondary.bg"],
+        button_secondary_background_fill_dark=dark["button.secondary.bg"],
+        button_secondary_background_fill_hover=light["button.secondary.hover.bg"],
+        button_secondary_background_fill_hover_dark=dark["button.secondary.hover.bg"],
+        button_secondary_border_color=light["border.default"],
+        button_secondary_border_color_dark=dark["border.default"],
+        button_secondary_border_color_hover=light["border.strong"],
+        button_secondary_border_color_hover_dark=dark["border.strong"],
+        button_secondary_text_color=light["button.secondary.text"],
+        button_secondary_text_color_dark=dark["button.secondary.text"],
+        button_secondary_text_color_hover=light["button.secondary.hover.text"],
+        button_secondary_text_color_hover_dark=dark["button.secondary.hover.text"],
+        checkbox_label_background_fill=light["button.secondary.bg"],
+        checkbox_label_background_fill_dark=dark["button.secondary.bg"],
+        checkbox_label_background_fill_hover=light["button.secondary.hover.bg"],
+        checkbox_label_background_fill_hover_dark=dark["button.secondary.hover.bg"],
+        checkbox_label_background_fill_selected=light["info.bg"],
+        checkbox_label_background_fill_selected_dark=dark["info.bg"],
+        checkbox_label_border_color=light["border.default"],
+        checkbox_label_border_color_dark=dark["border.default"],
+        checkbox_label_border_color_hover=light["border.strong"],
+        checkbox_label_border_color_hover_dark=dark["border.strong"],
+        checkbox_label_border_color_selected=light["focus.ring"],
+        checkbox_label_border_color_selected_dark=dark["focus.ring"],
+        checkbox_label_text_color=light["text.primary"],
+        checkbox_label_text_color_dark=dark["text.primary"],
+        checkbox_label_text_color_selected=light["text.primary"],
+        checkbox_label_text_color_selected_dark=dark["text.primary"],
+        checkbox_border_color=light["input.border"],
+        checkbox_border_color_dark=dark["input.border"],
+        checkbox_border_color_focus=light["focus.ring"],
+        checkbox_border_color_focus_dark=dark["focus.ring"],
+        checkbox_border_color_selected=light["focus.ring"],
+        checkbox_border_color_selected_dark=dark["focus.ring"],
+        table_text_color=light["text.primary"],
+        table_text_color_dark=dark["text.primary"],
+        table_border_color=light["border.default"],
+        table_border_color_dark=dark["border.default"],
+        code_background_fill=light["code.bg"],
+        code_background_fill_dark=dark["code.bg"],
+        loader_color=light["accent.primary"],
+        loader_color_dark=dark["accent.primary"],
+        slider_color=light["accent.primary"],
+        slider_color_dark=dark["accent.primary"],
+        border_color_primary=light["border.default"],
+        border_color_primary_dark=dark["border.default"],
+        border_color_accent=light["focus.ring"],
+        border_color_accent_dark=dark["focus.ring"],
+        color_accent=light["accent.primary"],
+        color_accent_soft=light["info.bg"],
+        color_accent_soft_dark=dark["info.bg"],
+    )
+
+
 def operator_panel_css() -> str:
     return (
         css_custom_properties()
@@ -73,7 +203,7 @@ def operator_panel_css() -> str:
         .ev4-status-content,
         .ev4-preflight-result {
           background: var(--ev4-surface-raised);
-          border: 1px solid var(--ev4-border-subtle);
+          border: 1px solid var(--ev4-border-default);
           border-radius: 16px;
           padding: 0.75rem;
           box-shadow: 0 14px 34px var(--ev4-shadow-raised);
@@ -99,25 +229,87 @@ def operator_panel_css() -> str:
         .ev4-header-title-row { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 0.65rem 1rem; }
         .ev4-header-title { color: var(--ev4-text-primary); font-size: clamp(1.45rem, 3vw, 2.15rem); line-height: 1.2; margin: 0; letter-spacing: normal; }
         .ev4-header-subtitle { color: var(--ev4-text-secondary); font-size: 1.02rem; margin: 0.35rem 0 0; }
-        .ev4-header-badge { color: var(--ev4-accent-primary); background: var(--ev4-surface-overlay); border-radius: 999px; font-size: 0.78rem; padding: 0.18rem 0.55rem; }
-        .ev4-warning { color: var(--ev4-status-warning-fg); background: var(--ev4-status-warning-bg); border: 1px solid var(--ev4-border-subtle); border-radius: 12px; margin: 0.9rem 0 0; padding: 0.6rem 0.75rem; font-weight: 600; }
+        .ev4-header-badge { color: var(--ev4-info); background: var(--ev4-info-bg); border-radius: 999px; font-size: 0.78rem; padding: 0.18rem 0.55rem; }
+        .ev4-warning { color: var(--ev4-status-warning-fg); background: var(--ev4-status-warning-bg); border: 1px solid var(--ev4-border-default); border-radius: 12px; margin: 0.9rem 0 0; padding: 0.6rem 0.75rem; font-weight: 650; }
         .ev4-helper,
         .ev4-helper-block { color: var(--ev4-text-secondary); margin: 0.7rem 0 0; font-size: 0.98rem; }
         .ev4-section label,
         .ev4-download label,
-        .ev4-dataframe label { color: var(--ev4-text-primary) !important; font-weight: 650; text-align: right; }
+        .ev4-dataframe label,
+        .gradio-container label,
+        .gradio-container [data-testid="block-label"],
+        .gradio-container .block-label,
+        .gradio-container .label-wrap,
+        .gradio-container .prose,
+        .gradio-container .prose * { color: var(--ev4-text-primary) !important; font-weight: 650; text-align: right; opacity: 1 !important; }
+        .gradio-container .secondary-text,
+        .gradio-container .svelte-1gfkn6j,
+        .gradio-container .wrap .meta-text { color: var(--ev4-text-secondary) !important; opacity: 1 !important; }
         .ev4-section textarea,
         .ev4-section input,
-        .ev4-download input { background: var(--ev4-surface-overlay) !important; border-color: var(--ev4-border-default) !important; color: var(--ev4-text-primary) !important; }
+        .ev4-download input,
+        .gradio-container textarea,
+        .gradio-container input,
+        .gradio-container [role="textbox"] {
+          background: var(--ev4-input-bg) !important;
+          border-color: var(--ev4-input-border) !important;
+          color: var(--ev4-input-text) !important;
+          opacity: 1 !important;
+        }
+        .gradio-container textarea::placeholder,
+        .gradio-container input::placeholder { color: var(--ev4-text-muted) !important; opacity: 1 !important; }
+        .gradio-container input[type="radio"],
+        .gradio-container input[type="checkbox"] { accent-color: var(--ev4-accent-primary); }
+        .gradio-container [role="radiogroup"] label,
+        .gradio-container [role="checkbox"] label { color: var(--ev4-text-primary) !important; opacity: 1 !important; }
+        .gradio-container details,
+        .gradio-container summary,
+        .gradio-container .accordion,
+        .gradio-container .accordion > .label-wrap,
+        .gradio-container .accordion button {
+          background: var(--ev4-surface-raised) !important;
+          color: var(--ev4-text-primary) !important;
+          border-color: var(--ev4-border-default) !important;
+          opacity: 1 !important;
+        }
+        .gradio-container .file-preview,
+        .gradio-container .upload,
+        .gradio-container [data-testid="file"],
+        .gradio-container [data-testid="file-upload"] {
+          background: var(--ev4-input-bg) !important;
+          color: var(--ev4-text-primary) !important;
+          border-color: var(--ev4-input-border) !important;
+          opacity: 1 !important;
+        }
+        .gradio-container [role="dialog"],
+        .gradio-container dialog,
+        .gradio-container .modal {
+          background: var(--ev4-surface-dialog) !important;
+          color: var(--ev4-text-primary) !important;
+          border: 1px solid var(--ev4-border-default) !important;
+          opacity: 1 !important;
+        }
+        .gradio-container [role="dialog"] *,
+        .gradio-container dialog *,
+        .gradio-container .modal * { color: inherit; opacity: 1; }
+        .gradio-container :disabled,
+        .gradio-container [aria-disabled="true"],
+        .gradio-container .disabled {
+          background: var(--ev4-disabled-bg) !important;
+          color: var(--ev4-disabled-text) !important;
+          border-color: var(--ev4-border-default) !important;
+          opacity: 1 !important;
+          cursor: not-allowed;
+        }
         .ev4-code-preview,
         .ev4-code-preview pre,
-        .ev4-code-preview code { background: var(--ev4-code-bg) !important; }
+        .ev4-code-preview code { background: var(--ev4-code-bg) !important; color: var(--ev4-text-primary) !important; }
         .ev4-status-card section[role="status"],
         .ev4-status-content,
         .ev4-preflight-result { border-color: var(--ev4-border-default); padding: 1rem 1.1rem; line-height: 1.78; }
         .ev4-status-card code,
         .ev4-status-content code,
-        .ev4-preflight-result code { background: var(--ev4-code-bg); border: 1px solid var(--ev4-border-subtle); border-radius: 6px; padding: 0.05rem 0.28rem; }
+        .ev4-preflight-result code { background: var(--ev4-code-bg); border: 1px solid var(--ev4-border-default); border-radius: 6px; padding: 0.05rem 0.28rem; }
         .ev4-preflight-list { list-style: none; margin: 0.75rem 0 0; padding: 0; }
         .ev4-preflight-list li { border-top: 1px solid var(--ev4-border-subtle); padding: 0.55rem 0; }
         .ev4-preflight-icon { display: inline-block; min-width: 1.5rem; text-align: center; }
@@ -129,13 +321,25 @@ def operator_panel_css() -> str:
         .ev4-technical-table code,
         .ev4-technical-table pre { direction: ltr; text-align: left; unicode-bidi: isolate; }
         .gradio-container :focus-visible,
-        .ev4-app :focus-visible { outline: 3px solid var(--ev4-focus-ring) !important; outline-offset: 3px; }
+        .ev4-app :focus-visible { outline: 3px solid var(--ev4-focus-ring) !important; outline-offset: 3px; box-shadow: 0 0 0 2px var(--ev4-surface-base) !important; }
+        .gradio-container ::selection,
+        .ev4-app ::selection { background: var(--ev4-selection-bg); }
         .gradio-container button.primary,
-        .gradio-container button[variant="primary"] { background: var(--ev4-accent-primary) !important; border-color: var(--ev4-accent-primary) !important; }
+        .gradio-container button[variant="primary"] { background: var(--ev4-button-primary-bg) !important; border-color: var(--ev4-button-primary-bg) !important; color: var(--ev4-button-primary-text) !important; font-weight: 700; }
         .gradio-container button.primary:hover,
-        .gradio-container button[variant="primary"]:hover { background: var(--ev4-accent-hover) !important; border-color: var(--ev4-accent-hover) !important; }
+        .gradio-container button[variant="primary"]:hover { background: var(--ev4-button-primary-hover-bg) !important; border-color: var(--ev4-button-primary-hover-bg) !important; color: var(--ev4-button-primary-hover-text) !important; }
+        .gradio-container button:not(.primary):not([variant="primary"]) { background: var(--ev4-button-secondary-bg) !important; border-color: var(--ev4-border-default) !important; color: var(--ev4-button-secondary-text) !important; }
+        .gradio-container button:not(.primary):not([variant="primary"]):hover { background: var(--ev4-button-secondary-hover-bg) !important; border-color: var(--ev4-border-strong) !important; color: var(--ev4-button-secondary-hover-text) !important; }
+        .gradio-container footer,
+        .gradio-container footer * { color: var(--ev4-text-muted) !important; opacity: 1 !important; }
         """
     )
+
+
+def operator_run_outputs(output: Any) -> tuple[Any, Any, Any, str, Any]:
+    """Return Gradio callback outputs without replacing JSON preview text with a dict."""
+
+    return output.status_markdown, output.diagnostics_rows, output.capability_rows, output.json_preview, output.download_paths
 
 
 def build_demo():
@@ -147,7 +351,7 @@ def build_demo():
             "for example: python -m pip install -e '.[ui]'"
         ) from exc
 
-    with gr.Blocks(title="EV4 Project Gate Local Operator Panel", css=operator_panel_css()) as demo:
+    with gr.Blocks(title="EV4 Project Gate Local Operator Panel", theme=operator_gradio_theme(gr), css=operator_panel_css()) as demo:
         gr.HTML(operator_header_html())
 
         with gr.Group(elem_classes=["ev4-section", "ev4-transition-section"]):
@@ -212,7 +416,7 @@ def build_demo():
                 responsive_repo_path=responsive,
                 acquisition_mode=selected_acquisition_mode,
             )
-            return output.status_markdown, output.diagnostics_rows, output.capability_rows, output.json_preview, output.download_paths
+            return operator_run_outputs(output)
 
         preflight_button.click(lambda: "⏳ در حال بررسی آماده‌سازی…", outputs=[preflight_summary], queue=False).then(
             _preflight,
