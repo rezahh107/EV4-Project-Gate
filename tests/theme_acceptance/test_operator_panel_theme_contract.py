@@ -26,11 +26,15 @@ def test_final_dark_theme_is_not_pure_black_or_simple_white_inversion():
     assert light["surface.base"] != dark["text.primary"]
 
 
-def test_final_css_exports_focus_code_and_status_custom_properties():
+def test_final_css_exports_focus_code_status_and_component_custom_properties():
     css = css_custom_properties()
 
     assert "--ev4-focus-ring" in css
     assert "--ev4-code-bg" in css
+    assert "--ev4-input-border" in css
+    assert "--ev4-button-primary-text" in css
+    assert "--ev4-disabled-text" in css
+    assert "--ev4-surface-dialog" in css
     assert "--ev4-status-accepted-fg" in css
     assert "--ev4-status-repair-fg" in css
     assert "--ev4-status-warning-fg" in css
