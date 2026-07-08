@@ -58,6 +58,7 @@ This section is updated by GitHub Actions after a pull request is merged. It rec
 
 | PR | Title | Head branch | Head commit | Merge commit | Skeleton Health | Recorded by |
 |---|---|---|---|---|---|---|
+| `#46` | `Polish operator panel radio indicators and dark header` | `project-gate-prompt-07-ui-polish` | `8d85d10167a80a26c53cf01e428312282bb1bad0` | `cad4c5d571cc75059d327b36e67946bfb15ca96f` | `CI_PASSED` | `rezahh107 on rezahh107/EV4-Project-Gate` |
 | `#45` | `Fix operator panel theme readability and contrast system` | `project-gate-prompt-06-theme-readability` | `757a1ca9eecb64ce2eaef27aee743b6003be75e6` | `f4d17765adfdad6bf8383f1f431d0ebc91e9dc4b` | `CI_PASSED` | `rezahh107 on rezahh107/EV4-Project-Gate` |
 | `#44` | `Docs and tests: mark CE→Builder/Builder→Responsive/Final Gate CLI as guarded and update orchestration status` | `codex-aj4m3l` | `c4a30f9f10c888c70da8dd8549d3860c4f2e6bde` | `6ce830d7e8d566fd57d955a75326173993291fd4` | `CI_PASSED` | `rezahh107 on rezahh107/EV4-Project-Gate` |
 | `#43` | `Add explicit producer_emitted_gate_artifact intake, adoption registry, and routing (Prompt 5)` | `codex/implement-prompt-5-integration` | `0db90978d25e3392d42b9a0f6d2eeb954553e095` | `4e33085a97715a882a906c727f034c6d15d9e5fa` | `CI_PASSED` | `rezahh107 on rezahh107/EV4-Project-Gate` |
