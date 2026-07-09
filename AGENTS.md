@@ -241,3 +241,13 @@ A PR must state:
 - remaining unverified behavior or missing evidence.
 
 Avoid unrelated refactoring and never claim validation without executed evidence.
+
+## Decision Escape Route Review
+
+Before opening or completing any PR that changes schemas, validators, prompts, fixtures, pipeline docs, handoff artifacts, fallback behavior, gate outputs, release-readiness outputs, service/API outputs, or decision-bearing outputs, review `planning/DECISION_ESCAPE_ROUTES.yml`.
+
+Do not mark an escape route as resolved unless its `enforcement_status` meets the required threshold for its risk and session scope. Do not mark a Critical cross-turn rule as resolved with single-artifact `ci_enforced` evidence.
+
+Do not add authored `resolved` or `production_ready` fields; those are derived audit conclusions.
+
+Project Gate validates lineage, schema, evidence completeness, and release readiness. It must not repair decisions or claim release readiness unless inspected evidence proves the required carriers exist.
