@@ -40,6 +40,15 @@ def _output() -> dict:
         "responsive_tree_output": {"mode": "blocked"},
         "real_evidence": True,
         "evidence_status": "real",
+        "decision_lineage": {
+            "decision_family": "responsive_final_gate_fixture",
+            "decision_card_ref": "kernel-card:responsive-final-gate-fixture",
+            "selected_option": "block_without_real_evidence",
+            "rejected_options": ["infer_missing_lineage"],
+            "evidence_refs": ["tests/transitions/test_final_gate.py::_output"],
+            "evidence_state": "validated",
+            "consumer_stage": "final_evidence_gate",
+        },
     }
 
 
@@ -147,3 +156,40 @@ def test_final_gate_missing_result_schema_is_insufficient_evidence(tmp_path: Pat
     assert result["status"] == "insufficient_evidence"
     assert result["accepted_requires"]["result_schema_valid"] is False
     assert "PG.FINAL.RESULT_SCHEMA_MISSING" in _codes(result)
+
+
+def test_final_gate_rejects_missing_kernel_decision_lineage(tmp_path: Path):
+    pg, responsive, source, lock = _repos(tmp_path)
+    packet = _output()
+    packet.pop("decision_lineage")
+    result = run_final_gate(packet, source, _config(tmp_path, lock, pg, responsive))
+    assert result["status"] == "invalid"
+    assert result["accepted_requires"]["kernel_decision_lineage_valid"] is False
+    assert "PG.FINAL.DECISION_LINEAGE_MISSING" in _codes(result)
+    assert result["output"] is None
+
+
+def test_final_gate_rejects_incomplete_kernel_decision_lineage(tmp_path: Path):
+    pg, responsive, source, lock = _repos(tmp_path)
+    packet = _output()
+    packet["decision_lineage"].pop("evidence_refs")
+    result = run_final_gate(packet, source, _config(tmp_path, lock, pg, responsive))
+    assert result["status"] == "invalid"
+    assert "PG.FINAL.DECISION_LINEAGE_INCOMPLETE" in _codes(result)
+    assert result["output"] is None
+
+
+def test_final_gate_preserves_kernel_decision_lineage_on_accepted_result(tmp_path: Path):
+    pg, responsive, source, lock = _repos(tmp_path)
+    schema_dir = tmp_path / "schemas" / "final-gate-result"
+    schema_dir.mkdir(parents=True)
+    schema_dir.joinpath("final-gate-result.v1.schema.json").write_text(json.dumps({
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "required": ["schema_version", "gate_id", "status"],
+        "additionalProperties": True,
+    }), encoding="utf-8")
+    result = run_final_gate(_output(), source, _config(tmp_path, lock, pg, responsive))
+    assert result["status"] == "accepted"
+    assert result["accepted_requires"]["kernel_decision_lineage_valid"] is True
+    assert result["output"]["decision_lineage"] == _output()["decision_lineage"]

@@ -16,4 +16,22 @@ kernel_reference:
   decision_taxonomy_version: null
   decision_cards_version: null
 
-records: []
+records:
+  - escape_route_id: PG-W4-FINAL-GATE-DECISION-LINEAGE
+    consumer_repo: EV4-Project-Gate
+    risk: Critical
+    session_scope: cross_turn
+    mapping_status: mapped
+    added_reason: "Wave 4 inspection found a real Project Gate final-gate intake and gate-decision surface without a recorded cross-turn Kernel decision lineage escape route."
+    carriers:
+      sequence_CI_step: ".github/workflows/validate.yml#python-core/Wave 4 Project Gate decision lineage sequence tests"
+      test_command: "uv run pytest tests/transitions/test_final_gate.py tests/planning/test_decision_escape_routes_schema.py"
+      positive_fixture: "fixtures/valid/final-gate-decision-lineage.v1.json"
+      negative_fixture: "fixtures/invalid/final-gate-missing-decision-lineage.v1.json"
+      validator_rule: "src/ev4_transition/transitions/final_gate.py::_validate_decision_lineage"
+      validator_diagnostic: "PG.FINAL.DECISION_LINEAGE_MISSING"
+      downstream_contract: "contracts/locks/final-gate.v1.lock.json"
+    status:
+      enforcement_status: downstream_contract_enforced
+      evidence_state: validated
+    notes: "Final gate intake now requires Kernel decision lineage fields, rejects missing or incomplete lineage, preserves valid lineage on accepted output, and CI runs the sequence tests against the pinned final-gate transition contract. Release readiness is not authored or claimed."

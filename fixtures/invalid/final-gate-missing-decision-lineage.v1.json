@@ -1,0 +1,6 @@
+{
+  "schema": "ev4-responsive-output@0.3.0",
+  "responsive_tree_output": {"mode": "blocked"},
+  "real_evidence": true,
+  "evidence_status": "real"
+}

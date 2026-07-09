@@ -1,0 +1,14 @@
+{
+  "schema": "ev4-responsive-output@0.3.0",
+  "responsive_tree_output": {"mode": "blocked"},
+  "real_evidence": true,
+  "evidence_status": "real",
+  "decision_lineage": {
+    "decision_family": "responsive_final_gate_fixture",
+    "decision_card_ref": "kernel-card:responsive-final-gate-fixture",
+    "selected_option": "block_without_real_evidence",
+    "rejected_options": ["infer_missing_lineage"],
+    "evidence_state": "validated",
+    "consumer_stage": "final_evidence_gate"
+  }
+}
