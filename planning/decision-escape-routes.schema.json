@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://ev4-project-gate.local/schemas/decision-escape-routes.v3.schema.json",
   "title": "EV4 Decision Escape Routes Wave 0 State",
-  "description": "Baseline schema for Project Gate Wave 0 DECISION_ESCAPE_ROUTES.yml adoption state. This schema validates the adoption-only empty baseline shape, requires records to remain empty until a later audit wave defines full record validation, and does not claim enforcement.",
+  "description": "Project Gate decision escape route state. Supports Wave 0 empty baseline and later evidence-backed records without authored release_ready, resolved, or production_ready conclusions.",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -15,53 +15,290 @@
     "records"
   ],
   "properties": {
-    "schema_version": { "const": 3 },
-    "consumer_repo": { "const": "EV4-Project-Gate" },
-    "consumer_repo_evidence_state": { "const": "expected_unverified" },
+    "schema_version": {
+      "const": 3
+    },
+    "consumer_repo": {
+      "const": "EV4-Project-Gate"
+    },
+    "consumer_repo_evidence_state": {
+      "const": "expected_unverified"
+    },
     "last_updated": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["date", "pr", "commit"],
+      "required": [
+        "date",
+        "pr",
+        "commit"
+      ],
       "properties": {
         "date": {
           "type": "string",
           "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$"
         },
-        "pr": { "type": ["string", "null"] },
-        "commit": { "type": ["string", "null"] }
+        "pr": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "commit": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
       }
     },
     "brc_reference": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["document", "profile"],
+      "required": [
+        "document",
+        "profile"
+      ],
       "properties": {
-        "document": { "const": "Behavioral_Rule_Coverage_v0.4.1" },
-        "profile": { "const": "EV4_CONSUMER_DECISION_TRIGGER_ARCHITECTURE_v0.4.1" }
+        "document": {
+          "const": "Behavioral_Rule_Coverage_v0.4.1"
+        },
+        "profile": {
+          "const": "EV4_CONSUMER_DECISION_TRIGGER_ARCHITECTURE_v0.4.1"
+        }
       }
     },
     "kernel_reference": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["repo", "decision_taxonomy_version", "decision_cards_version"],
+      "required": [
+        "repo",
+        "decision_taxonomy_version",
+        "decision_cards_version"
+      ],
       "properties": {
-        "repo": { "const": "EV4-Decision-Kernel" },
-        "decision_taxonomy_version": { "type": ["string", "null"] },
-        "decision_cards_version": { "type": ["string", "null"] }
+        "repo": {
+          "const": "EV4-Decision-Kernel"
+        },
+        "decision_taxonomy_version": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "decision_cards_version": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
       }
     },
     "records": {
       "type": "array",
-      "description": "Wave 0 adoption-only baseline records must stay empty until a later audit wave defines full non-empty record validation.",
-      "maxItems": 0,
+      "description": "Wave 4 records must be evidence-backed and must not author resolved, release_ready, or production_ready conclusions.",
       "items": {
         "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "escape_route_id",
+          "consumer_repo",
+          "risk",
+          "session_scope",
+          "mapping_status",
+          "carriers",
+          "status",
+          "notes"
+        ],
         "not": {
           "anyOf": [
-            { "required": ["resolved"] },
-            { "required": ["production_ready"] }
+            {
+              "required": [
+                "resolved"
+              ]
+            },
+            {
+              "required": [
+                "production_ready"
+              ]
+            },
+            {
+              "required": [
+                "release_ready"
+              ]
+            }
           ]
-        }
+        },
+        "properties": {
+          "escape_route_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "consumer_repo": {
+            "const": "EV4-Project-Gate"
+          },
+          "risk": {
+            "enum": [
+              "Critical",
+              "High",
+              "Medium",
+              "Low"
+            ]
+          },
+          "session_scope": {
+            "enum": [
+              "single_turn",
+              "cross_turn",
+              "runtime"
+            ]
+          },
+          "mapping_status": {
+            "enum": [
+              "mapped",
+              "unmapped",
+              "insufficient_evidence"
+            ]
+          },
+          "added_reason": {
+            "type": "string",
+            "minLength": 1
+          },
+          "carriers": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "sequence_CI_step": {
+                "type": "string",
+                "minLength": 1
+              },
+              "test_command": {
+                "type": "string",
+                "minLength": 1
+              },
+              "positive_fixture": {
+                "type": "string",
+                "minLength": 1
+              },
+              "negative_fixture": {
+                "type": "string",
+                "minLength": 1
+              },
+              "validator_rule": {
+                "type": "string",
+                "minLength": 1
+              },
+              "validator_diagnostic": {
+                "type": "string",
+                "minLength": 1
+              },
+              "downstream_contract": {
+                "type": "string",
+                "minLength": 1
+              }
+            },
+            "required": [
+              "sequence_CI_step",
+              "test_command",
+              "positive_fixture",
+              "negative_fixture",
+              "validator_rule",
+              "validator_diagnostic"
+            ]
+          },
+          "status": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "enforcement_status",
+              "evidence_state"
+            ],
+            "properties": {
+              "enforcement_status": {
+                "enum": [
+                  "expected_unverified",
+                  "insufficient_evidence",
+                  "ci_enforced",
+                  "sequence_ci_enforced",
+                  "downstream_contract_enforced",
+                  "runtime_monitor_enforced",
+                  "os_harness_enforced"
+                ]
+              },
+              "evidence_state": {
+                "enum": [
+                  "observed",
+                  "exported",
+                  "validated",
+                  "resolved",
+                  "derived",
+                  "proposed",
+                  "unverified",
+                  "insufficient_evidence"
+                ]
+              }
+            }
+          },
+          "notes": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "status": {
+                  "properties": {
+                    "enforcement_status": {
+                      "const": "sequence_ci_enforced"
+                    }
+                  }
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "carriers": {
+                  "required": [
+                    "sequence_CI_step",
+                    "test_command",
+                    "positive_fixture",
+                    "negative_fixture",
+                    "validator_rule",
+                    "validator_diagnostic"
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "status": {
+                  "properties": {
+                    "enforcement_status": {
+                      "const": "downstream_contract_enforced"
+                    }
+                  }
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "carriers": {
+                  "required": [
+                    "sequence_CI_step",
+                    "test_command",
+                    "positive_fixture",
+                    "negative_fixture",
+                    "validator_rule",
+                    "validator_diagnostic",
+                    "downstream_contract"
+                  ]
+                }
+              }
+            }
+          }
+        ]
       }
     },
     "routes": false

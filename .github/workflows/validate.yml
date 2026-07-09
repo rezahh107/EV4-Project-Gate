@@ -175,6 +175,10 @@ jobs:
         working-directory: EV4-Project-Gate
         run: uv run pytest tests/service
 
+      - name: Wave 4 Project Gate decision lineage sequence tests
+        working-directory: EV4-Project-Gate
+        run: uv run pytest tests/transitions/test_final_gate.py tests/planning/test_decision_escape_routes_schema.py
+
       - name: Operator UI adapter tests
         working-directory: EV4-Project-Gate
         run: uv run pytest tests/ui

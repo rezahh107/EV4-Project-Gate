@@ -50,3 +50,31 @@ def test_wave_0_decision_escape_routes_rejects_authored_production_ready_record(
     payload["records"] = [{"production_ready": False}]
 
     assert _errors(payload)
+
+
+def _first_record_payload() -> dict:
+    payload = copy.deepcopy(_state())
+    assert payload["records"]
+    return payload
+
+
+def test_decision_escape_routes_rejects_missing_core_carrier_key() -> None:
+    payload = _first_record_payload()
+    payload["records"][0]["carriers"].pop("validator_diagnostic")
+
+    assert _errors(payload)
+
+
+def test_decision_escape_routes_rejects_downstream_status_without_downstream_contract() -> None:
+    payload = _first_record_payload()
+    payload["records"][0]["status"]["enforcement_status"] = "downstream_contract_enforced"
+    payload["records"][0]["carriers"].pop("downstream_contract")
+
+    assert _errors(payload)
+
+
+def test_decision_escape_routes_rejects_authored_release_ready_record() -> None:
+    payload = _first_record_payload()
+    payload["records"][0]["release_ready"] = False
+
+    assert _errors(payload)
