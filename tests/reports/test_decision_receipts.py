@@ -29,8 +29,13 @@ def _trace() -> dict:
     }
 
 
+def _result(status: str = "accepted", *, complete_trace: bool = True) -> dict:
+    output = {"decision_lineage": _trace()} if complete_trace else {"package_id": "untraced-project-gate-fixture"}
+    return {"schema_version": "project-gate-test-result.v1", "status": status, "diagnostics": [], "output": output}
+
+
 def _accepted_result() -> dict:
-    return {"schema_version": "project-gate-test-result.v1", "status": "accepted", "diagnostics": [], "output": {"decision_lineage": _trace()}}
+    return _result("accepted", complete_trace=True)
 
 
 def _fixture(path: str) -> dict:
@@ -75,18 +80,54 @@ def test_missing_evidence_refs_blocks_success_receipt():
     assert "evidence_refs" in receipt.missing_trace_fields
 
 
-def test_warning_or_blocked_receipt_is_used_when_trace_is_incomplete():
+def test_accepted_incomplete_trace_uses_warning_receipt():
+    receipt = build_kernel_decision_receipt(_result("accepted", complete_trace=False))
+
+    assert receipt.status == "warning"
+    assert receipt.trace_complete is False
+    assert receipt.message_fa == WARNING_RECEIPT_FA
+
+
+def test_invalid_incomplete_trace_uses_blocked_receipt():
+    receipt = build_kernel_decision_receipt(_result("invalid", complete_trace=False))
+
+    assert receipt.status == "blocked"
+    assert receipt.trace_complete is False
+    assert receipt.message_fa == BLOCKED_RECEIPT_FA
+    assert "decision_card_ref" in receipt.missing_trace_fields
+
+
+def test_insufficient_evidence_incomplete_trace_uses_blocked_receipt():
     result = _fixture("fixtures/insufficient-evidence/project-gate-kernel-decision-receipt-missing-trace.v1.json")
 
     receipt = build_kernel_decision_receipt(result)
 
-    assert receipt.status in {"warning", "blocked"}
-    assert receipt.status != "success"
-    assert receipt.message_fa in {WARNING_RECEIPT_FA, BLOCKED_RECEIPT_FA}
+    assert receipt.status == "blocked"
+    assert receipt.trace_complete is False
+    assert receipt.message_fa == BLOCKED_RECEIPT_FA
+    assert "evidence_refs" in receipt.missing_trace_fields
+
+
+def test_repair_needed_complete_trace_uses_blocked_receipt():
+    receipt = build_kernel_decision_receipt(_result("repair_needed", complete_trace=True))
+
+    assert receipt.status == "blocked"
+    assert receipt.trace_complete is True
+    assert receipt.missing_trace_fields == []
+    assert receipt.message_fa == BLOCKED_RECEIPT_FA
+
+
+def test_repair_needed_incomplete_trace_uses_blocked_receipt():
+    receipt = build_kernel_decision_receipt(_result("repair_needed", complete_trace=False))
+
+    assert receipt.status == "blocked"
+    assert receipt.trace_complete is False
+    assert receipt.message_fa == BLOCKED_RECEIPT_FA
+    assert "consumer_stage" in receipt.missing_trace_fields
 
 
 def test_project_gate_receipt_does_not_replace_machine_trace():
-    result = {"schema_version": "project-gate-test-result.v1", "status": "accepted", "diagnostics": [], "output": {"ok": True}}
+    result = _result("accepted", complete_trace=False)
     original = deepcopy(result)
 
     receipt = build_kernel_decision_receipt(result)
