@@ -7,6 +7,7 @@ from typing import Any
 from ev4_transition.canonical_json import canonical_dumps, canonical_sha256
 from ev4_transition.presentation.bidi import RTL_MARK, isolate_ltr_text, markdown_code_ltr
 from ev4_transition.presentation.status_mapping import presentation_for_status
+from ev4_transition.reports.decision_receipts import build_kernel_decision_receipt
 
 _PROGRESS_KEYS_EXCLUDED_FROM_REPORT_HASH = {"progress_events", "progress_event", "ui_progress_events"}
 _TECHNICAL_KEY_PARTS = (
@@ -56,10 +57,12 @@ def render_plain_summary(result: dict[str, Any], *, title: str = "گزارش Pro
     status = str(snapshot.get("status", "invalid"))
     presentation = presentation_for_status(status)
     diagnostics = _diagnostics(snapshot)
+    receipt = build_kernel_decision_receipt(snapshot)
     lines = [
         f"{RTL_MARK}{title}",
         f"{presentation.icon} {presentation.persian_label} — tone: {isolate_ltr_text(presentation.tone)} — status: {isolate_ltr_text(status)}",
         _STATUS_EXPLANATIONS[presentation.status],
+        f"رسید Kernel decision: {receipt.message_fa}",
         f"اقدام بعدی: {_NEXT_ACTIONS[presentation.status]}",
         f"خلاصه diagnostics: {len(diagnostics)} مورد",
         "جزئیات پیشرفته / Evidence / Diagnostics:",
@@ -82,6 +85,7 @@ def render_markdown_report(result: dict[str, Any], *, title: str = "گزارش P
     diagnostics = _diagnostics(snapshot)
     technical_refs = _technical_references(snapshot)
     result_hash = canonical_result_hash_for_report(snapshot)
+    receipt = build_kernel_decision_receipt(snapshot)
     status_token = f"status.{presentation.status}"
     parts = [
         f'<section lang="fa" dir="rtl" class="ev4-report ev4-theme-{escape(theme)}">',
@@ -94,6 +98,9 @@ def render_markdown_report(result: dict[str, Any], *, title: str = "گزارش P
         "",
         "## توضیح فارسی",
         escape(_STATUS_EXPLANATIONS[presentation.status]),
+        "",
+        "## رسید Kernel decision",
+        escape(receipt.message_fa),
         "",
         "## اقدام بعدی",
         escape(_NEXT_ACTIONS[presentation.status]),

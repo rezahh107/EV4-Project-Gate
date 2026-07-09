@@ -69,6 +69,7 @@ class ReportBundle:
     markdown_report: str | None
     html_report: str | None
     result_hash: str | None = None
+    decision_receipt: dict[str, Any] = field(default_factory=dict)
     render_diagnostics: list[dict[str, Any]] = field(default_factory=list)
 
     def to_dict(self) -> dict[str, Any]:

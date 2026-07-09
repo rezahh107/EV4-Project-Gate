@@ -1,0 +1,16 @@
+{
+  "schema_version": "project-gate-report-fixture.v1",
+  "status": "accepted",
+  "diagnostics": [],
+  "output": {
+    "decision_lineage": {
+      "decision_family": "project_gate_wave_5_fixture",
+      "decision_card_ref": "kernel-card:project-gate-wave-5-fixture",
+      "selected_option": "preserve_machine_trace",
+      "rejected_options": ["receipt_text_as_source_of_truth"],
+      "evidence_refs": ["fixtures/valid/project-gate-kernel-decision-receipt-complete-trace.v1.json"],
+      "evidence_state": "validated",
+      "consumer_stage": "project_gate_receipt"
+    }
+  }
+}

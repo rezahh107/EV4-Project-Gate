@@ -4,7 +4,14 @@ import json
 from copy import deepcopy
 from typing import Any
 
-from ev4_transition.reports import canonical_result_hash_for_report, render_json_result, render_markdown_report, render_optional_html_report, render_plain_summary
+from ev4_transition.reports import (
+    build_kernel_decision_receipt,
+    canonical_result_hash_for_report,
+    render_json_result,
+    render_markdown_report,
+    render_optional_html_report,
+    render_plain_summary,
+)
 
 from .models import ReportBundle
 
@@ -14,6 +21,7 @@ def build_report_bundle(result: dict[str, Any]) -> ReportBundle:
 
     snapshot = deepcopy(result)
     render_diagnostics: list[dict[str, Any]] = []
+    decision_receipt = build_kernel_decision_receipt(snapshot).to_dict()
     try:
         canonical_json = render_json_result(snapshot)
     except Exception as exc:
@@ -42,6 +50,7 @@ def build_report_bundle(result: dict[str, Any]) -> ReportBundle:
         markdown_report=markdown_report,
         html_report=html_report,
         result_hash=result_hash,
+        decision_receipt=decision_receipt,
         render_diagnostics=render_diagnostics,
     )
 

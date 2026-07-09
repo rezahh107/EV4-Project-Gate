@@ -1,0 +1,9 @@
+{
+  "schema_version": "project-gate-report-fixture.v1",
+  "status": "accepted",
+  "diagnostics": [],
+  "output": {
+    "package_id": "unsafe-untraced-package"
+  },
+  "requested_user_facing_receipt": "success"
+}

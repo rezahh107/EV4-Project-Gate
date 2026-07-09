@@ -1,0 +1,15 @@
+{
+  "schema_version": "project-gate-report-fixture.v1",
+  "status": "insufficient_evidence",
+  "diagnostics": [
+    {
+      "code": "PG.RECEIPT.MACHINE_TRACE_MISSING",
+      "severity": "insufficient_evidence",
+      "message": "Machine-readable Kernel decision trace is missing.",
+      "path": "$.output.decision_lineage"
+    }
+  ],
+  "output": {
+    "package_id": "untraced-project-gate-fixture"
+  }
+}
