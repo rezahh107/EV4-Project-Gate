@@ -58,6 +58,7 @@ This section is updated by GitHub Actions after a pull request is merged. It rec
 
 | PR | Title | Head branch | Head commit | Merge commit | Skeleton Health | Recorded by |
 |---|---|---|---|---|---|---|
+| `#50` | `Add UX-safe Kernel decision receipts for Project Gate outputs` | `ux/project-gate-kernel-decision-receipts-wave-5` | `cc1083ad78d5c548ec39488d114d243952002303` | `1b813da05837b43ea71047662b43bb64c89fd857` | `CI_PASSED` | `rezahh107 on rezahh107/EV4-Project-Gate` |
 | `#49` | `Add Project Gate decision lineage enforcement (Wave 4)` | `codex/add-project-gate-decision-lineage-enforcement` | `46d83e062b45722d8defff5e479648bd4a6d5043` | `70a6abc3aa88d2384095597c69a88212b6c0b825` | `CI_PASSED` | `rezahh107 on rezahh107/EV4-Project-Gate` |
 | `#48` | `Adopt EV4 consumer decision trigger architecture baseline (Wave 0)` | `codex/implement-wave-0-architecture-baseline` | `e95a0744a1393f6cf1530c4758eb2435dfb6c7e4` | `908055328a7dac611c0096951ff77e01be6e5636` | `CI_PASSED` | `rezahh107 on rezahh107/EV4-Project-Gate` |
 | `#47` | `docs: adopt EV4 consumer decision trigger architecture v0.4.1` | `adopt-ev4-consumer-decision-trigger-architecture-v0-4-1` | `ecdf2d33de15a301e3c442837d8b1ba71fdfec4e` | `c94f2fef6d2652573888694d13c2e40ac04e83b8` | `CI_PASSED` | `rezahh107 on rezahh107/EV4-Project-Gate` |
