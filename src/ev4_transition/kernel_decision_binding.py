@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 from typing import Any
 
+from .canonical_json import canonical_sha256
 from .contract_source import ContractSource
 from .diagnostics import Diagnostic, diagnostic, sort_diagnostics
 from .kernel_decision_dependencies import EXPECTED_KERNEL_SEMANTIC_DEPENDENCIES, KERNEL_ACCEPTED_COMMIT, KERNEL_REPOSITORY
@@ -52,8 +53,14 @@ def binding_diagnostics(packets: list[Any], source: ContractSource) -> dict[int,
     result = {index: [] for index in range(len(packets))}
     packet_ids: dict[str, int] = {}
     decision_ids: dict[str, int] = {}
-    packet_decision_ids = {item.get("decision_id") for item in packets if isinstance(item, dict) and isinstance(item.get("decision_id"), str)}
     known_families = _known_families(source)
+    evidence_owners: dict[str, set[int]] = {}
+    for index, packet in enumerate(packets):
+        if not isinstance(packet, dict) or not isinstance(packet.get("decision_record"), dict):
+            continue
+        for evidence_id in _evidence_ids(packet["decision_record"].get("evidence_refs")):
+            evidence_owners.setdefault(evidence_id, set()).add(index)
+
     for index, packet in enumerate(packets):
         base = f"$.payload.data.decision_packets[{index}]"
         if not isinstance(packet, dict):
@@ -73,15 +80,21 @@ def binding_diagnostics(packets: list[Any], source: ContractSource) -> dict[int,
             result[index].append(diagnostic("PG.KERNEL_INTAKE.RULE_BINDING_MISMATCH", "error", "Decision rule ID/version must match the pinned active rule.", f"{base}.decision_record.rule_version"))
         elif known_families and family not in known_families:
             result[index].append(diagnostic("PG.KERNEL_INTAKE.UNKNOWN_DECISION_FAMILY", "error", "Decision family is absent from the pinned P0 matrix registry.", f"{base}.decision_family_id"))
-        record_ids, resolver_ids = _evidence_ids(record.get("evidence_refs")), _evidence_ids(resolver.get("evidence_refs"))
-        if record_ids != resolver_ids:
+
+        record_refs = record.get("evidence_refs") if isinstance(record.get("evidence_refs"), list) else []
+        resolver_refs = resolver.get("evidence_refs") if isinstance(resolver.get("evidence_refs"), list) else []
+        record_ids = _evidence_ids(record_refs)
+        if canonical_sha256(record_refs) != canonical_sha256(resolver_refs):
             result[index].append(diagnostic("PG.KERNEL_INTAKE.EVIDENCE_REF_MISMATCH", "error", "Decision Record and Resolver input evidence references must match exactly.", f"{base}.resolver_input.evidence_refs"))
+        audit_source_refs = audit.get("source_evidence_refs") if isinstance(audit.get("source_evidence_refs"), list) else []
+        if set(audit_source_refs) != record_ids:
+            result[index].append(diagnostic("PG.KERNEL_INTAKE.AUDIT_EVIDENCE_REF_MISMATCH", "error", "Audit Context source evidence refs must bind exactly to Decision Record evidence IDs.", f"{base}.audit_context.source_evidence_refs"))
         context = resolver.get("context") if isinstance(resolver.get("context"), dict) else {}
         required = set(context.get("required_evidence_refs", [])) if isinstance(context.get("required_evidence_refs"), list) else set()
         if not required.issubset(record_ids):
             result[index].append(diagnostic("PG.KERNEL_INTAKE.REQUIRED_EVIDENCE_REF_MISSING", "error", "Resolver-required evidence refs must be bound into the decision packet.", f"{base}.resolver_input.context.required_evidence_refs"))
-        if any(ref in packet_decision_ids - {decision_id} for ref in required):
-            result[index].append(diagnostic("PG.KERNEL_INTAKE.CROSS_PACKET_SUBSTITUTION", "error", "Cross-packet decision/evidence substitution is forbidden.", f"{base}.resolver_input.context.required_evidence_refs"))
+        if any(ref not in record_ids and any(owner != index for owner in evidence_owners.get(ref, set())) for ref in required):
+            result[index].append(diagnostic("PG.KERNEL_INTAKE.CROSS_PACKET_SUBSTITUTION", "error", "Cross-packet evidence substitution is forbidden.", f"{base}.resolver_input.context.required_evidence_refs"))
         if audit.get("provenance_ref") != provenance.get("provenance_id"):
             result[index].append(diagnostic("PG.KERNEL_INTAKE.PROVENANCE_MISMATCH", "error", "Audit context provenance_ref must bind to packet provenance.", f"{base}.audit_context.provenance_ref"))
         for claim_index, claim in enumerate(packet.get("asserted_claims", [])):
