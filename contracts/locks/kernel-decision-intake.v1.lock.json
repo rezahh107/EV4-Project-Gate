@@ -1,0 +1,12 @@
+{
+  "schema_version": "kernel-decision-intake-semantic-lock.v1",
+  "lock_id": "kroad-011-kernel-semantic-lock.v1",
+  "files": [
+    {"role":"decision_record_schema","repository":"rezahh107/EV4-Decision-Kernel","accepted_commit":"76a82e28543ff8f0babca11b7d7dccac96b92894","path":"kernel/schemas/decision-record.v2.schema.json","identity":"https://ev4.local/schemas/decision-record.v2.schema.json","sha256_file_bytes":"a20bfa42335d9696d259abb5e1c6a78e2d8a2a7df4e56bfa2d4eb68a6f9293fa"},
+    {"role":"p0_decision_matrices","repository":"rezahh107/EV4-Decision-Kernel","accepted_commit":"76a82e28543ff8f0babca11b7d7dccac96b92894","path":"kernel/decision-governance/p0-decision-matrices.v0.json","identity":"p0-decision-matrices.v0","sha256_file_bytes":"e5f0d357fe5b5aadf8f9c0075d079263d3de85bcc877c83fe1f7563b8ebe2cc7"},
+    {"role":"resolver_rule_registry","repository":"rezahh107/EV4-Decision-Kernel","accepted_commit":"76a82e28543ff8f0babca11b7d7dccac96b92894","path":"kernel/decision-governance/resolver-rule-registry.v0.json","identity":"resolver-rule-registry.v0","sha256_file_bytes":"efb96e7b24d206507784eeff3f2e1e834368430b79f8d1fe60bc38c40aac208c"},
+    {"role":"layout_structure_rule","repository":"rezahh107/EV4-Decision-Kernel","accepted_commit":"76a82e28543ff8f0babca11b7d7dccac96b92894","path":"kernel/decision-governance/resolver-rules/layout-structure.v0.json","identity":"resolver.contract.layout_structure.mvp.v0","sha256_file_bytes":"30eefbb322bdc70038be3eda5751a809956df138dcbe9a0e294134c628eada0d"},
+    {"role":"resolver_implementation","repository":"rezahh107/EV4-Decision-Kernel","accepted_commit":"76a82e28543ff8f0babca11b7d7dccac96b92894","path":"kernel/resolver-mvp/resolve-high-risk-p0.mjs","identity":"export function resolveDecision","sha256_file_bytes":"f716af66c65762b688484d72a27c5c5a2d1ea858589b34ae2cf9f8ad0846af62"},
+    {"role":"l2_audit_implementation","repository":"rezahh107/EV4-Decision-Kernel","accepted_commit":"76a82e28543ff8f0babca11b7d7dccac96b92894","path":"kernel/validator/validate-l2-decision-correctness.mjs","identity":"export function auditDecisionRecord","sha256_file_bytes":"980c249b1ae73e0f3b8d65a6c68c63111e2ad8d660cd9965b899c8fec0fca3c1"}
+  ]
+}
