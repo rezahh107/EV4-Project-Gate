@@ -1,6 +1,6 @@
 # KROAD-011 — Project Gate Intake
 
-Status: implementation and focused trust-boundary repair are complete on PR #51. Exact-head CI is successful for `bc8bf394174e08d3a3a9e60cb4652440ac062885`.
+Status: implementation and focused trust-boundary repair are complete on PR #51. Exact-head pull-request CI is the authority for review readiness.
 
 ## Ownership boundary
 
@@ -103,13 +103,12 @@ Receipts do not create lineage, evidence, Kernel acceptance, downstream enforcem
 
 ## Validation
 
-Exact-head checks executed successfully:
+Repository checks:
 
 ```bash
 uv lock --check
 uv sync --locked --extra dev --extra ui
 uv run pytest
-uv run pytest tests/kernel_decision_intake tests/transitions/test_final_gate.py tests/reports/test_decision_receipts.py tests/planning/test_decision_escape_routes_schema.py
 uv run python scripts/check-capability-truth.py
 uv run python scripts/check-workflow-permissions.py
 uv run python scripts/check-github-action-pinning.py
@@ -118,7 +117,19 @@ npm run status
 npm run validate
 ```
 
-The KROAD-011 workflow also reproduced and compared the committed semantic lock and ran the official pinned Kernel bridge smoke after:
+Focused checks:
+
+```bash
+uv run pytest tests/kernel_decision_intake
+uv run pytest tests/transitions/test_final_gate.py
+uv run pytest tests/reports/test_decision_receipts.py
+uv run pytest tests/planning/test_decision_escape_routes_schema.py
+python scripts/compute-kernel-decision-intake-lock.py \
+  --kernel-repo ../EV4-Decision-Kernel \
+  --output /tmp/kernel-decision-intake-lock.json
+```
+
+Pinned Kernel checks:
 
 ```bash
 cd ../EV4-Decision-Kernel
