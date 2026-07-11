@@ -88,7 +88,6 @@ def _apply(bundle: dict, mutation: str):
             second["decision_record"]["evidence_refs"][0]["evidence_id"] = "EV2"
             second["resolver_input"]["evidence_refs"][0]["evidence_id"] = "EV2"
             second["resolver_input"]["context"]["required_evidence_refs"] = ["EV2"]
-            second["audit_context"]["source_evidence_refs"] = ["EV2"]
         bundle["payload"]["data"]["decision_packets"].append(second)
         if mutation == "cross_packet_substitution":
             packet["resolver_input"]["context"]["required_evidence_refs"].append("EV2")
@@ -123,6 +122,18 @@ def _all_diagnostics(result: dict) -> list[dict]:
     return [*result["diagnostics"], *[item for packet in result["packet_results"] for item in packet["project_gate_diagnostics"]]]
 
 
+def _run(bundle: dict, tmp_path: Path, executor=_pass):
+    kernel, lock = _kernel(tmp_path)
+    executions = 0
+    def counted(packet: dict) -> KernelAuditExecution:
+        nonlocal executions
+        executions += 1
+        return executor(packet)
+    result = run_kernel_decision_intake(bundle, LocalCheckoutContractSource({KERNEL_REPOSITORY:kernel}), KernelDecisionIntakeConfig(ROOT/"schemas", lock), audit_executor=counted)
+    Draft202012Validator(json.loads((ROOT/"schemas/kernel-decision-intake-result/kernel-decision-intake-result.v1.schema.json").read_text())).validate(result)
+    return result, executions
+
+
 CASES = [case for case in json.loads(MANIFEST.read_text())["cases"] if case["mutation"] not in {"receipt_without_intake","final_gate_without_intake"}]
 
 
@@ -134,12 +145,10 @@ def test_synthetic_fixture_case(case: dict, tmp_path: Path):
     if lock_mutator:
         lock_mutator(lock)
     executions = 0
-
     def counted_executor(packet: dict) -> KernelAuditExecution:
         nonlocal executions
         executions += 1
         return executor(packet)
-
     result = run_kernel_decision_intake(bundle, LocalCheckoutContractSource({KERNEL_REPOSITORY:kernel}), KernelDecisionIntakeConfig(ROOT/"schemas", lock), audit_executor=counted_executor)
     assert result["status"] == case["expected_status"], result
     if case["expected_pg_code"]:
@@ -150,6 +159,51 @@ def test_synthetic_fixture_case(case: dict, tmp_path: Path):
     if case["mutation"] in {"authored_fake_l2_pass", "authored_derived_counts", "unsupported_asserted_claim", "forbidden_claim_outside_asserted_claims", "cross_packet_substitution"}:
         assert executions == 0
     Draft202012Validator(json.loads((ROOT/"schemas/kernel-decision-intake-result/kernel-decision-intake-result.v1.schema.json").read_text())).validate(result)
+
+
+@pytest.mark.parametrize(
+    ("field", "value"),
+    [
+        ("runtime_evidence_refs", ["FABRICATED-RUNTIME"]),
+        ("runtime_evidence_refs", ["MISSING-EVIDENCE-ID"]),
+        ("runtime_evidence_refs", ["EV1"]),
+        ("source_evidence_refs", ["EV1"]),
+    ],
+)
+def test_authored_evidence_projections_are_rejected_before_kernel_execution(tmp_path: Path, field: str, value: list[str]):
+    bundle = json.loads(BASE.read_text())
+    bundle["payload"]["data"]["decision_packets"][0]["audit_context"][field] = value
+    result, executions = _run(bundle, tmp_path)
+    assert result["status"] == "invalid"
+    assert executions == 0
+    assert any(item["code"] == "PG.KERNEL_INTAKE.AUTHORED_DERIVED_FIELD" and item["path"].endswith(f"audit_context.{field}") for item in _all_diagnostics(result))
+
+
+@pytest.mark.parametrize(
+    ("source_type", "expected_source", "expected_runtime"),
+    [
+        ("project_export", [{"evidence_id":"EV1","source_type":"project_export","reference":"exports/project.json"}], []),
+        ("runtime_browser", [], [{"evidence_id":"EV1","source_type":"runtime_browser","reference":"browser/run-1.json"}]),
+        ("manual_note", [], []),
+        ("kernel_fixture", [], []),
+    ],
+)
+def test_evidence_projections_are_derived_only_from_decision_record(tmp_path: Path, source_type: str, expected_source: list[dict], expected_runtime: list[dict]):
+    bundle = json.loads(BASE.read_text())
+    reference = "browser/run-1.json" if source_type == "runtime_browser" else "exports/project.json"
+    for carrier in (bundle["payload"]["data"]["decision_packets"][0]["decision_record"], bundle["payload"]["data"]["decision_packets"][0]["resolver_input"]):
+        carrier["evidence_refs"][0]["source_type"] = source_type
+        carrier["evidence_refs"][0]["ref"] = reference
+    result, executions = _run(bundle, tmp_path)
+    assert result["status"] == "accepted", result
+    assert executions == 1
+    packet = result["packet_results"][0]
+    assert packet["source_evidence_refs"] == expected_source
+    assert packet["runtime_evidence_refs"] == expected_runtime
+    assert result["source_evidence_refs"] == [{"packet_id":"P1", **item} for item in expected_source]
+    assert result["runtime_evidence_refs"] == [{"packet_id":"P1", **item} for item in expected_runtime]
+    assert "runtime_validated" not in json.dumps(result)
+    assert "production_ready" not in json.dumps(result)
 
 
 def test_manifest_labels_every_case_synthetic():
