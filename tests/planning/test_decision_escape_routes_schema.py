@@ -68,7 +68,7 @@ def test_decision_escape_routes_rejects_missing_core_carrier_key() -> None:
 def test_decision_escape_routes_rejects_downstream_status_without_downstream_contract() -> None:
     payload = _first_record_payload()
     payload["records"][0]["status"]["enforcement_status"] = "downstream_contract_enforced"
-    payload["records"][0]["carriers"].pop("downstream_contract")
+    payload["records"][0]["carriers"].pop("downstream_contract", None)
 
     assert _errors(payload)
 
