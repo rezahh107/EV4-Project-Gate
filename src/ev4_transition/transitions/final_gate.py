@@ -3,14 +3,16 @@ from __future__ import annotations
 import json
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any
+from typing import Any, Callable
 
 from jsonschema import Draft202012Validator
 
 from ev4_transition.canonical_json import bytes_sha256, canonical_sha256, load_json_file
 from ev4_transition.contract_source import ContractSource, LocalCheckoutContractSource
 from ev4_transition.diagnostics import Diagnostic, diagnostic, project_gate_status_from_diagnostics, sort_diagnostics
-from ev4_transition.kernel_decision_dependencies import KERNEL_ACCEPTED_COMMIT, KERNEL_INTAKE_RESULT_SCHEMA_ID, KERNEL_REPOSITORY
+from ev4_transition.final_gate_authority import _authoritative_final_gate_result
+from ev4_transition.kernel_decision_dependencies import KERNEL_REPOSITORY
+from ev4_transition.kernel_decision_intake import KernelAuditExecution, KernelDecisionIntakeConfig, run_kernel_decision_intake
 from ev4_transition.runners.responsive_tools import execute_responsive_output_validator
 
 GATE_ID = "ev4-final-evidence-gate@1.0.0"
@@ -60,6 +62,8 @@ class FinalGateConfig:
     timeout_seconds: float = 30
     require_real_evidence: bool = True
     kernel_intake_lock: dict[str, Any] | None = None
+    kernel_repo_root: Path | None = None
+    kernel_audit_executor: Callable[[dict[str, Any]], KernelAuditExecution] | None = None
 
 
 def verify_final_gate_lock(lock: dict[str, Any], source: ContractSource) -> list[Diagnostic]:
@@ -110,26 +114,40 @@ def verify_final_gate_lock(lock: dict[str, Any], source: ContractSource) -> list
     return sort_diagnostics(diagnostics)
 
 
-def final_gate_from_local_paths(final_input: Any, schema_root: str | Path, lock_path: str | Path, project_gate_repo: str | Path, responsive_repo: str | Path, *, timeout_seconds: float = 30, require_real_evidence: bool = True) -> dict[str, Any]:
+def final_gate_from_local_paths(final_input: Any, schema_root: str | Path, lock_path: str | Path, project_gate_repo: str | Path, responsive_repo: str | Path, *, kernel_repo: str | Path | None = None, timeout_seconds: float = 30, require_real_evidence: bool = True) -> dict[str, Any]:
     project_gate_root = Path(project_gate_repo)
+    responsive_root = Path(responsive_repo)
+    kernel_root = Path(kernel_repo) if kernel_repo is not None else None
     kernel_lock_path = project_gate_root / KERNEL_INTAKE_LOCK_PATH
     kernel_lock = load_json_file(kernel_lock_path) if kernel_lock_path.is_file() else None
-    config = FinalGateConfig(Path(schema_root), load_json_file(lock_path), project_gate_root, Path(responsive_repo), timeout_seconds, require_real_evidence, kernel_lock)
-    source = LocalCheckoutContractSource({PG_REPO: project_gate_root, RESPONSIVE_REPO: Path(responsive_repo)})
+    config = FinalGateConfig(
+        schema_root=Path(schema_root),
+        lock=load_json_file(lock_path),
+        project_gate_repo_root=project_gate_root,
+        responsive_repo_root=responsive_root,
+        timeout_seconds=timeout_seconds,
+        require_real_evidence=require_real_evidence,
+        kernel_intake_lock=kernel_lock,
+        kernel_repo_root=kernel_root,
+    )
+    roots = {PG_REPO: project_gate_root, RESPONSIVE_REPO: responsive_root}
+    if kernel_root is not None:
+        roots[KERNEL_REPOSITORY] = kernel_root
+    source = LocalCheckoutContractSource(roots)
     return run_final_gate(final_input, source, config)
 
 
 def run_final_gate(final_input: Any, contract_source: ContractSource, config: FinalGateConfig, progress_sink: list[dict[str, Any]] | None = None) -> dict[str, Any]:
     diagnostics: list[Diagnostic] = []
     accepted_requires = {"prior_lock_chain_verified": False, "responsive_output_present": False, "responsive_output_schema_verified": False, "responsive_output_validator_passed": False, "real_evidence_present": False, "no_forbidden_final_claim": False, "kernel_decision_intake_accepted": False, "decision_lineage_projection_valid": False, "result_schema_valid": True}
-    kernel_intake: dict[str, Any] | None = None
+    kernel_intake_result: dict[str, Any] | None = None
     if not isinstance(final_input, dict):
         diagnostics.append(diagnostic("PG.FINAL.INPUT_NOT_OBJECT", "error", "Final gate input must be an object.", "$", observed_type=type(final_input).__name__))
-        return _result(final_input, None, kernel_intake, diagnostics, accepted_requires, config)
+        return _result(final_input, None, kernel_intake_result, diagnostics, accepted_requires, config)
     output = final_input.get("responsive_output") if isinstance(final_input.get("responsive_output"), dict) else final_input
     if not isinstance(output, dict):
         diagnostics.append(diagnostic("PG.FINAL.RESPONSIVE_OUTPUT_MISSING", "insufficient_evidence", "Responsive output evidence is missing.", "$.responsive_output"))
-        return _result(final_input, None, kernel_intake, diagnostics, accepted_requires, config)
+        return _result(final_input, None, kernel_intake_result, diagnostics, accepted_requires, config)
     accepted_requires["responsive_output_present"] = True
     lock_diagnostics = verify_final_gate_lock(config.lock, contract_source)
     diagnostics.extend(lock_diagnostics)
@@ -140,10 +158,28 @@ def run_final_gate(final_input: Any, contract_source: ContractSource, config: Fi
     accepted_requires["no_forbidden_final_claim"] = not forbidden
     if _contains_key_or_value(final_input, "ci_success_as_frontend_evidence"):
         diagnostics.append(diagnostic("PG.FINAL.CI_FRONTEND_CORRECTNESS_CLAIM", "error", "CI success is not frontend correctness evidence.", "$"))
-    kernel_intake = final_input.get("kernel_decision_intake_result") if isinstance(final_input.get("kernel_decision_intake_result"), dict) else None
-    intake_diagnostics = _validate_kernel_decision_intake_result(kernel_intake, config)
-    diagnostics.extend(intake_diagnostics)
-    accepted_requires["kernel_decision_intake_accepted"] = kernel_intake is not None and not intake_diagnostics
+
+    raw_intake = final_input.get("kernel_decision_intake")
+    supplied_projection = final_input.get("kernel_decision_intake_result")
+    if raw_intake is None:
+        diagnostics.append(diagnostic("PG.FINAL.KERNEL_INTAKE_REQUIRED", "error", "Final Gate requires the raw KROAD-011 Kernel decision intake Stage Evidence Bundle.", "$.kernel_decision_intake"))
+    elif not isinstance(raw_intake, dict):
+        diagnostics.append(diagnostic("PG.FINAL.KERNEL_INTAKE_INVALID", "error", "Raw Kernel decision intake must be a Stage Evidence Bundle object.", "$.kernel_decision_intake"))
+    elif not isinstance(config.kernel_intake_lock, dict):
+        diagnostics.append(diagnostic("PG.FINAL.KERNEL_INTAKE_LOCK_UNAVAILABLE", "insufficient_evidence", "Committed KROAD-011 semantic lock is unavailable to Final Gate.", "$.kernel_decision_intake"))
+    else:
+        executor = _kernel_audit_executor(config)
+        kernel_intake_result = run_kernel_decision_intake(
+            raw_intake,
+            contract_source,
+            KernelDecisionIntakeConfig(config.schema_root, config.kernel_intake_lock, config.kernel_repo_root, config.project_gate_repo_root, config.timeout_seconds),
+            audit_executor=executor,
+        )
+        diagnostics.extend(_kernel_intake_status_diagnostics(kernel_intake_result))
+        if supplied_projection is not None and not _projection_matches(supplied_projection, kernel_intake_result):
+            diagnostics.append(diagnostic("PG.FINAL.KERNEL_INTAKE_PROJECTION_MISMATCH", "error", "Supplied precomputed Kernel intake result does not match the result recomputed by Final Gate and is non-authoritative.", "$.kernel_decision_intake_result"))
+        accepted_requires["kernel_decision_intake_accepted"] = kernel_intake_result.get("status") == "accepted" and not any(item.code == "PG.FINAL.KERNEL_INTAKE_PROJECTION_MISMATCH" for item in diagnostics)
+
     lineage_diagnostics = _validate_output_decision_lineage_projection(final_input, output)
     diagnostics.extend(lineage_diagnostics)
     accepted_requires["decision_lineage_projection_valid"] = not lineage_diagnostics
@@ -159,58 +195,38 @@ def run_final_gate(final_input: Any, contract_source: ContractSource, config: Fi
         for error in sorted(Draft202012Validator(schema).iter_errors(output), key=lambda item: (list(item.path), item.message)):
             diagnostics.append(diagnostic("PG.FINAL.RESPONSIVE_SCHEMA_VALIDATION_FAILED", "error", error.message, _json_path(list(error.path))))
     accepted_requires["responsive_output_validator_passed"] = _run_responsive_output_validator(config, output, diagnostics, progress_sink)
-    return _result(final_input, output, kernel_intake, diagnostics, accepted_requires, config)
+    return _result(final_input, output, kernel_intake_result, diagnostics, accepted_requires, config)
 
 
-def _validate_kernel_decision_intake_result(value: Any, config: FinalGateConfig) -> list[Diagnostic]:
-    if value is None:
-        return [diagnostic("PG.FINAL.KERNEL_INTAKE_REQUIRED", "error", "Final Gate requires an authoritative KROAD-011 Kernel decision intake result.", "$.kernel_decision_intake_result")]
-    if not isinstance(value, dict):
-        return [diagnostic("PG.FINAL.KERNEL_INTAKE_INVALID", "error", "Kernel decision intake result must be an object.", "$.kernel_decision_intake_result")]
-    diagnostics: list[Diagnostic] = []
-    schema_path = config.schema_root / "kernel-decision-intake-result/kernel-decision-intake-result.v1.schema.json"
+def _projection_matches(supplied: Any, recomputed: dict[str, Any]) -> bool:
+    if not isinstance(supplied, dict):
+        return False
     try:
-        schema = load_json_file(schema_path)
-        Draft202012Validator.check_schema(schema)
-    except Exception as exc:
-        diagnostics.append(diagnostic("PG.FINAL.KERNEL_INTAKE_SCHEMA_UNAVAILABLE", "insufficient_evidence", "Project Gate KROAD-011 result schema is unavailable or invalid.", "$.kernel_decision_intake_result", schema_path=str(schema_path), error_type=type(exc).__name__))
+        return canonical_sha256(supplied) == canonical_sha256(recomputed)
+    except Exception:
+        return False
+
+
+def _kernel_audit_executor(config: FinalGateConfig) -> Callable[[dict[str, Any]], KernelAuditExecution] | None:
+    if config.kernel_audit_executor is not None:
+        return config.kernel_audit_executor
+    if config.kernel_repo_root is None or config.project_gate_repo_root is None:
+        return None
+    from ev4_transition.runners.kernel_decision import execute_kernel_l2_audit
+    return lambda packet: execute_kernel_l2_audit(packet, kernel_repo_root=config.kernel_repo_root, project_gate_repo_root=config.project_gate_repo_root, timeout_seconds=config.timeout_seconds)
+
+
+def _kernel_intake_status_diagnostics(value: dict[str, Any]) -> list[Diagnostic]:
+    status = value.get("status")
+    if status == "accepted":
+        return []
+    if status == "repair_needed":
+        severity = "warning"
+    elif status == "insufficient_evidence":
+        severity = "insufficient_evidence"
     else:
-        for error in sorted(Draft202012Validator(schema).iter_errors(value), key=lambda item: (list(item.absolute_path), item.message)):
-            diagnostics.append(diagnostic("PG.FINAL.KERNEL_INTAKE_SCHEMA_INVALID", "error", error.message, _prefixed_json_path("$.kernel_decision_intake_result", list(error.absolute_path))))
-    if value.get("schema_version") != KERNEL_INTAKE_RESULT_SCHEMA_ID or value.get("result_type") != "kernel_decision_intake":
-        diagnostics.append(diagnostic("PG.FINAL.KERNEL_INTAKE_INVALID", "error", "Kernel decision intake result identity is unknown.", "$.kernel_decision_intake_result.schema_version"))
-    if value.get("status") != "accepted":
-        diagnostics.append(diagnostic("PG.FINAL.KERNEL_INTAKE_NOT_ACCEPTED", "error", "Final Gate cannot accept a non-accepted Kernel decision intake result.", "$.kernel_decision_intake_result.status", actual=value.get("status")))
-    pin = value.get("kernel_pin")
-    if not isinstance(pin, dict) or pin.get("repository") != KERNEL_REPOSITORY or pin.get("accepted_commit") != KERNEL_ACCEPTED_COMMIT:
-        diagnostics.append(diagnostic("PG.FINAL.KERNEL_INTAKE_PIN_INVALID", "error", "Kernel decision intake result does not carry the approved immutable Kernel pin.", "$.kernel_decision_intake_result.kernel_pin"))
-    if not isinstance(config.kernel_intake_lock, dict):
-        diagnostics.append(diagnostic("PG.FINAL.KERNEL_INTAKE_LOCK_UNAVAILABLE", "insufficient_evidence", "Committed KROAD-011 semantic lock is unavailable to Final Gate.", "$.kernel_decision_intake_result.kernel_pin.semantic_lock_sha256"))
-    else:
-        expected_lock_hash = canonical_sha256(config.kernel_intake_lock)
-        hash_record = value.get("hashes") if isinstance(value.get("hashes"), dict) else {}
-        semantic_hash = hash_record.get("semantic_lock_hash") if isinstance(hash_record.get("semantic_lock_hash"), dict) else {}
-        observed_pin_hash = pin.get("semantic_lock_sha256") if isinstance(pin, dict) else None
-        observed_result_hash = semantic_hash.get("value")
-        if observed_pin_hash != expected_lock_hash or observed_result_hash != expected_lock_hash:
-            diagnostics.append(diagnostic("PG.FINAL.KERNEL_INTAKE_LOCK_HASH_INVALID", "error", "Kernel intake result semantic-lock hashes do not match the committed Project Gate lock.", "$.kernel_decision_intake_result.kernel_pin.semantic_lock_sha256", expected=expected_lock_hash, pin_hash=observed_pin_hash, result_hash=observed_result_hash))
-    provenance = value.get("provenance")
-    if not isinstance(provenance, dict) or provenance.get("result_producer") != PG_REPO:
-        diagnostics.append(diagnostic("PG.FINAL.KERNEL_INTAKE_PROVENANCE_INVALID", "error", "Kernel intake result producer provenance must identify Project Gate.", "$.kernel_decision_intake_result.provenance.result_producer"))
-    required = value.get("accepted_requires")
-    required_keys = {"kernel_pin_verified", "semantic_lock_verified", "intake_schema_valid", "packet_binding_valid", "l2_executed_all", "no_unsupported_claims", "result_schema_valid"}
-    if not isinstance(required, dict) or any(required.get(key) is not True for key in required_keys):
-        missing = sorted(key for key in required_keys if not isinstance(required, dict) or required.get(key) is not True)
-        diagnostics.append(diagnostic("PG.FINAL.KERNEL_INTAKE_REQUIREMENTS_UNMET", "error", "Kernel decision intake result is missing accepted requirements.", "$.kernel_decision_intake_result.accepted_requires", missing=missing))
-    packet_results = value.get("packet_results")
-    if not isinstance(packet_results, list) or not packet_results:
-        diagnostics.append(diagnostic("PG.FINAL.KERNEL_INTAKE_PACKET_RESULTS_REQUIRED", "error", "Accepted Kernel intake requires non-empty packet_results.", "$.kernel_decision_intake_result.packet_results"))
-    elif any(not isinstance(item, dict) or item.get("status") != "accepted" or item.get("l2_executed") is not True for item in packet_results):
-        diagnostics.append(diagnostic("PG.FINAL.KERNEL_INTAKE_PACKET_NOT_ACCEPTED", "error", "Every Kernel intake packet must be accepted after actual L2 execution.", "$.kernel_decision_intake_result.packet_results"))
-    counts = value.get("derived_counts")
-    if isinstance(packet_results, list) and packet_results and (not isinstance(counts, dict) or counts.get("accepted_decision_count") != len(packet_results) or counts.get("rejected_decision_count") != 0 or counts.get("unresolved_decision_count") != 0):
-        diagnostics.append(diagnostic("PG.FINAL.KERNEL_INTAKE_COUNTS_INVALID", "error", "Kernel intake derived counts do not support accepted Final Gate status.", "$.kernel_decision_intake_result.derived_counts"))
-    return sort_diagnostics(diagnostics)
+        severity = "error"
+    return [diagnostic("PG.FINAL.KERNEL_INTAKE_NOT_ACCEPTED", severity, "Internally executed KROAD-011 intake did not return accepted.", "$.kernel_decision_intake", actual=status)]
 
 
 def _validate_output_decision_lineage_projection(final_input: dict[str, Any], output: dict[str, Any]) -> list[Diagnostic]:
@@ -280,7 +296,7 @@ def _result(original: Any, output: dict[str, Any] | None, kernel_intake: dict[st
         return _fallback_result(candidate, ordered, accepted, diagnostic("PG.FINAL.RESULT_SCHEMA_MISSING", "insufficient_evidence", "Final gate result schema is required and must be valid.", "$.schema_version", schema_path=str(schema_path), error_type=type(exc).__name__))
     errors = sorted(Draft202012Validator(schema).iter_errors(candidate), key=lambda item: (list(item.path), item.message))
     if not errors:
-        return candidate
+        return _authoritative_final_gate_result(candidate)
     fallback = _fallback_result(candidate, ordered, accepted, *[diagnostic("PG.FINAL.RESULT_SCHEMA_VALIDATION_FAILED", "error", error.message, _json_path(list(error.path))) for error in errors])
     if list(Draft202012Validator(schema).iter_errors(fallback)):
         raise ValueError("Final Gate fail-closed result does not satisfy final-gate-result.v1 schema.")
@@ -289,7 +305,7 @@ def _result(original: Any, output: dict[str, Any] | None, kernel_intake: dict[st
 
 def _fallback_result(candidate: dict[str, Any], diagnostics: list[Diagnostic], accepted_requires: dict[str, bool], *extra: Diagnostic) -> dict[str, Any]:
     ordered = sort_diagnostics([*diagnostics, *extra])
-    return {**candidate, "status": project_gate_status_from_diagnostics(ordered), "diagnostics": [item.to_dict() for item in ordered], "accepted_requires": {**accepted_requires, "result_schema_valid": False}, "output": None}
+    return _authoritative_final_gate_result({**candidate, "status": project_gate_status_from_diagnostics(ordered), "diagnostics": [item.to_dict() for item in ordered], "accepted_requires": {**accepted_requires, "result_schema_valid": False}, "output": None})
 
 
 def _find_forbidden_claims(value: Any) -> list[str]:
@@ -339,11 +355,7 @@ def _safe_hash(value: Any) -> str:
 
 
 def _json_path(parts: list[Any]) -> str:
-    return _prefixed_json_path("$", parts)
-
-
-def _prefixed_json_path(prefix: str, parts: list[Any]) -> str:
-    path = prefix
+    path = "$"
     for part in parts:
         path += f"[{part}]" if isinstance(part, int) else f".{part}"
     return path
