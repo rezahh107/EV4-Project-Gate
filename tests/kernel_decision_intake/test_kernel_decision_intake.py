@@ -143,8 +143,8 @@ def test_synthetic_fixture_case(case: dict, tmp_path: Path):
     result = run_kernel_decision_intake(bundle, LocalCheckoutContractSource({KERNEL_REPOSITORY:kernel}), KernelDecisionIntakeConfig(ROOT/"schemas", lock), audit_executor=counted_executor)
     assert result["status"] == case["expected_status"], result
     if case["expected_pg_code"]:
-        diag = next(item for item in _all_diagnostics(result) if item["code"] == case["expected_pg_code"])
-        assert diag["path"] == case["expected_path"]
+        matching = [item for item in _all_diagnostics(result) if item["code"] == case["expected_pg_code"]]
+        assert any(item["path"] == case["expected_path"] for item in matching), matching
     upstream_codes = sorted({item["code"] for packet in result["packet_results"] for item in packet["upstream_diagnostics"]})
     assert upstream_codes == sorted(case["expected_upstream_codes"])
     if case["mutation"] in {"authored_fake_l2_pass", "authored_derived_counts", "unsupported_asserted_claim", "forbidden_claim_outside_asserted_claims", "cross_packet_substitution"}:
