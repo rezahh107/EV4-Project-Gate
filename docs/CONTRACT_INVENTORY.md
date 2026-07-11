@@ -17,6 +17,9 @@ Allowed status values used here:
 |---|---|:---:|---|---|---|
 | `ev4-architect-to-ce-transition@1.0.0` | `rezahh107/EV4-Project-Gate` | `project-gate-orchestration` | Medium: must remain deterministic orchestration and must not become CE authority | No | Implemented public CLI transition. Uses pinned Architect and CE contracts; verification remains synthetic-only. |
 | `ev4-ce-to-builder-transition@1.0.0` | `rezahh107/EV4-Project-Gate` | `project-gate-orchestration` | High: must orchestrate official CE/Builder tools without duplicating specialist logic | No | Orchestration baseline implemented; public CLI exposure is guarded/fail-closed; owner-fixture integration verified; real non-synthetic handoff remains insufficient evidence. |
+| `ev4-project-gate-kernel-decision-intake@1.0.0` | `rezahh107/EV4-Project-Gate` | `project-gate-orchestration` | High: Project Gate may own the intake carrier and binding policy but must not copy Kernel schemas or implement Resolver/L2 semantics | No | Carried through Stage Evidence Bundle v1. Embeds Decision Record, Resolver input and Audit Context; rejects authored derived status/counts and unsupported claims; runs the pinned Kernel API. |
+| `kernel-decision-intake-result.v1` | `rezahh107/EV4-Project-Gate` | `project-gate-orchestration` | High: result may report Kernel execution but must not become Kernel semantic authority or downstream proof | No | Project Gate-owned validated result envelope. Preserves Kernel diagnostics, derives counts, records exact pin/hashes/provenance, and is mandatory for Final Gate acceptance. |
+| KROAD-011 semantic lock | `rezahh107/EV4-Project-Gate` | `project-gate-orchestration` | High: adding toolchain or roadmap files would falsely expand semantic acceptance evidence | No | Contains exactly six Kernel-owned semantic artifacts pinned to `76a82e28543ff8f0babca11b7d7dccac96b92894`; `package.json` and `package-lock.json` are toolchain-only. |
 | `ev4-architect-stage-payload@1.0.0` | `rezahh107/EV4-Architect-Repo` | `local-authoritative` | Low for producer-side identity; real fixture evidence still unavailable | No | Source payload for Architect → CE transition v1. Specialist repo remains authoritative. |
 | `ev4-ce-architect-stage-intake@1.1.0` | `rezahh107/EV4-Constructability-Engineer-Repo` | `local-authoritative` | Low for intake shape; CE processing remains separate | No | Current target payload for Architect → CE transition v1. |
 | `ev4-ce-architect-stage-intake@1.0.0` | `rezahh107/EV4-Constructability-Engineer-Repo` | `compatibility-only` | Low if kept historical | No | Historical compatibility path only. Current Project Gate Architect → CE implementation uses v1.1. |
@@ -38,6 +41,10 @@ Allowed status values used here:
 | visual tolerance policy | `rezahh107/EV4-Constructability-Engineer-Repo` | `candidate-for-shared` | Medium: must align with Builder validation | Possible later | CE carries or produces this policy. |
 | reference paradigm lock | `rezahh107/EV4-Constructability-Engineer-Repo` | `candidate-for-shared` | Medium: needs producer/consumer compatibility tests | Possible later | No promotion is implied by Project Gate orchestration. |
 | paradigm-to-structure map | `rezahh107/EV4-Constructability-Engineer-Repo` | `candidate-for-shared` | Medium: needs versioning and fixture coverage | Possible later | CE carries or produces this mapping. |
+
+### KROAD-011 authority note
+
+Kernel remains authoritative for Decision Record v2, the Resolver registry/rule/implementation, and L2 Decision Correctness semantics. Project Gate owns only the intake/result envelopes, semantic lock verification, packet binding, deterministic status mapping, Final Gate requirement, and presentation-only receipt behavior. Synthetic fixtures do not prove a real handoff, Builder execution, runtime/browser validity, downstream producer integration, release readiness, or production readiness.
 
 ### Prompt 0 common-contract foundation note
 
