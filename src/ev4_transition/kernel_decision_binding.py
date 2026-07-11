@@ -12,6 +12,7 @@ FORBIDDEN_AUTHORED_FIELDS = frozenset({
     "l2_audit_status", "resolver_output", "audit_passed", "kernel_validated",
     "accepted_decision_count", "rejected_decision_count", "provisional_count",
     "human_override_count", "unresolved_decision_count",
+    "source_evidence_refs", "runtime_evidence_refs",
 })
 UNSUPPORTED_ASSERTED_CLAIMS = frozenset({
     "builder_execution_proof", "builder_ready", "runtime_validated", "browser_validated",
@@ -86,9 +87,6 @@ def binding_diagnostics(packets: list[Any], source: ContractSource) -> dict[int,
         record_ids = _evidence_ids(record_refs)
         if canonical_sha256(record_refs) != canonical_sha256(resolver_refs):
             result[index].append(diagnostic("PG.KERNEL_INTAKE.EVIDENCE_REF_MISMATCH", "error", "Decision Record and Resolver input evidence references must match exactly.", f"{base}.resolver_input.evidence_refs"))
-        audit_source_refs = audit.get("source_evidence_refs") if isinstance(audit.get("source_evidence_refs"), list) else []
-        if set(audit_source_refs) != record_ids:
-            result[index].append(diagnostic("PG.KERNEL_INTAKE.AUDIT_EVIDENCE_REF_MISMATCH", "error", "Audit Context source evidence refs must bind exactly to Decision Record evidence IDs.", f"{base}.audit_context.source_evidence_refs"))
         context = resolver.get("context") if isinstance(resolver.get("context"), dict) else {}
         required = set(context.get("required_evidence_refs", [])) if isinstance(context.get("required_evidence_refs"), list) else set()
         if not required.issubset(record_ids):
