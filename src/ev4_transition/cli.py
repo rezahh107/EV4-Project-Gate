@@ -39,6 +39,7 @@ def main(argv: list[str] | None = None) -> int:
     transition_parser.add_argument("--builder-repo")
     transition_parser.add_argument("--responsive-repo")
     transition_parser.add_argument("--project-gate-repo")
+    transition_parser.add_argument("--kernel-repo")
     transition_parser.add_argument("--lock")
     transition_parser.add_argument("--format", choices=["json", "persian"], default="json")
     transition_parser.add_argument("--acquisition-mode", choices=["pinned_owner_file_computation", "producer_emitted_gate_artifact"], default="pinned_owner_file_computation")
@@ -136,8 +137,10 @@ def _run_transition(args: argparse.Namespace, bundle: dict[str, Any]) -> dict[st
             args.lock or "contracts/locks/final-gate.v1.lock.json",
             args.project_gate_repo,
             args.responsive_repo,
+            kernel_repo=args.kernel_repo,
         )
     return _simple_insufficient("CLI_TRANSITION_NOT_WIRED", "Transition is not wired in the public CLI.", transition_name=args.transition_name)
+
 
 
 def _transition_preflight(args: argparse.Namespace) -> dict[str, Any] | None:
@@ -145,7 +148,7 @@ def _transition_preflight(args: argparse.Namespace) -> dict[str, Any] | None:
         "architect-to-ce": ["architect_repo", "ce_repo"],
         "ce-to-builder": ["ce_repo", "builder_repo"],
         "builder-to-responsive": ["builder_repo", "responsive_repo"],
-        "final-evidence-gate": ["project_gate_repo", "responsive_repo"],
+        "final-evidence-gate": ["project_gate_repo", "responsive_repo", "kernel_repo"],
     }
     required = required_by_transition.get(args.transition_name, [])
     for field in required:
@@ -163,13 +166,16 @@ def _transition_preflight(args: argparse.Namespace) -> dict[str, Any] | None:
     return None
 
 
+
 def _looks_like_url(value: str) -> bool:
     lowered = value.lower()
     return lowered.startswith(("http://", "https://", "git@")) or "github.com" in lowered
 
 
+
 def _simple_insufficient(code: str, message: str, **details: Any) -> dict[str, Any]:
     return {"status": "insufficient_evidence", "diagnostics": [{"code": code, "severity": "insufficient_evidence", "message": message, "path": "$", "details": details}]}
+
 
 
 def _load_capability_status() -> dict[str, Any]:
@@ -216,12 +222,15 @@ def _coverage_command(args: argparse.Namespace) -> int:
     raise AssertionError(f"unknown coverage command: {args.coverage_command}")
 
 
+
 def _simple_invalid(code: str, message: str, **details: Any) -> dict[str, Any]:
     return {"status": "invalid", "diagnostics": [{"code": code, "severity": "error", "message": message, "path": "$", "details": details}]}
 
 
+
 def _exit_for_status(status: str) -> int:
     return exit_code_for_status(status)
+
 
 
 def _emit(payload: dict[str, Any], fmt: str) -> None:
