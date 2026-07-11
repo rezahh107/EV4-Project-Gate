@@ -85,9 +85,25 @@ Final Gate accepts the raw `kernel_decision_intake` Stage Evidence Bundle, not a
 
 The result returned by that internal execution is the only intake result used for Final Gate authority. A supplied `kernel_decision_intake_result` is non-authoritative projection/cache data only. When supplied, it must exactly match the recomputed result; otherwise Final Gate fails closed.
 
-An authored producer string, accepted status, boolean, execution record, unsigned hash or self-declared trust flag cannot authenticate Final Gate acceptance.
+An authored producer string, accepted status, boolean, execution record, unsigned hash or self-declared trusted flag cannot authenticate Final Gate acceptance.
 
 A complete legacy seven-field `decision_lineage` trace remains a compatibility projection only. It cannot authenticate Final Gate acceptance.
+
+## Guarded Final Gate CLI invocation
+
+The public guarded CLI requires local checkouts for Project Gate, Responsive Architect and the approved Decision Kernel. Missing paths, GitHub URLs and nonexistent directories fail closed during preflight.
+
+```bash
+uv run ev4-transition transition final-evidence-gate path/to/final-evidence.json \
+  --project-gate-repo . \
+  --responsive-repo ../EV4-Responsive-Architect \
+  --kernel-repo ../EV4-Decision-Kernel \
+  --format json
+```
+
+`--kernel-repo` is a local checkout path, not a branch, tag, floating ref, short commit or remote repository identifier. Final Gate verifies and executes against the committed semantic lock and immutable approved Kernel commit; the CLI argument does not move that pin.
+
+Supplying these paths enables the guarded execution chain but does not itself prove a real handoff, Builder execution, runtime/browser validity, release readiness or production readiness.
 
 ## Decision receipt trust boundary
 
@@ -120,10 +136,7 @@ npm run validate
 Focused checks:
 
 ```bash
-uv run pytest tests/kernel_decision_intake
-uv run pytest tests/transitions/test_final_gate.py
-uv run pytest tests/reports/test_decision_receipts.py
-uv run pytest tests/planning/test_decision_escape_routes_schema.py
+uv run pytest tests/test_cli.py tests/test_cli_final_gate_kernel_repo.py tests/kernel_decision_intake tests/transitions/test_final_gate.py tests/reports/test_decision_receipts.py
 python scripts/compute-kernel-decision-intake-lock.py \
   --kernel-repo ../EV4-Decision-Kernel \
   --output /tmp/kernel-decision-intake-lock.json
