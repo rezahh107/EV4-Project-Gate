@@ -23,6 +23,7 @@ RESPONSIVE_COMMIT = "df74c7ba2ffbed1a4136b5ea6be6ce30db4e161a"
 RESPONSIVE_OUTPUT_SCHEMA = "ev4-responsive-output@0.3.0"
 RESPONSIVE_OUTPUT_SCHEMA_PATH = "schemas/ev4-responsive-output.schema.json"
 RESPONSIVE_OUTPUT_VALIDATOR = "validation/e2e/run_responsive_tree_architecture_refactor_check.py"
+KERNEL_INTAKE_LOCK_PATH = "contracts/locks/kernel-decision-intake.v1.lock.json"
 
 REQUIRED_DECISION_LINEAGE_FIELDS = ("decision_family", "decision_card_ref", "selected_option", "rejected_options", "evidence_refs", "evidence_state", "consumer_stage")
 FORBIDDEN_FINAL_CLAIMS = {"production_ready", "release_ready", "pixel_perfect", "live_render_validated", "export_json_validated", "export_validated", "accessibility_passed", "responsive_correctness_validated", "ci_success_as_frontend_evidence", "frontend_correctness", "production_readiness", "responsive_correctness"}
@@ -58,6 +59,7 @@ class FinalGateConfig:
     responsive_repo_root: Path | None = None
     timeout_seconds: float = 30
     require_real_evidence: bool = True
+    kernel_intake_lock: dict[str, Any] | None = None
 
 
 def verify_final_gate_lock(lock: dict[str, Any], source: ContractSource) -> list[Diagnostic]:
@@ -109,8 +111,11 @@ def verify_final_gate_lock(lock: dict[str, Any], source: ContractSource) -> list
 
 
 def final_gate_from_local_paths(final_input: Any, schema_root: str | Path, lock_path: str | Path, project_gate_repo: str | Path, responsive_repo: str | Path, *, timeout_seconds: float = 30, require_real_evidence: bool = True) -> dict[str, Any]:
-    config = FinalGateConfig(Path(schema_root), load_json_file(lock_path), Path(project_gate_repo), Path(responsive_repo), timeout_seconds, require_real_evidence)
-    source = LocalCheckoutContractSource({PG_REPO: Path(project_gate_repo), RESPONSIVE_REPO: Path(responsive_repo)})
+    project_gate_root = Path(project_gate_repo)
+    kernel_lock_path = project_gate_root / KERNEL_INTAKE_LOCK_PATH
+    kernel_lock = load_json_file(kernel_lock_path) if kernel_lock_path.is_file() else None
+    config = FinalGateConfig(Path(schema_root), load_json_file(lock_path), project_gate_root, Path(responsive_repo), timeout_seconds, require_real_evidence, kernel_lock)
+    source = LocalCheckoutContractSource({PG_REPO: project_gate_root, RESPONSIVE_REPO: Path(responsive_repo)})
     return run_final_gate(final_input, source, config)
 
 
@@ -136,7 +141,7 @@ def run_final_gate(final_input: Any, contract_source: ContractSource, config: Fi
     if _contains_key_or_value(final_input, "ci_success_as_frontend_evidence"):
         diagnostics.append(diagnostic("PG.FINAL.CI_FRONTEND_CORRECTNESS_CLAIM", "error", "CI success is not frontend correctness evidence.", "$"))
     kernel_intake = final_input.get("kernel_decision_intake_result") if isinstance(final_input.get("kernel_decision_intake_result"), dict) else None
-    intake_diagnostics = _validate_kernel_decision_intake_result(kernel_intake)
+    intake_diagnostics = _validate_kernel_decision_intake_result(kernel_intake, config)
     diagnostics.extend(intake_diagnostics)
     accepted_requires["kernel_decision_intake_accepted"] = kernel_intake is not None and not intake_diagnostics
     lineage_diagnostics = _validate_output_decision_lineage_projection(final_input, output)
@@ -157,12 +162,21 @@ def run_final_gate(final_input: Any, contract_source: ContractSource, config: Fi
     return _result(final_input, output, kernel_intake, diagnostics, accepted_requires, config)
 
 
-def _validate_kernel_decision_intake_result(value: Any) -> list[Diagnostic]:
+def _validate_kernel_decision_intake_result(value: Any, config: FinalGateConfig) -> list[Diagnostic]:
     if value is None:
         return [diagnostic("PG.FINAL.KERNEL_INTAKE_REQUIRED", "error", "Final Gate requires an authoritative KROAD-011 Kernel decision intake result.", "$.kernel_decision_intake_result")]
     if not isinstance(value, dict):
         return [diagnostic("PG.FINAL.KERNEL_INTAKE_INVALID", "error", "Kernel decision intake result must be an object.", "$.kernel_decision_intake_result")]
     diagnostics: list[Diagnostic] = []
+    schema_path = config.schema_root / "kernel-decision-intake-result/kernel-decision-intake-result.v1.schema.json"
+    try:
+        schema = load_json_file(schema_path)
+        Draft202012Validator.check_schema(schema)
+    except Exception as exc:
+        diagnostics.append(diagnostic("PG.FINAL.KERNEL_INTAKE_SCHEMA_UNAVAILABLE", "insufficient_evidence", "Project Gate KROAD-011 result schema is unavailable or invalid.", "$.kernel_decision_intake_result", schema_path=str(schema_path), error_type=type(exc).__name__))
+    else:
+        for error in sorted(Draft202012Validator(schema).iter_errors(value), key=lambda item: (list(item.absolute_path), item.message)):
+            diagnostics.append(diagnostic("PG.FINAL.KERNEL_INTAKE_SCHEMA_INVALID", "error", error.message, _prefixed_json_path("$.kernel_decision_intake_result", list(error.absolute_path))))
     if value.get("schema_version") != KERNEL_INTAKE_RESULT_SCHEMA_ID or value.get("result_type") != "kernel_decision_intake":
         diagnostics.append(diagnostic("PG.FINAL.KERNEL_INTAKE_INVALID", "error", "Kernel decision intake result identity is unknown.", "$.kernel_decision_intake_result.schema_version"))
     if value.get("status") != "accepted":
@@ -170,6 +184,19 @@ def _validate_kernel_decision_intake_result(value: Any) -> list[Diagnostic]:
     pin = value.get("kernel_pin")
     if not isinstance(pin, dict) or pin.get("repository") != KERNEL_REPOSITORY or pin.get("accepted_commit") != KERNEL_ACCEPTED_COMMIT:
         diagnostics.append(diagnostic("PG.FINAL.KERNEL_INTAKE_PIN_INVALID", "error", "Kernel decision intake result does not carry the approved immutable Kernel pin.", "$.kernel_decision_intake_result.kernel_pin"))
+    if not isinstance(config.kernel_intake_lock, dict):
+        diagnostics.append(diagnostic("PG.FINAL.KERNEL_INTAKE_LOCK_UNAVAILABLE", "insufficient_evidence", "Committed KROAD-011 semantic lock is unavailable to Final Gate.", "$.kernel_decision_intake_result.kernel_pin.semantic_lock_sha256"))
+    else:
+        expected_lock_hash = canonical_sha256(config.kernel_intake_lock)
+        hash_record = value.get("hashes") if isinstance(value.get("hashes"), dict) else {}
+        semantic_hash = hash_record.get("semantic_lock_hash") if isinstance(hash_record.get("semantic_lock_hash"), dict) else {}
+        observed_pin_hash = pin.get("semantic_lock_sha256") if isinstance(pin, dict) else None
+        observed_result_hash = semantic_hash.get("value")
+        if observed_pin_hash != expected_lock_hash or observed_result_hash != expected_lock_hash:
+            diagnostics.append(diagnostic("PG.FINAL.KERNEL_INTAKE_LOCK_HASH_INVALID", "error", "Kernel intake result semantic-lock hashes do not match the committed Project Gate lock.", "$.kernel_decision_intake_result.kernel_pin.semantic_lock_sha256", expected=expected_lock_hash, pin_hash=observed_pin_hash, result_hash=observed_result_hash))
+    provenance = value.get("provenance")
+    if not isinstance(provenance, dict) or provenance.get("result_producer") != PG_REPO:
+        diagnostics.append(diagnostic("PG.FINAL.KERNEL_INTAKE_PROVENANCE_INVALID", "error", "Kernel intake result producer provenance must identify Project Gate.", "$.kernel_decision_intake_result.provenance.result_producer"))
     required = value.get("accepted_requires")
     required_keys = {"kernel_pin_verified", "semantic_lock_verified", "intake_schema_valid", "packet_binding_valid", "l2_executed_all", "no_unsupported_claims", "result_schema_valid"}
     if not isinstance(required, dict) or any(required.get(key) is not True for key in required_keys):
@@ -312,7 +339,11 @@ def _safe_hash(value: Any) -> str:
 
 
 def _json_path(parts: list[Any]) -> str:
-    path = "$"
+    return _prefixed_json_path("$", parts)
+
+
+def _prefixed_json_path(prefix: str, parts: list[Any]) -> str:
+    path = prefix
     for part in parts:
         path += f"[{part}]" if isinstance(part, int) else f".{part}"
     return path
