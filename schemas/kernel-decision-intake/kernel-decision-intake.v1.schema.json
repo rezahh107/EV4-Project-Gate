@@ -1,0 +1,71 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ev4.local/schemas/kernel-decision-intake/kernel-decision-intake.v1.schema.json",
+  "title": "EV4 Project Gate Kernel Decision Intake v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["kernel_pin", "decision_packets"],
+  "properties": {
+    "kernel_pin": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["repository", "accepted_commit", "semantic_lock_id"],
+      "properties": {
+        "repository": {"type": "string", "minLength": 1},
+        "accepted_commit": {"type": "string", "pattern": "^[a-f0-9]{40}$"},
+        "semantic_lock_id": {"const": "kroad-011-kernel-semantic-lock.v1"}
+      }
+    },
+    "decision_packets": {
+      "type": "array",
+      "minItems": 1,
+      "items": {"$ref": "#/$defs/decisionPacket"}
+    }
+  },
+  "$defs": {
+    "provenance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["provenance_id", "source_repository", "source_ref", "source_path", "content_sha256", "evidence_refs"],
+      "properties": {
+        "provenance_id": {"type": "string", "minLength": 1},
+        "source_repository": {"type": "string", "pattern": "^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$"},
+        "source_ref": {"type": "string", "pattern": "^[a-f0-9]{40}$"},
+        "source_path": {"type": "string", "minLength": 1},
+        "content_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+        "evidence_refs": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"type": "string", "minLength": 1}}
+      }
+    },
+    "claim": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["claim", "source", "provenance_ref"],
+      "properties": {
+        "claim": {
+          "enum": [
+            "decision_record_present", "resolver_input_present", "audit_context_present", "source_evidence_attached", "runtime_evidence_attached",
+            "builder_execution_proof", "builder_ready", "runtime_validated", "browser_validated", "downstream_enforced", "project_gate_accepted",
+            "release_ready", "production_ready", "frontend_correctness", "responsive_correctness"
+          ]
+        },
+        "source": {"type": "string", "pattern": "^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$"},
+        "provenance_ref": {"type": "string", "minLength": 1}
+      }
+    },
+    "decisionPacket": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["packet_id", "decision_id", "decision_family_id", "decision_record", "resolver_input", "audit_context", "asserted_claims", "provenance"],
+      "properties": {
+        "packet_id": {"type": "string", "minLength": 1},
+        "decision_id": {"type": "string", "minLength": 1},
+        "decision_family_id": {"type": "string", "minLength": 1},
+        "decision_record": {"type": "object"},
+        "resolver_input": {"type": "object"},
+        "audit_context": {"type": "object"},
+        "asserted_claims": {"type": "array", "uniqueItems": true, "items": {"$ref": "#/$defs/claim"}},
+        "provenance": {"$ref": "#/$defs/provenance"}
+      }
+    }
+  }
+}
