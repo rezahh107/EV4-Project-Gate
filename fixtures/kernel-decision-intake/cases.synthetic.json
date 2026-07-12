@@ -1,42 +1,295 @@
 {
-  "schema_version":"kroad-011-kernel-intake-fixture-suite.v1",
-  "synthetic":true,
-  "evidence_limit":"These cases are synthetic validation fixtures only; they are not real handoff, Builder, runtime, downstream-enforcement, release, or production evidence.",
-  "cases":[
-    {"case_id":"complete_layout_structure_intake","mutation":"none","expected_status":"accepted","expected_pg_code":null,"expected_path":null,"expected_upstream_codes":[]},
-    {"case_id":"allowed_explicit_human_override","mutation":"human_override","expected_status":"accepted","expected_pg_code":"PG.KERNEL_INTAKE.HUMAN_OVERRIDE_OBSERVED","expected_path":"$.payload.data.decision_packets[0].decision_record.human_override","expected_upstream_codes":["L2_HUMAN_OVERRIDE_OBSERVED"]},
-    {"case_id":"conditional_requires_reaudit","mutation":"requires_reaudit","expected_status":"repair_needed","expected_pg_code":"PG.KERNEL.INKE.REAUDIT_REQUIRED","expected_path":"$.payload.data.decision_packets[0].decision_record.requires_reaudit","expected_upstream_codes":["L2_DECISION_REQUIRES_REAUDIT"]},
-    {"case_id":"known_unsupported_family","mutation":"known_unsupported_family","expected_status":"insufficient_evidence","expected_pg_code":"PG.KERNEL.INKE.L2_UNSUPPORTED","expected_path":"$.payload.data.decision_packets[0]","expected_upstream_codes":["L2_DECISION_FAMILY_NOT_RESOLVER_COVERED"]},
-    {"case_id":"resolver_unresolvable","mutation":"resolver_unresolvable","expected_status":"insufficient_evidence","expected_pg_code":"PG.KERNEL.INKE.RESOLVER_UNRESOLVABLE","expected_path":"$.payload.data.decision_packets[0]","expected_upstream_codes":[]},
-    {"case_id":"missing_decision_record","mutation":"missing_decision_record","expected_status":"invalid","expected_pg_code":"PG.KERNEL.INKE.DECISION_RECORD_REQUIRED","expected_path":"$.payload.data.decision_packets[0].decision_record","expected_upstream_codes":[]},
-    {"case_id":"missing_resolver_input","mutation":"missing_resolver_input","expected_status":"invalid","expected_pg_code":"PG.KERNEL.INKE.RESOLVER_INPUT_REQUIRED","expected_path":"$.payload.data.decision_packets[0].resolver_input","expected_upstream_codes":[]},
-    {"case_id":"missing_audit_context","mutation":"missing_audit_context","expected_status":"invalid","expected_pg_code":"PG.KERNEL.INKE.AUDIT_CONTEXT_REQUIRED","expected_path":"$.payload.data.decision_packets[0].audit_context","expected_upstream_codes":[]},
-    {"case_id":"missing_packet_provenance","mutation":"missing_packet_provenance","expected_status":"invalid","expected_pg_code":"PG.KERNEL.INKE.SCHEMA_INVALID","expected_path":"$.payload.data.decision_packets[0]","expected_upstream_codes":[]},
-    {"case_id":"missing_conditional_justification","mutation":"missing_conditional_justification","expected_status":"invalid","expected_pg_code":"PG.KERNEL.INKE.L2_FAILED","expected_path":"$.payload.data.decision_packets[0]","expected_upstream_codes":["L2_CONDITIONAL_JUSTIFICATION_REQUIRED"]},
-    {"case_id":"decision_family_mismatch","mutation":"decision_family_mismatch","expected_status":"invalid","expected_pg_code":"PG.KERNEL.INKE.DECISION_FAMILY_MISMATCH","expected_path":"$.payload.data.decision_packets[0].resolver_input.decision_family_id","expected_upstream_codes":[]},
-    {"case_id":"decision_id_mismatch","mutation":"decision_id_mismatch","expected_status":"invalid","expected_pg_code":"PG.KERNEL.INKE.DECISION_ID_MISMATCH","expected_path":"$.payload.data.decision_packets[0].resolver_input.decision_id","expected_upstream_codes":[]},
-    {"case_id":"evidence_ref_mismatch","mutation":"evidence_ref_mismatch","expected_status":"invalid","expected_pg_code":"PG.KERNEL.INKE.EVIDENCE_REF_MISMATCH","expected_path":"$.payload.data.decision_packets[0].resolver_input.evidence_refs","expected_upstream_codes":[]},
-    {"case_id":"missing_required_evidence_ref","mutation":"missing_required_evidence_ref","expected_status":"invalid","expected_pg_code":"PG.KERNEL.INKE.REQUIRED_EVIDENCE_REF_MISSING","expected_path":"$.payload.data.decision_packets[0].resolver_input.context.required_evidence_refs","expected_upstream_codes":[]},
-    {"case_id":"broken_provenance_ref","mutation":"broken_provenance_ref","expected_status":"invalid","expected_pg_code":"PG.KERNEL.INKE.PROVENANCE_MISMATCH","expected_path":"$.payload.data.decision_packets[0].audit_context.provenance_ref","expected_upstream_codes":[]},
-    {"case_id":"asserted_claim_provenance_mismatch","mutation":"asserted_claim_provenance_mismatch","expected_status":"invalid","expected_pg_code":"PG.KERNEL.INKE.CLAIM_PROVENANCE_MISMATCH","expected_path":"$.payload.data.decision_packets[0].asserted_claims[0].provenance_ref","expected_upstream_codes":[]},
-    {"case_id":"asserted_claim_source_mismatch","mutation":"asserted_claim_source_mismatch","expected_status":"invalid","expected_pg_code":"PG.KERNEL.INKE.CLAIM_SOURCE_MISMATCH","expected_path":"$.payload.data.decision_packets[0].asserted_claims[0].source","expected_upstream_codes":[]},
-    {"case_id":"duplicate_packet_id","mutation":"duplicate_packet_id","expected_status":"invalid","expected_pg_code":"PG.KERNEL.INKE.DUPLICATE_PACKET_ID","expected_path":"$.payload.data.decision_packets[1].packet_id","expected_upstream_codes":[]},
-    {"case_id":"duplicate_decision_id","mutation":"duplicate_decision_id","expected_status":"invalid","expected_pg_code":"PG.KERNEL.INKE.DUPLICATE_DECISION_ID","expected_path":"$.payload.data.decision_packets[1].decision_id","expected_upstream_codes":[]},
-    {"case_id":"cross_packet_substitution","mutation":"cross_packet_substitution","expected_status":"invalid","expected_pg_code":"PG.KERNEL.INKE.CROSS_PACKET_SUBSTITUTION","expected_path":"$.payload.data.decision_packets[0].resolver_input.context.required_evidence_refs","expected_upstream_codes":[]},
-    {"case_id":"authored_fake_l2_pass","mutation":"authored_fake_l2_pass","expected_status":"invalid","expected_pg_code":"PG.KERNEL.INKE.AUTHORED_DERIVED_FIELD","expected_path":"$.payload.data.decision_packets[0].l2_audit_status","expected_upstream_codes":[]},
-    {"case_id":"authored_derived_counts","mutation":"authored_derived_counts","expected_status":"invalid","expected_pg_code":"PG.KERNEL.INKE.AUTHORED_DERIVED_FIELD","expected_path":"$.payload.data.accepted_decision_count","expected_upstream_codes":[]},
-    {"case_id":"kernel_lock_mismatch","mutation":"kernel_lock_mismatch","expected_status":"invalid","expected_pg_code":"PG.KERNEL.INKE.LOCK_ENTRY_MISMATCH","expected_path":"$.files[0].accepted_commit","expected_upstream_codes":[]},
-    {"case_id":"kernel_artifact_hash_mismatch","mutation":"kernel_artifact_hash_mismatch","expected_status":"invalid","expected_pg_code":"PG.KERNEL.INKE.KERNEL_ARTIFACT_HASH_MISMATCH","expected_path":"$.files[0]","expected_upstream_codes":[]},
-    {"case_id":"short_or_floating_kernel_ref","mutation":"short_kernel_ref","expected_status":"invalid","expected_pg_code":"PG.KERNEL.INKE.KERNEL_PIN_INVALID","expected_path":"$.payload.data.kernel_pin.accepted_commit","expected_upstream_codes":[]},
-    {"case_id":"full_length_unsupported_kernel_commit","mutation":"full_length_unsupported_kernel_commit","expected_status":"invalid","expected_pg_code":"PG.KERNEL.INKE.KERNEL_PIN_INVALID","expected_path":"$.payload.data.kernel_pin","expected_upstream_codes":[]},
-    {"case_id":"unknown_intake_schema","mutation":"unknown_intake_schema","expected_status":"invalid","expected_pg_code":"PG.KERNEL.INKE.INTAKE_SCHEMA_UNKNOWN","expected_path":"$.payload.schema_id","expected_upstream_codes":[]},
-    {"case_id":"unknown_rule_version","mutation":"unknown_rule_version","expected_status":"invalid","expected_pg_code":"PG.KERNEL.INKE.RULE_BINDING_MISMATCH","expected_path":"$.payload.data.decision_packets[0].decision_record.rule_version","expected_upstream_codes":[]},
-    {"case_id":"malformed_kernel_output","mutation":"malformed_kernel_output","expected_status":"invalid","expected_pg_code":"PG.KERNEL.INKE.KERNEL_OUTPUT_MALFORMED","expected_path":"$.payload.data.decision_packets[0]","expected_upstream_codes":[]},
-    {"case_id":"kernel_execution_unavailable","mutation":"kernel_execution_unavailable","expected_status":"insufficient_evidence","expected_pg_code":"PG.KERNEL.INKE.KERNEL_EXECUTION_UNAVAILABLE","expected_path":"$.payload.data.decision_packets[0]","expected_upstream_codes":[]},
-    {"case_id":"unsupported_asserted_claim","mutation":"unsupported_asserted_claim","expected_status":"invalid","expected_pg_code":"PG.KERNEL.INKE.UNSUPPORTED_ASSERTED_CLAIM","expected_path":"$.payload.data.decision_packets[0].asserted_claims[0].claim","expected_upstream_codes":[]},
-    {"case_id":"runtime_claim_without_runtime_proof","mutation":"runtime_claim_without_runtime_proof","expected_status":"invalid","expected_pg_code":"PG.KERNEL.INKE.UNSUPPORTED_ASSERTED_CLAIM","expected_path":"$.payload.data.decision_packets[0].asserted_claims[0].claim","expected_upstream_codes":[]},
-    {"case_id":"forbidden_claim_outside_asserted_claims","mutation":"forbidden_claim_outside_asserted_claims","expected_status":"invalid","expected_pg_code":"PG.KERNEL.INKE.FORBIDDEN_CLAIM","expected_path":"$.payload.data.decision_packets[0].production_ready","expected_upstream_codes":[]},
-    {"case_id":"success_receipt_without_accepted_intake","mutation":"receipt_without_intake","expected_status":"warning","expected_pg_code":"RECEIPT_AUTHORITATIVE_INTAKE_REQUIRED","expected_path":"$.kernel_decision_intake_result","expected_upstream_codes":[]},
-    {"case_id":"final_gate_without_accepted_intake","mutation":"final_gate_without_intake","expected_status":"invalid","expected_pg_code":"PG.FINAL.KERNEL.INKE.REQUIRED","expected_path":"$.kernel_decision_intake_result","expected_upstream_codes":[]}
+  "schema_version": "kroad-011-kernel-intake-fixture-suite.v1",
+  "synthetic": true,
+  "evidence_limit": "These cases are synthetic validation fixtures only; they are not real handoff, Builder, runtime, downstream-enforcement, release, or production evidence.",
+  "cases": [
+    {
+      "case_id": "complete_layout_structure_intake",
+      "mutation": "none",
+      "expected_status": "accepted",
+      "expected_pg_code": null,
+      "expected_path": null,
+      "expected_upstream_codes": []
+    },
+    {
+      "case_id": "allowed_explicit_human_override",
+      "mutation": "human_override",
+      "expected_status": "accepted",
+      "expected_pg_code": "PG.KERNEL_INTAKE.HUMAN_OVERRIDE_OBSERVED",
+      "expected_path": "$.payload.data.decision_packets[0].decision_record.human_override",
+      "expected_upstream_codes": [
+        "L2_HUMAN_OVERRIDE_OBSERVED"
+      ]
+    },
+    {
+      "case_id": "conditional_requires_reaudit",
+      "mutation": "requires_reaudit",
+      "expected_status": "repair_needed",
+      "expected_pg_code": "PG.KERNEL_INTAKE.REAUDIT_REQUIRED",
+      "expected_path": "$.payload.data.decision_packets[0].decision_record.requires_reaudit",
+      "expected_upstream_codes": [
+        "L2_DECISION_REQUIRES_REAUDIT"
+      ]
+    },
+    {
+      "case_id": "known_unsupported_family",
+      "mutation": "known_unsupported_family",
+      "expected_status": "insufficient_evidence",
+      "expected_pg_code": "PG.KERNEL_INTAKE.L2_UNSUPPORTED",
+      "expected_path": "$.payload.data.decision_packets[0]",
+      "expected_upstream_codes": [
+        "L2_DECISION_FAMILY_NOT_RESOLVER_COVERED"
+      ]
+    },
+    {
+      "case_id": "resolver_unresolvable",
+      "mutation": "resolver_unresolvable",
+      "expected_status": "insufficient_evidence",
+      "expected_pg_code": "PG.KERNEL_INTAKE.RESOLVER_UNRESOLVABLE",
+      "expected_path": "$.payload.data.decision_packets[0]",
+      "expected_upstream_codes": []
+    },
+    {
+      "case_id": "missing_decision_record",
+      "mutation": "missing_decision_record",
+      "expected_status": "invalid",
+      "expected_pg_code": "PG.KERNEL_INTAKE.DECISION_RECORD_REQUIRED",
+      "expected_path": "$.payload.data.decision_packets[0].decision_record",
+      "expected_upstream_codes": []
+    },
+    {
+      "case_id": "missing_resolver_input",
+      "mutation": "missing_resolver_input",
+      "expected_status": "invalid",
+      "expected_pg_code": "PG.KERNEL_INTAKE.RESOLVER_INPUT_REQUIRED",
+      "expected_path": "$.payload.data.decision_packets[0].resolver_input",
+      "expected_upstream_codes": []
+    },
+    {
+      "case_id": "missing_audit_context",
+      "mutation": "missing_audit_context",
+      "expected_status": "invalid",
+      "expected_pg_code": "PG.KERNEL_INTAKE.AUDIT_CONTEXT_REQUIRED",
+      "expected_path": "$.payload.data.decision_packets[0].audit_context",
+      "expected_upstream_codes": []
+    },
+    {
+      "case_id": "missing_packet_provenance",
+      "mutation": "missing_packet_provenance",
+      "expected_status": "invalid",
+      "expected_pg_code": "PG.KERNEL_INTAKE.SCHEMA_INVALID",
+      "expected_path": "$.payload.data.decision_packets[0]",
+      "expected_upstream_codes": []
+    },
+    {
+      "case_id": "missing_conditional_justification",
+      "mutation": "missing_conditional_justification",
+      "expected_status": "invalid",
+      "expected_pg_code": "PG.KERNEL_INTAKE.L2_FAILED",
+      "expected_path": "$.payload.data.decision_packets[0]",
+      "expected_upstream_codes": [
+        "L2_CONDITIONAL_JUSTIFICATION_REQUIRED"
+      ]
+    },
+    {
+      "case_id": "decision_family_mismatch",
+      "mutation": "decision_family_mismatch",
+      "expected_status": "invalid",
+      "expected_pg_code": "PG.KERNEL_INTAKE.DECISION_FAMILY_MISMATCH",
+      "expected_path": "$.payload.data.decision_packets[0].resolver_input.decision_family_id",
+      "expected_upstream_codes": []
+    },
+    {
+      "case_id": "decision_id_mismatch",
+      "mutation": "decision_id_mismatch",
+      "expected_status": "invalid",
+      "expected_pg_code": "PG.KERNEL_INTAKE.DECISION_ID_MISMATCH",
+      "expected_path": "$.payload.data.decision_packets[0].resolver_input.decision_id",
+      "expected_upstream_codes": []
+    },
+    {
+      "case_id": "evidence_ref_mismatch",
+      "mutation": "evidence_ref_mismatch",
+      "expected_status": "invalid",
+      "expected_pg_code": "PG.KERNEL_INTAKE.EVIDENCE_REF_MISMATCH",
+      "expected_path": "$.payload.data.decision_packets[0].resolver_input.evidence_refs",
+      "expected_upstream_codes": []
+    },
+    {
+      "case_id": "missing_required_evidence_ref",
+      "mutation": "missing_required_evidence_ref",
+      "expected_status": "invalid",
+      "expected_pg_code": "PG.KERNEL_INTAKE.REQUIRED_EVIDENCE_REF_MISSING",
+      "expected_path": "$.payload.data.decision_packets[0].resolver_input.context.required_evidence_refs",
+      "expected_upstream_codes": []
+    },
+    {
+      "case_id": "broken_provenance_ref",
+      "mutation": "broken_provenance_ref",
+      "expected_status": "invalid",
+      "expected_pg_code": "PG.KERNEL_INTAKE.PROVENANCE_MISMATCH",
+      "expected_path": "$.payload.data.decision_packets[0].audit_context.provenance_ref",
+      "expected_upstream_codes": []
+    },
+    {
+      "case_id": "asserted_claim_provenance_mismatch",
+      "mutation": "asserted_claim_provenance_mismatch",
+      "expected_status": "invalid",
+      "expected_pg_code": "PG.KERNEL_INTAKE.CLAIM_PROVENANCE_MISMATCH",
+      "expected_path": "$.payload.data.decision_packets[0].asserted_claims[0].provenance_ref",
+      "expected_upstream_codes": []
+    },
+    {
+      "case_id": "asserted_claim_source_mismatch",
+      "mutation": "asserted_claim_source_mismatch",
+      "expected_status": "invalid",
+      "expected_pg_code": "PG.KERNEL_INTAKE.CLAIM_SOURCE_MISMATCH",
+      "expected_path": "$.payload.data.decision_packets[0].asserted_claims[0].source",
+      "expected_upstream_codes": []
+    },
+    {
+      "case_id": "duplicate_packet_id",
+      "mutation": "duplicate_packet_id",
+      "expected_status": "invalid",
+      "expected_pg_code": "PG.KERNEL_INTAKE.DUPLICATE_PACKET_ID",
+      "expected_path": "$.payload.data.decision_packets[1].packet_id",
+      "expected_upstream_codes": []
+    },
+    {
+      "case_id": "duplicate_decision_id",
+      "mutation": "duplicate_decision_id",
+      "expected_status": "invalid",
+      "expected_pg_code": "PG.KERNEL_INTAKE.DUPLICATE_DECISION_ID",
+      "expected_path": "$.payload.data.decision_packets[1].decision_id",
+      "expected_upstream_codes": []
+    },
+    {
+      "case_id": "cross_packet_substitution",
+      "mutation": "cross_packet_substitution",
+      "expected_status": "invalid",
+      "expected_pg_code": "PG.KERNEL_INTAKE.CROSS_PACKET_SUBSTITUTION",
+      "expected_path": "$.payload.data.decision_packets[0].resolver_input.context.required_evidence_refs",
+      "expected_upstream_codes": []
+    },
+    {
+      "case_id": "authored_fake_l2_pass",
+      "mutation": "authored_fake_l2_pass",
+      "expected_status": "invalid",
+      "expected_pg_code": "PG.KERNEL_INTAKE.AUTHORED_DERIVED_FIELD",
+      "expected_path": "$.payload.data.decision_packets[0].l2_audit_status",
+      "expected_upstream_codes": []
+    },
+    {
+      "case_id": "authored_derived_counts",
+      "mutation": "authored_derived_counts",
+      "expected_status": "invalid",
+      "expected_pg_code": "PG.KERNEL_INTAKE.AUTHORED_DERIVED_FIELD",
+      "expected_path": "$.payload.data.accepted_decision_count",
+      "expected_upstream_codes": []
+    },
+    {
+      "case_id": "kernel_lock_mismatch",
+      "mutation": "kernel_lock_mismatch",
+      "expected_status": "invalid",
+      "expected_pg_code": "PG.KERNEL_INTAKE.LOCK_ENTRY_MISMATCH",
+      "expected_path": "$.files[0].accepted_commit",
+      "expected_upstream_codes": []
+    },
+    {
+      "case_id": "kernel_artifact_hash_mismatch",
+      "mutation": "kernel_artifact_hash_mismatch",
+      "expected_status": "invalid",
+      "expected_pg_code": "PG.KERNEL_INTAKE.KERNEL_ARTIFACT_HASH_MISMATCH",
+      "expected_path": "$.files[0]",
+      "expected_upstream_codes": []
+    },
+    {
+      "case_id": "short_or_floating_kernel_ref",
+      "mutation": "short_kernel_ref",
+      "expected_status": "invalid",
+      "expected_pg_code": "PG.KERNEL_INTAKE.KERNEL_PIN_INVALID",
+      "expected_path": "$.payload.data.kernel_pin.accepted_commit",
+      "expected_upstream_codes": []
+    },
+    {
+      "case_id": "full_length_unsupported_kernel_commit",
+      "mutation": "full_length_unsupported_kernel_commit",
+      "expected_status": "invalid",
+      "expected_pg_code": "PG.KERNEL_INTAKE.KERNEL_PIN_INVALID",
+      "expected_path": "$.payload.data.kernel_pin",
+      "expected_upstream_codes": []
+    },
+    {
+      "case_id": "unknown_intake_schema",
+      "mutation": "unknown_intake_schema",
+      "expected_status": "invalid",
+      "expected_pg_code": "PG.KERNEL_INTAKE.INTAKE_SCHEMA_UNKNOWN",
+      "expected_path": "$.payload.schema_id",
+      "expected_upstream_codes": []
+    },
+    {
+      "case_id": "unknown_rule_version",
+      "mutation": "unknown_rule_version",
+      "expected_status": "invalid",
+      "expected_pg_code": "PG.KERNEL_INTAKE.RULE_BINDING_MISMATCH",
+      "expected_path": "$.payload.data.decision_packets[0].decision_record.rule_version",
+      "expected_upstream_codes": []
+    },
+    {
+      "case_id": "malformed_kernel_output",
+      "mutation": "malformed_kernel_output",
+      "expected_status": "invalid",
+      "expected_pg_code": "PG.KERNEL_INTAKE.KERNEL_OUTPUT_MALFORMED",
+      "expected_path": "$.payload.data.decision_packets[0]",
+      "expected_upstream_codes": []
+    },
+    {
+      "case_id": "kernel_execution_unavailable",
+      "mutation": "kernel_execution_unavailable",
+      "expected_status": "insufficient_evidence",
+      "expected_pg_code": "PG.KERNEL_INTAKE.KERNEL_EXECUTION_UNAVAILABLE",
+      "expected_path": "$.payload.data.decision_packets[0]",
+      "expected_upstream_codes": []
+    },
+    {
+      "case_id": "unsupported_asserted_claim",
+      "mutation": "unsupported_asserted_claim",
+      "expected_status": "invalid",
+      "expected_pg_code": "PG.KERNEL_INTAKE.UNSUPPORTED_ASSERTED_CLAIM",
+      "expected_path": "$.payload.data.decision_packets[0].asserted_claims[0].claim",
+      "expected_upstream_codes": []
+    },
+    {
+      "case_id": "runtime_claim_without_runtime_proof",
+      "mutation": "runtime_claim_without_runtime_proof",
+      "expected_status": "invalid",
+      "expected_pg_code": "PG.KERNEL_INTAKE.UNSUPPORTED_ASSERTED_CLAIM",
+      "expected_path": "$.payload.data.decision_packets[0].asserted_claims[0].claim",
+      "expected_upstream_codes": []
+    },
+    {
+      "case_id": "forbidden_claim_outside_asserted_claims",
+      "mutation": "forbidden_claim_outside_asserted_claims",
+      "expected_status": "invalid",
+      "expected_pg_code": "PG.KERNEL_INTAKE.FORBIDDEN_CLAIM",
+      "expected_path": "$.payload.data.decision_packets[0].production_ready",
+      "expected_upstream_codes": []
+    },
+    {
+      "case_id": "success_receipt_without_accepted_intake",
+      "mutation": "receipt_without_intake",
+      "expected_status": "warning",
+      "expected_pg_code": "RECEIPT_AUTHORITATIVE_INTAKE_REQUIRED",
+      "expected_path": "$.kernel_decision_intake_result",
+      "expected_upstream_codes": []
+    },
+    {
+      "case_id": "final_gate_without_accepted_intake",
+      "mutation": "final_gate_without_intake",
+      "expected_status": "invalid",
+      "expected_pg_code": "PG.FINAL.KERNEL_INTAKE_REQUIRED",
+      "expected_path": "$.kernel_decision_intake_result",
+      "expected_upstream_codes": []
+    }
   ]
 }
