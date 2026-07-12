@@ -3,7 +3,7 @@ consumer_repo: EV4-Project-Gate
 consumer_repo_evidence_state: expected_unverified
 
 last_updated:
-  date: "2026-07-11"
+  date: "2026-07-12"
   pr: null
   commit: null
 
@@ -28,9 +28,9 @@ records:
       test_command: "uv run pytest tests/kernel_decision_intake tests/transitions/test_final_gate.py tests/reports/test_decision_receipts.py tests/planning/test_decision_escape_routes_schema.py"
       positive_fixture: "fixtures/kernel-decision-intake/complete-layout-structure.synthetic.json"
       negative_fixture: "fixtures/kernel-decision-intake/cases.synthetic.json"
-      validator_rule: "src/ev4_transition/transitions/final_gate.py::_validate_kernel_decision_intake_result"
+      validator_rule: "src/ev4_transition/transitions/final_gate.py::run_final_gate"
       validator_diagnostic: "PG.FINAL.KERNEL_INTAKE_REQUIRED"
     status:
       enforcement_status: sequence_ci_enforced
       evidence_state: validated
-    notes: "KROAD-011 makes an accepted, pinned, hash-verified, actually executed Kernel decision intake result mandatory for Final Gate and hardens receipts against lineage-only success. This is sequence-level Project Gate enforcement only. No inspected downstream producer rejection evidence proves downstream_contract_enforced, runtime enforcement, Builder execution, release readiness, or production readiness."
+    notes: "KROAD-011 makes an accepted, pinned, hash-verified, actually executed Kernel decision intake result mandatory for Final Gate and hardens receipts against lineage-only success. The primary implementation is merged through PR #51, exact PR-head CI passed on 765fd4b1f086141e6453bd57ed4674d2025caf73, and corrected-main CI remains pending until the post-merge correction PR is merged. This is sequence-level Project Gate enforcement only. No inspected downstream producer rejection evidence proves downstream_contract_enforced, runtime enforcement, Builder execution, release readiness, or production readiness."

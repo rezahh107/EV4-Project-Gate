@@ -7,12 +7,18 @@ on:
       - ".github/workflows/validate.yml"
       - "README.md"
       - "contracts/locks/kernel-decision-intake.v1.lock.json"
+      - "docs/IMPLEMENTATION_STATUS.yaml"
+      - "docs/KROAD_011_PROJECT_GATE_INTAKE.md"
       - "fixtures/kernel-decision-intake/**"
+      - "planning/DECISION_ESCAPE_ROUTES.yml"
+      - "planning/decision-escape-routes.schema.json"
       - "schemas/kernel-decision-intake/**"
       - "schemas/kernel-decision-intake-result/**"
+      - "scripts/check-capability-truth.py"
       - "scripts/compute-kernel-decision-intake-lock.py"
       - "scripts/kernel-decision-intake-bridge.mjs"
       - "src/ev4_transition/cli.py"
+      - "src/ev4_transition/data/capability-status.v1.json"
       - "src/ev4_transition/kernel_decision_*.py"
       - "src/ev4_transition/runners/kernel_decision.py"
       - "src/ev4_transition/transitions/final_gate.py"
@@ -23,11 +29,9 @@ on:
       - "tests/transitions/test_final_gate.py"
       - "tests/reports/test_decision_receipts.py"
       - "tests/planning/test_decision_escape_routes_schema.py"
-      - "planning/DECISION_ESCAPE_ROUTES.yml"
-      - "docs/KROAD_011_PROJECT_GATE_INTAKE.md"
   push:
     branches:
-      - feature/kroad-011-project-gate-intake
+      - main
   workflow_dispatch:
 
 permissions:
@@ -133,6 +137,7 @@ jobs:
           tests/kernel_decision_intake
           tests/transitions/test_final_gate.py
           tests/reports/test_decision_receipts.py
+          tests/planning/test_decision_escape_routes_schema.py
 
       - name: Run complete Project Gate pytest suite
         working-directory: EV4-Project-Gate

@@ -1,6 +1,24 @@
 # KROAD-011 — Project Gate Intake
 
-Status: implementation and focused trust-boundary repair are complete on PR #51. Exact-head pull-request CI is the authority for review readiness.
+Status: primary implementation merged through PR #51. Exact PR-head CI passed on `765fd4b1f086141e6453bd57ed4674d2025caf73`; corrected-main CI remains pending until the post-merge correction PR is merged and runs on `main`.
+
+## Live merge and evidence state
+
+```yaml
+implementation_pull_request: 51
+implementation_state: merged
+implementation_merge_commit: 01fdc126f834e0c0d8fbb297a2d44488487e5379
+current_main_head_at_correction_start: 8c06ace347bd0cfe5d2a3b5abb128f90fb69da74
+pr_head_ci:
+  state: verified_by_exact_head_ci
+  head_sha: 765fd4b1f086141e6453bd57ed4674d2025caf73
+  kroad_011_workflow_run_id: 29168112399
+corrected_main_ci:
+  state: insufficient_evidence
+  reason: pending_until_post_merge_correction_pr_is_merged
+```
+
+PR-head CI is retained as review evidence and is not relabelled as exact corrected-main CI. `KROAD-011` is not closed in `EV4-Decision-Kernel` by this document.
 
 ## Ownership boundary
 
@@ -115,7 +133,7 @@ Receipts do not create lineage, evidence, Kernel acceptance, downstream enforcem
 
 ## Governance classification
 
-`planning/DECISION_ESCAPE_ROUTES.yml` records KROAD-011 as `sequence_ci_enforced`. `downstream_contract_enforced` is not claimed because no inspected downstream producer rejection evidence establishes that level.
+`planning/DECISION_ESCAPE_ROUTES.yml` records KROAD-011 as `sequence_ci_enforced`. Its `validator_rule` carrier points to the real `run_final_gate` enforcement function and a side-effect-free AST test verifies that the referenced local Python symbol exists. `downstream_contract_enforced` is not claimed because no inspected downstream producer rejection evidence establishes that level.
 
 ## Validation
 
@@ -136,7 +154,7 @@ npm run validate
 Focused checks:
 
 ```bash
-uv run pytest tests/test_cli.py tests/test_cli_final_gate_kernel_repo.py tests/kernel_decision_intake tests/transitions/test_final_gate.py tests/reports/test_decision_receipts.py
+uv run pytest tests/test_cli.py tests/test_cli_final_gate_kernel_repo.py tests/kernel_decision_intake tests/transitions/test_final_gate.py tests/reports/test_decision_receipts.py tests/planning/test_decision_escape_routes_schema.py
 python scripts/compute-kernel-decision-intake-lock.py \
   --kernel-repo ../EV4-Decision-Kernel \
   --output /tmp/kernel-decision-intake-lock.json
@@ -152,6 +170,6 @@ npm run validate:mvk
 
 ## Evidence limits
 
-All KROAD-011 fixtures in this PR are explicitly synthetic. This implementation does not prove a real non-synthetic handoff, Builder execution, runtime/browser validity, downstream producer integration, ecosystem readiness, release readiness or production readiness.
+All KROAD-011 fixtures are explicitly synthetic. This implementation does not prove a real non-synthetic handoff, Builder execution, runtime/browser validity, downstream producer integration, ecosystem readiness, release readiness or production readiness.
 
-The `EV4-Decision-Kernel` evidence-closure and roadmap-memory update remain deferred to ordered PR 2 after this PR is merged and exact merged-main evidence exists.
+The `EV4-Decision-Kernel` evidence-closure and roadmap-memory update remain deferred to ordered PR 2 after this correction PR is merged and exact corrected-main evidence exists.

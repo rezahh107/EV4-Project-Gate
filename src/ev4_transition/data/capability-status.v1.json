@@ -52,8 +52,8 @@
       "workflow_run_id": 28744810186
     },
     "current_main_head_ci": {
-      "observed_head_sha": "4233d2ff22310f86305b2e67055c8e4eeb03d6df",
-      "reason": "No exact-head workflow run was visible for the automatic historical-ledger commit during this repair audit.",
+      "observed_head_sha": "8c06ace347bd0cfe5d2a3b5abb128f90fb69da74",
+      "reason": "The merged KROAD-011 implementation is present on current main, but no exact KROAD-specific run is claimed for this automatic historical-ledger head. Corrected-main CI remains pending until the post-merge correction PR is merged.",
       "status": "insufficient_evidence"
     },
     "foundation_main_head_ci": {
@@ -62,18 +62,39 @@
       "status": "insufficient_evidence"
     },
     "kroad_011": {
-      "kernel_repository": "rezahh107/EV4-Decision-Kernel",
+      "corrected_main_ci": {
+        "observed_base_head_sha": "8c06ace347bd0cfe5d2a3b5abb128f90fb69da74",
+        "reason": "An exact KROAD-specific run on the corrected future main head cannot exist before the correction PR is merged.",
+        "status": "insufficient_evidence"
+      },
+      "evidence_limit": "synthetic_and_adversarial_fixtures_only",
+      "implementation_merge_commit": "01fdc126f834e0c0d8fbb297a2d44488487e5379",
+      "implementation_pull_request": 51,
+      "implementation_state": "merged",
       "kernel_pin": "76a82e28543ff8f0babca11b7d7dccac96b92894",
+      "kernel_repository": "rezahh107/EV4-Decision-Kernel",
+      "pr_head_ci": {
+        "head_sha": "765fd4b1f086141e6453bd57ed4674d2025caf73",
+        "result": "success",
+        "verification_state": "verified_by_exact_head_ci",
+        "workflow_runs": {
+          "kroad_011_project_gate_intake": 29168112399,
+          "prompt_05_builder_responsive_final_gate": 29168112428,
+          "prompt_06_report_ux": 29168112402,
+          "skeleton_health": 29168112398,
+          "ui_runtime_smoke": 29168112426
+        }
+      },
       "scope": "project_gate_intake_result_final_gate_and_receipt_implementation",
-      "status": "ci_pending",
-      "evidence_limit": "synthetic_and_adversarial_fixtures_only"
+      "status": "ci_pending"
     },
     "last_verified_project_gate_pr": {
-      "head_sha": "ce356b6f6a8dee5f807679aed0f78aa057152d1b",
-      "pull_request": 21,
+      "head_sha": "765fd4b1f086141e6453bd57ed4674d2025caf73",
+      "pull_request": 51,
       "result": "success",
-      "workflow": "Skeleton Health",
-      "workflow_run_id": 28748324684
+      "scope": "kroad_011_pr_head_only",
+      "workflow": "KROAD-011 Project Gate Intake",
+      "workflow_run_id": 29168112399
     },
     "prompt_05_owner_contract_and_validator_integration": {
       "prompt_05_workflow_run_id": 28749872553,
@@ -106,16 +127,22 @@
   "kroad_011": {
     "api_exposure": "internal_guarded",
     "contract": "ev4-project-gate-kernel-decision-intake@1.0.0",
-    "result_contract": "kernel-decision-intake-result.v1",
-    "kernel_repository": "rezahh107/EV4-Decision-Kernel",
-    "kernel_pin": "76a82e28543ff8f0babca11b7d7dccac96b92894",
-    "semantic_dependency_count": 6,
-    "official_l2_execution": "implemented",
+    "corrected_main_verification_state": "insufficient_evidence",
+    "downstream_producer_integration": "insufficient_evidence",
     "final_gate_requirement": "implemented",
-    "receipt_authority": "implemented",
-    "verification_state": "ci_pending",
+    "implementation_merge_commit": "01fdc126f834e0c0d8fbb297a2d44488487e5379",
+    "implementation_pull_request": 51,
+    "implementation_state": "merged",
+    "kernel_pin": "76a82e28543ff8f0babca11b7d7dccac96b92894",
+    "kernel_repository": "rezahh107/EV4-Decision-Kernel",
+    "official_l2_execution": "implemented",
+    "pr_head_sha": "765fd4b1f086141e6453bd57ed4674d2025caf73",
+    "pr_head_verification_state": "verified_by_exact_head_ci",
     "real_non_synthetic_handoff": "insufficient_evidence",
-    "downstream_producer_integration": "insufficient_evidence"
+    "receipt_authority": "implemented",
+    "result_contract": "kernel-decision-intake-result.v1",
+    "semantic_dependency_count": 6,
+    "verification_state": "ci_pending"
   },
   "not_implemented": [
     "real EV4 artifact validation",

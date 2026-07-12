@@ -7,7 +7,7 @@ from pathlib import Path
 import pytest
 from jsonschema import Draft202012Validator
 
-from ev4_transition.canonical_json import bytes_sha256
+from ev4_transition.canonical_json import bytes_sha256, canonical_dumps, canonical_sha256
 from ev4_transition.contract_source import LocalCheckoutContractSource
 from ev4_transition.kernel_decision_dependencies import EXPECTED_KERNEL_SEMANTIC_DEPENDENCIES, KERNEL_ACCEPTED_COMMIT, KERNEL_INTAKE_SCHEMA_ID, KERNEL_LOCK_SCHEMA_VERSION, KERNEL_REPOSITORY
 from ev4_transition.kernel_decision_intake import KernelAuditExecution, KernelDecisionIntakeConfig, run_kernel_decision_intake
@@ -61,8 +61,12 @@ def _apply(bundle: dict, mutation: str):
         packet["decision_record"]["rule_id"] = "resolver.rule.media_choice.future"
         packet["decision_record"]["rule_version"] = "0.0.0"
         executor = lambda _: KernelAuditExecution("completed", {"audit_status":"unsupported","human_override_observed":False,"resolver_output":None,"diagnostics":[{"code":"L2_DECISION_FAMILY_NOT_RESOLVER_COVERED","severity":"warning","source":"semantic","path":"decision_record.decision_family_id","message":"synthetic"}]})
+    elif mutation == "resolver_unresolvable":
+        executor = lambda _: KernelAuditExecution("completed", {"audit_status":"pass","human_override_observed":False,"resolver_output":{"resolver_status":"unresolvable","rule_id":"resolver.rule.layout_structure.mvp.v0","rule_version":"0.1.0"},"diagnostics":[]})
     elif mutation.startswith("missing_") and mutation in {"missing_decision_record","missing_resolver_input","missing_audit_context"}:
         packet.pop(mutation.removeprefix("missing_"))
+    elif mutation == "missing_packet_provenance":
+        packet.pop("provenance")
     elif mutation == "missing_conditional_justification":
         packet["decision_record"]["resolver_status"] = "conditional"
         executor = lambda _: KernelAuditExecution("completed", {"audit_status":"fail","human_override_observed":False,"resolver_output":{"resolver_status":"conditional"},"diagnostics":[{"code":"L2_CONDITIONAL_JUSTIFICATION_REQUIRED","severity":"error","source":"semantic","path":"audit_context.conditional_justification.summary","message":"synthetic"}]})
@@ -72,6 +76,14 @@ def _apply(bundle: dict, mutation: str):
         packet["resolver_input"]["decision_id"] = "D2"
     elif mutation == "evidence_ref_mismatch":
         packet["resolver_input"]["evidence_refs"][0]["evidence_id"] = "EV2"
+    elif mutation == "missing_required_evidence_ref":
+        packet["resolver_input"]["context"]["required_evidence_refs"] = ["EV-MISSING"]
+    elif mutation == "broken_provenance_ref":
+        packet["audit_context"]["provenance_ref"] = "PROV-MISSING"
+    elif mutation == "asserted_claim_provenance_mismatch":
+        packet["asserted_claims"][0]["provenance_ref"] = "PROV-MISSING"
+    elif mutation == "asserted_claim_source_mismatch":
+        packet["asserted_claims"][0]["source"]["commit"] = "2" * 40
     elif mutation in {"duplicate_packet_id","duplicate_decision_id","cross_packet_substitution"}:
         second = copy.deepcopy(packet)
         second["packet_id"] = "P2"
@@ -101,6 +113,8 @@ def _apply(bundle: dict, mutation: str):
         lock_mutator = lambda lock: lock["files"][0].__setitem__("sha256_file_bytes", "0"*64)
     elif mutation == "short_kernel_ref":
         bundle["payload"]["data"]["kernel_pin"]["accepted_commit"] = "76a82e2"
+    elif mutation == "full_length_unsupported_kernel_commit":
+        bundle["payload"]["data"]["kernel_pin"]["accepted_commit"] = "f" * 40
     elif mutation == "unknown_intake_schema":
         bundle["payload"]["schema_id"] = "unknown-intake@9"
     elif mutation == "unknown_rule_version":
@@ -111,6 +125,8 @@ def _apply(bundle: dict, mutation: str):
         executor = lambda _: KernelAuditExecution("unavailable", None)
     elif mutation == "unsupported_asserted_claim":
         packet["asserted_claims"][0]["claim"] = "production_ready"
+    elif mutation == "runtime_claim_without_runtime_proof":
+        packet["asserted_claims"][0]["claim"] = "runtime_validated"
     elif mutation == "forbidden_claim_outside_asserted_claims":
         packet["production_ready"] = True
     else:
@@ -156,9 +172,30 @@ def test_synthetic_fixture_case(case: dict, tmp_path: Path):
         assert any(item["path"] == case["expected_path"] for item in matching), matching
     upstream_codes = sorted({item["code"] for packet in result["packet_results"] for item in packet["upstream_diagnostics"]})
     assert upstream_codes == sorted(case["expected_upstream_codes"])
-    if case["mutation"] in {"authored_fake_l2_pass", "authored_derived_counts", "unsupported_asserted_claim", "forbidden_claim_outside_asserted_claims", "cross_packet_substitution"}:
+    if case["mutation"] in {
+        "authored_fake_l2_pass", "authored_derived_counts", "unsupported_asserted_claim",
+        "runtime_claim_without_runtime_proof", "forbidden_claim_outside_asserted_claims",
+        "cross_packet_substitution", "full_length_unsupported_kernel_commit",
+        "missing_packet_provenance", "missing_required_evidence_ref", "broken_provenance_ref",
+        "asserted_claim_provenance_mismatch", "asserted_claim_source_mismatch",
+    }:
         assert executions == 0
     Draft202012Validator(json.loads((ROOT/"schemas/kernel-decision-intake-result/kernel-decision-intake-result.v1.schema.json").read_text())).validate(result)
+
+
+def test_repeated_rejection_is_canonical_and_digest_stable(tmp_path: Path):
+    first_bundle = json.loads(BASE.read_text())
+    executor, lock_mutator = _apply(first_bundle, "full_length_unsupported_kernel_commit")
+    assert lock_mutator is None
+    second_bundle = copy.deepcopy(first_bundle)
+
+    first, first_executions = _run(first_bundle, tmp_path / "first", executor)
+    second, second_executions = _run(second_bundle, tmp_path / "second", executor)
+
+    assert first["status"] == second["status"] == "invalid"
+    assert first_executions == second_executions == 0
+    assert canonical_dumps(first) == canonical_dumps(second)
+    assert canonical_sha256(first) == canonical_sha256(second)
 
 
 @pytest.mark.parametrize(
