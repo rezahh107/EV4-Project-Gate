@@ -1,5 +1,5 @@
 schema_version: ev4-project-gate-implementation-status.v1
-updated_at: 2026-07-11
+updated_at: 2026-07-12
 status_authority: active_capability_truth
 capability_truth_source: src/ev4_transition/data/capability-status.v1.json
 historical_merge_ledger: docs/EV4_SHARED_CONTRACTS_STATUS.md
@@ -16,14 +16,18 @@ release_readiness_reason: >-
 repository:
   name: rezahh107/EV4-Project-Gate
   default_branch: main
-  current_main_head: c228a2980a6979a0386010a5bc6ac81c9cc68b3c
+  current_main_head: 8c06ace347bd0cfe5d2a3b5abb128f90fb69da74
   current_main_head_ci:
     status: insufficient_evidence
-    reason: Exact current main was observed during KROAD-011 precheck, but no new exact-head validation claim is made by this unmerged branch.
-  current_main_ref_sha: c228a2980a6979a0386010a5bc6ac81c9cc68b3c
+    reason: >-
+      The merged KROAD-011 implementation is present on current main, but no exact KROAD-specific run is claimed
+      for this automatic historical-ledger head. Corrected-main CI remains pending until the post-merge correction
+      PR is merged.
+  current_main_ref_sha: 8c06ace347bd0cfe5d2a3b5abb128f90fb69da74
   current_main_ref_ci:
     status: insufficient_evidence
-    reason: KROAD-011 branch validation remains pending until the pull-request checks complete.
+    reason: >-
+      Exact PR-head CI for PR #51 passed, but that evidence is not relabelled as an exact current-main run.
   foundation_main_head: 4233d2ff22310f86305b2e67055c8e4eeb03d6df
   foundation_main_head_ci:
     status: insufficient_evidence
@@ -37,11 +41,30 @@ repository:
     workflow_run_id: 28744810186
     workflow_result: success
     scope_limit: pinned_owner_fixture_integration_only
+  pull_request_51:
+    state: merged
+    branch: feature/kroad-011-project-gate-intake
+    head_sha: 765fd4b1f086141e6453bd57ed4674d2025caf73
+    merge_commit_sha: 01fdc126f834e0c0d8fbb297a2d44488487e5379
+    exact_pr_head_ci:
+      state: verified_by_exact_head_ci
+      workflow_result: success
+      workflow_runs:
+        kroad_011_project_gate_intake: 29168112399
+        skeleton_health: 29168112398
+        prompt_05_builder_responsive_final_gate: 29168112428
+        prompt_06_report_ux: 29168112402
+        ui_runtime_smoke: 29168112426
+    corrected_main_ci:
+      state: insufficient_evidence
+      reason: pending_until_post_merge_correction_pr_is_merged
+    scope_limit: synthetic_and_adversarial_fixtures_only_not_real_non_synthetic_handoff
   last_verified_project_gate_pr:
-    number: 21
-    head_sha: ce356b6f6a8dee5f807679aed0f78aa057152d1b
-    workflow_run_id: 28748324684
+    number: 51
+    head_sha: 765fd4b1f086141e6453bd57ed4674d2025caf73
+    workflow_run_id: 29168112399
     workflow_result: success
+    scope_limit: kroad_011_pr_head_only
   prompt_05_repair:
     pull_request: 23
     branch: fix/prompt-05-foundation-reconciliation
@@ -144,6 +167,9 @@ kroad_011:
     semantic_dependency_count: 6
     canonical_authority_retained_by_kernel: true
   implementation:
+    merge_state: merged
+    pull_request: 51
+    merge_commit: 01fdc126f834e0c0d8fbb297a2d44488487e5379
     stage_bundle_extension: implemented
     semantic_lock_computation_and_verification: implemented
     packet_binding_and_substitution_rejection: implemented
@@ -161,6 +187,16 @@ kroad_011:
     reason: no inspected downstream producer rejection evidence
   verification:
     state: ci_pending
+    pr_head_state: verified_by_exact_head_ci
+    pr_head_sha: 765fd4b1f086141e6453bd57ed4674d2025caf73
+    pr_head_workflow_runs:
+      kroad_011_project_gate_intake: 29168112399
+      skeleton_health: 29168112398
+      prompt_05_builder_responsive_final_gate: 29168112428
+      prompt_06_report_ux: 29168112402
+      ui_runtime_smoke: 29168112426
+    corrected_main_state: insufficient_evidence
+    corrected_main_reason: pending_until_post_merge_correction_pr_is_merged
     fixture_scope: synthetic_and_adversarial_only
   non_claims:
     - real_non_synthetic_handoff
@@ -202,9 +238,19 @@ verification:
     prompt_05_builder_responsive_final_gate_workflow_run_id: 28755207015
     skeleton_health_workflow_run_id: 28755207013
     scope_limit: not_real_non_synthetic_handoff_or_release_readiness
+  kroad_011_pr_head:
+    state: verified_by_exact_head_ci
+    evidence_type: pinned_kernel_lock_reproduction_official_bridge_and_project_gate_test_suite
+    verified_head_sha: 765fd4b1f086141e6453bd57ed4674d2025caf73
+    kroad_011_workflow_run_id: 29168112399
+    skeleton_health_workflow_run_id: 29168112398
+    prompt_05_workflow_run_id: 29168112428
+    prompt_06_workflow_run_id: 29168112402
+    ui_runtime_smoke_workflow_run_id: 29168112426
+    scope_limit: not_exact_corrected_main_not_real_non_synthetic_handoff_or_release_readiness
 
 remaining_insufficient_evidence:
-  - KROAD-011 exact-head pull-request CI
+  - KROAD-011 exact corrected-main CI after the post-merge correction PR is merged
   - KROAD-011 real non-synthetic intake handoff
   - real_non_synthetic_CE_to_Builder_transition_evidence
   - real_Builder_execution_evidence_bundle
