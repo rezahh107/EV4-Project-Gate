@@ -58,6 +58,7 @@ This section is updated by GitHub Actions after a pull request is merged. It rec
 
 | PR | Title | Head branch | Head commit | Merge commit | Skeleton Health | Recorded by |
 |---|---|---|---|---|---|---|
+| `#53` | `docs(status): reconcile capability truth with verified closure evidence` | `agent/docs-status-kroad-011-20260715` | `2174643a54ddcdebb1d6513cf4bb392a0be6e4b8` | `8cf32c65a3934ef79295d59de85daca124607ee9` | `CI_PASSED` | `rezahh107 on rezahh107/EV4-Project-Gate` |
 | `#52` | `Post-merge KROAD-011 evidence and governance correction` | `fix/kroad-011-evidence-and-governance-correction` | `9b3c48634f8921446979c1b93c1bc4f3eae8ed13` | `c030460aa90b0b234c2e421554d4f8eb45061210` | `CI_PASSED` | `rezahh107 on rezahh107/EV4-Project-Gate` |
 | `#51` | `Implement KROAD-011 Project Gate Kernel decision intake` | `feature/kroad-011-project-gate-intake` | `765fd4b1f086141e6453bd57ed4674d2025caf73` | `01fdc126f834e0c0d8fbb297a2d44488487e5379` | `CI_PASSED` | `rezahh107 on rezahh107/EV4-Project-Gate` |
 | `#50` | `Add UX-safe Kernel decision receipts for Project Gate outputs` | `ux/project-gate-kernel-decision-receipts-wave-5` | `cc1083ad78d5c548ec39488d114d243952002303` | `1b813da05837b43ea71047662b43bb64c89fd857` | `CI_PASSED` | `rezahh107 on rezahh107/EV4-Project-Gate` |
