@@ -52,8 +52,12 @@
       "workflow_run_id": 28744810186
     },
     "current_main_head_ci": {
-      "observed_head_sha": "8c06ace347bd0cfe5d2a3b5abb128f90fb69da74",
-      "reason": "The merged KROAD-011 implementation is present on current main, but no exact KROAD-specific run is claimed for this automatic historical-ledger head. Corrected-main CI remains pending until the post-merge correction PR is merged.",
+      "observed_head_sha": "2ed9c256160e177605c08d3250d5ea7836b6bbf0",
+      "exact_run_on_observed_head": false,
+      "exact_validated_main_head_sha": "c030460aa90b0b234c2e421554d4f8eb45061210",
+      "exact_validated_main_workflow_run_id": 29185523846,
+      "material_equivalence_to_validated_head": "verified_historical_ledger_only_delta",
+      "reason": "KROAD-011 exact corrected-main workflow run 29185523846 succeeded on c030460aa90b0b234c2e421554d4f8eb45061210. Current main 2ed9c256160e177605c08d3250d5ea7836b6bbf0 is one historical-ledger-only commit ahead and does not change the KROAD-011 acceptance surface. Exact CI on the observed current head remains insufficient evidence.",
       "status": "insufficient_evidence"
     },
     "foundation_main_head_ci": {
@@ -63,9 +67,10 @@
     },
     "kroad_011": {
       "corrected_main_ci": {
-        "observed_base_head_sha": "8c06ace347bd0cfe5d2a3b5abb128f90fb69da74",
-        "reason": "An exact KROAD-specific run on the corrected future main head cannot exist before the correction PR is merged.",
-        "status": "insufficient_evidence"
+        "observed_head_sha": "c030460aa90b0b234c2e421554d4f8eb45061210",
+        "workflow_run_id": 29185523846,
+        "result": "success",
+        "status": "verified_by_exact_corrected_main_ci"
       },
       "evidence_limit": "synthetic_and_adversarial_fixtures_only",
       "implementation_merge_commit": "01fdc126f834e0c0d8fbb297a2d44488487e5379",
@@ -86,15 +91,26 @@
         }
       },
       "scope": "project_gate_intake_result_final_gate_and_receipt_implementation",
-      "status": "ci_pending"
+      "status": "verified_at_pinned_scope",
+      "current_main": {
+        "observed_head_sha": "2ed9c256160e177605c08d3250d5ea7836b6bbf0",
+        "relation_to_validated_head": "one_historical_ledger_only_commit_ahead",
+        "material_equivalence_to_validated_head": "verified"
+      },
+      "kernel_roadmap_closure": {
+        "repository": "rezahh107/EV4-Decision-Kernel",
+        "evidence_path": "planning/reviews/KROAD-011_PROJECT_GATE_INTAKE_EVIDENCE_CLOSURE.md",
+        "observed_kernel_head_sha": "5ff5d7b20db11af36ab787eb8ac2d1127ea74644",
+        "status": "completed"
+      }
     },
     "last_verified_project_gate_pr": {
-      "head_sha": "765fd4b1f086141e6453bd57ed4674d2025caf73",
-      "pull_request": 51,
+      "head_sha": "9b3c48634f8921446979c1b93c1bc4f3eae8ed13",
+      "pull_request": 52,
       "result": "success",
-      "scope": "kroad_011_pr_head_only",
+      "scope": "kroad_011_correction_pr_head_only",
       "workflow": "KROAD-011 Project Gate Intake",
-      "workflow_run_id": 29168112399
+      "workflow_run_id": 29185320333
     },
     "prompt_05_owner_contract_and_validator_integration": {
       "prompt_05_workflow_run_id": 28749872553,
@@ -103,6 +119,13 @@
       "scope": "pinned_owner_contract_lock_reproduction_and_official_validator_integration_only",
       "skeleton_health_workflow_run_id": 28749872558,
       "verified_head_sha": "cf69f83682e65154678a85d05d9e2f3d31bdedaa"
+    },
+    "last_verified_project_gate_main": {
+      "head_sha": "c030460aa90b0b234c2e421554d4f8eb45061210",
+      "result": "success",
+      "scope": "kroad_011_exact_corrected_main_pinned_kernel_and_synthetic_adversarial_fixture_scope",
+      "workflow": "KROAD-011 Project Gate Intake",
+      "workflow_run_id": 29185523846
     }
   },
   "implemented": [
@@ -127,7 +150,7 @@
   "kroad_011": {
     "api_exposure": "internal_guarded",
     "contract": "ev4-project-gate-kernel-decision-intake@1.0.0",
-    "corrected_main_verification_state": "insufficient_evidence",
+    "corrected_main_verification_state": "verified_by_exact_corrected_main_ci",
     "downstream_producer_integration": "insufficient_evidence",
     "final_gate_requirement": "implemented",
     "implementation_merge_commit": "01fdc126f834e0c0d8fbb297a2d44488487e5379",
@@ -142,7 +165,11 @@
     "receipt_authority": "implemented",
     "result_contract": "kernel-decision-intake-result.v1",
     "semantic_dependency_count": 6,
-    "verification_state": "ci_pending"
+    "verification_state": "verified_at_pinned_scope",
+    "kernel_roadmap_closure": "completed_external_authority",
+    "validated_main_sha": "c030460aa90b0b234c2e421554d4f8eb45061210",
+    "current_main_sha": "2ed9c256160e177605c08d3250d5ea7836b6bbf0",
+    "current_main_relation": "one_historical_ledger_only_commit_ahead"
   },
   "not_implemented": [
     "real EV4 artifact validation",
