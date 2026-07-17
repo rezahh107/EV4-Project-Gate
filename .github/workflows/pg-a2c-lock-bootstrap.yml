@@ -67,17 +67,25 @@ jobs:
                   "sha256_file_bytes": hashlib.sha256(data).hexdigest(),
                   "size_bytes": len(data),
               })
-          lock = {
-              "files": files,
-              "schema_version": "external-contract-lock.v1",
-              "transition_id": "ev4-architect-to-ce-transition@1.0.0",
-          }
-          Path("computed-a2c-lock.json").write_text(json.dumps(lock, ensure_ascii=False, sort_keys=True, separators=(",", ":")) + "\n", encoding="utf-8")
+          lock = {"files": files, "schema_version": "external-contract-lock.v1", "transition_id": "ev4-architect-to-ce-transition@1.0.0"}
+          out = Path("bootstrap-authorities")
+          out.mkdir()
+          (out / "computed-a2c-lock.json").write_text(json.dumps(lock, ensure_ascii=False, sort_keys=True, separators=(",", ":")) + "\n", encoding="utf-8")
+          for path in [
+              "contracts/producer-adoption/ev4-producer-adoption-set.v1.json",
+              ".github/workflows/validate.yml",
+              "docs/IMPLEMENTATION_STATUS.yaml",
+              "src/ev4_transition/data/capability-status.v1.json",
+          ]:
+              source = Path("EV4-Project-Gate") / path
+              target = out / path
+              target.parent.mkdir(parents=True, exist_ok=True)
+              target.write_bytes(source.read_bytes())
           PY
-      - name: Upload computed A2C lock
+      - name: Upload current authorities
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
-          name: computed-a2c-lock-${{ github.event.pull_request.head.sha }}
-          path: computed-a2c-lock.json
+          name: pg-a2c-bootstrap-${{ github.event.pull_request.head.sha }}
+          path: bootstrap-authorities
           if-no-files-found: error
           retention-days: 1
