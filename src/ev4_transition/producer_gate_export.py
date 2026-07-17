@@ -78,8 +78,6 @@ class ProducerGateExportValidator:
                         d.append(diagnostic("PG_EXPORT_HANDOFF_ALLOWED_WITH_BLOCKED_MANDATORY_STAGE", "error", "Handoff cannot be allowed while a mandatory stage is blocked.", f"$.stage_manifest[{i}].status"))
             if ord_values != sorted(ord_values):
                 d.append(diagnostic("PG_EXPORT_STAGE_MANIFEST_OUT_OF_ORDER", "error", "Stage manifest ordinals must be sorted ascending.", "$.stage_manifest"))
-            if ord_values and sorted(ord_values) != list(range(1, len(ord_values) + 1)):
-                d.append(diagnostic("PG_EXPORT_STAGE_MANIFEST_NON_CONTIGUOUS", "error", "Stage manifest ordinals must be contiguous from 1.", "$.stage_manifest"))
         if handoff.get("allowed") is True and handoff.get("blocking_diagnostics"):
             d.append(diagnostic("PG_EXPORT_HANDOFF_ALLOWED_WITH_BLOCKING_DIAGNOSTICS", "error", "Handoff cannot be allowed with blocking diagnostics.", "$.handoff.blocking_diagnostics"))
         if handoff.get("allowed") is False and not handoff.get("failure_reasons"):
