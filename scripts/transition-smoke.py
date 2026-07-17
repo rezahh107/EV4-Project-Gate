@@ -9,11 +9,9 @@ from pathlib import Path
 from typing import Any
 
 from ev4_transition.canonical_json import bytes_sha256, canonical_dumps
-
+from ev4_transition.external_lock import ARCHITECT_COMMIT, ARCHITECT_REPO
 
 SOURCE_SCHEMA_ID = "ev4-architect-stage-payload@1.0.0"
-ARCHITECT_REPO = "rezahh107/EV4-Architect-Repo"
-ARCHITECT_COMMIT = "b0651668b97f682bb17f66840c8e8c503fd3935d"
 
 
 def source_bundle(payload: dict[str, Any], *, bundle_id: str = "synthetic-architect-a2c-smoke", stage: str = "architect") -> dict[str, Any]:
