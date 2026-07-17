@@ -1,0 +1,83 @@
+name: PG-A2C Lock Bootstrap
+
+on:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  compute-lock:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout exact Project Gate PR head
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+        with:
+          path: EV4-Project-Gate
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+      - name: Assert exact Project Gate PR head
+        shell: bash
+        run: test "$(git -C EV4-Project-Gate rev-parse HEAD)" = "${{ github.event.pull_request.head.sha }}"
+      - name: Checkout exact Architect revision
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+        with:
+          repository: rezahh107/EV4-Architect-Repo
+          ref: be9bdea9ae246b1587043f2582c1a950ea2a6ec5
+          path: EV4-Architect-Repo
+          persist-credentials: false
+      - name: Checkout exact CE revision
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+        with:
+          repository: rezahh107/EV4-Constructability-Engineer-Repo
+          ref: 6650c31304e5a0472b276c36018c1df8f42ac983
+          path: EV4-Constructability-Engineer-Repo
+          persist-credentials: false
+      - name: Compute immutable A2C lock
+        shell: bash
+        run: |
+          python - <<'PY'
+          import hashlib
+          import json
+          from pathlib import Path
+
+          architect_commit = "be9bdea9ae246b1587043f2582c1a950ea2a6ec5"
+          ce_commit = "6650c31304e5a0472b276c36018c1df8f42ac983"
+          records = [
+              ("architect_payload_schema", "rezahh107/EV4-Architect-Repo", architect_commit, "schemas/ev4-architect-stage-payload.v1.schema.json", "ev4-architect-stage-payload@1.0.0", Path("EV4-Architect-Repo")),
+              ("architect_payload_validator", "rezahh107/EV4-Architect-Repo", architect_commit, "scripts/check-architect-stage-payload.py", "ev4-architect-stage-payload-validator@1.0.0", Path("EV4-Architect-Repo")),
+              ("architect_valid_fixture", "rezahh107/EV4-Architect-Repo", architect_commit, "fixtures/architect-stage-payload/valid/minimal-complete.v1.json", "ev4-architect-stage-payload@1.0.0", Path("EV4-Architect-Repo")),
+              ("architect_insufficient_fixture", "rezahh107/EV4-Architect-Repo", architect_commit, "fixtures/architect-stage-payload/insufficient-evidence/missing-real-stage-output.v1.json", "ev4-architect-stage-payload@1.0.0", Path("EV4-Architect-Repo")),
+              ("ce_intake_schema", "rezahh107/EV4-Constructability-Engineer-Repo", ce_commit, "schemas/ce_architect_stage_intake.v1_1.schema.json", "ev4-ce-architect-stage-intake@1.1.0", Path("EV4-Constructability-Engineer-Repo")),
+              ("ce_intake_validator", "rezahh107/EV4-Constructability-Engineer-Repo", ce_commit, "scripts/validate-ce-architect-stage-intake.py", "ev4-ce-architect-stage-intake-validator@1.1.0", Path("EV4-Constructability-Engineer-Repo")),
+              ("ce_mapping_contract", "rezahh107/EV4-Constructability-Engineer-Repo", ce_commit, "contracts/ARCHITECT_STAGE_TO_CE_INTAKE_MAPPING_V1_1.md", "ev4-architect-stage-to-ce-intake-mapping@1.1.0", Path("EV4-Constructability-Engineer-Repo")),
+              ("ce_valid_fixture", "rezahh107/EV4-Constructability-Engineer-Repo", ce_commit, "fixtures/architect-stage-intake-v1-1/valid/project-gate-transition-complete.v1_1.json", "ev4-ce-architect-stage-intake@1.1.0", Path("EV4-Constructability-Engineer-Repo")),
+              ("ce_insufficient_fixture", "rezahh107/EV4-Constructability-Engineer-Repo", ce_commit, "fixtures/architect-stage-intake-v1-1/insufficient-evidence/project-gate-transition-insufficient.v1_1.json", "ev4-ce-architect-stage-intake@1.1.0", Path("EV4-Constructability-Engineer-Repo")),
+              ("ce_synthetic_source_bundle_fixture", "rezahh107/EV4-Constructability-Engineer-Repo", ce_commit, "fixtures/architect-stage-intake-v1-1/source-bundles/synthetic-architect-stage-bundle.v1.json", "ev4-architect-stage-payload@1.0.0", Path("EV4-Constructability-Engineer-Repo")),
+          ]
+          files = []
+          for role, repository, commit, path, identity, root in records:
+              data = (root / path).read_bytes()
+              files.append({
+                  "accepted_commit": commit,
+                  "contract_or_schema_id": identity,
+                  "path": path,
+                  "repository": repository,
+                  "role": role,
+                  "sha256_file_bytes": hashlib.sha256(data).hexdigest(),
+                  "size_bytes": len(data),
+              })
+          lock = {
+              "files": files,
+              "schema_version": "external-contract-lock.v1",
+              "transition_id": "ev4-architect-to-ce-transition@1.0.0",
+          }
+          Path("computed-a2c-lock.json").write_text(json.dumps(lock, ensure_ascii=False, sort_keys=True, separators=(",", ":")) + "\n", encoding="utf-8")
+          PY
+      - name: Upload computed A2C lock
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: computed-a2c-lock-${{ github.event.pull_request.head.sha }}
+          path: computed-a2c-lock.json
+          if-no-files-found: error
+          retention-days: 1
