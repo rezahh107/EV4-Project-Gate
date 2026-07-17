@@ -12,9 +12,9 @@ from .diagnostics import Diagnostic, diagnostic, sort_diagnostics
 TRANSITION_ID = "ev4-architect-to-ce-transition@1.0.0"
 LOCK_SCHEMA_VERSION = "external-contract-lock.v1"
 ARCHITECT_REPO = "rezahh107/EV4-Architect-Repo"
-ARCHITECT_COMMIT = "b0651668b97f682bb17f66840c8e8c503fd3935d"
+ARCHITECT_COMMIT = "be9bdea9ae246b1587043f2582c1a950ea2a6ec5"
 CE_REPO = "rezahh107/EV4-Constructability-Engineer-Repo"
-CE_COMMIT = "546680a2e2a309c0d7e0ddbfc017e9e194ece7cb"
+CE_COMMIT = "6650c31304e5a0472b276c36018c1df8f42ac983"
 
 
 @dataclass(frozen=True)
@@ -98,7 +98,6 @@ EXPECTED_ARCHITECT_TO_CE_DEPENDENCIES: dict[str, ExpectedDependency] = {
         contract_or_schema_id="ev4-architect-stage-payload@1.0.0",
     ),
 }
-
 REQUIRED_ROLES = set(EXPECTED_ARCHITECT_TO_CE_DEPENDENCIES)
 
 
@@ -119,12 +118,10 @@ def verify_external_contract_lock(lock: dict[str, Any], source: ContractSource) 
         diagnostics.append(diagnostic("PG_A2C_LOCK_VERSION_MISMATCH", "error", "External lock manifest version is not the expected Project Gate lock version.", "$.schema_version", expected=LOCK_SCHEMA_VERSION, actual=lock.get("schema_version")))
     if lock.get("transition_id") != TRANSITION_ID:
         diagnostics.append(diagnostic("PG_A2C_LOCK_TRANSITION_ID_MISMATCH", "error", "External lock manifest transition id does not match this transition.", "$.transition_id", expected=TRANSITION_ID, actual=lock.get("transition_id")))
-
     files = lock.get("files")
     if not isinstance(files, list):
         diagnostics.append(diagnostic("PG_A2C_LOCK_FILES_NOT_ARRAY", "error", "External lock manifest files must be an array.", "$.files"))
         return sort_diagnostics(diagnostics)
-
     seen_roles: set[str] = set()
     for index, item in enumerate(files):
         path = f"$.files[{index}]"
@@ -143,20 +140,17 @@ def verify_external_contract_lock(lock: dict[str, Any], source: ContractSource) 
             diagnostics.append(diagnostic("PG_A2C_LOCK_ROLE_DUPLICATE", "error", "External lock manifest contains a duplicate role.", f"{path}.role", role=role))
             continue
         seen_roles.add(role)
-
         diagnostics.extend(_entry_expected_value_diagnostics(item, expected, path))
         try:
             content = source.read_bytes(expected.repository, expected.accepted_commit, expected.path)
         except Exception as exc:
             diagnostics.append(diagnostic("PG_A2C_EXTERNAL_FILE_READ_FAILED", "error", "Pinned external file could not be read.", path, repository=expected.repository, commit=expected.accepted_commit, file_path=expected.path, role=role, error_type=type(exc).__name__))
             continue
-
         actual_hash = bytes_sha256(content)
         expected_hash = item.get("sha256_file_bytes")
         if actual_hash != expected_hash:
             diagnostics.append(diagnostic("PG_A2C_EXTERNAL_HASH_MISMATCH", "error", "Pinned external file hash does not match lock manifest.", path, role=role, repository=expected.repository, commit=expected.accepted_commit, file_path=expected.path, expected_sha256=expected_hash, actual_sha256=actual_hash))
         diagnostics.extend(_identity_diagnostics(content, expected, path))
-
     missing = sorted(REQUIRED_ROLES - seen_roles)
     if missing:
         diagnostics.append(diagnostic("PG_A2C_LOCK_ROLE_MISSING", "error", "External lock manifest is missing required roles.", "$.files", missing_roles=missing))
@@ -186,7 +180,6 @@ def _identity_diagnostics(content: bytes, expected: ExpectedDependency, path: st
         text = content.decode("utf-8")
     except UnicodeDecodeError:
         return [diagnostic("PG_A2C_EXTERNAL_FILE_NOT_UTF8", "error", "Pinned external file is not valid UTF-8.", path, role=role)]
-
     if role in {"architect_payload_schema", "ce_intake_schema"}:
         try:
             data = json.loads(text)
