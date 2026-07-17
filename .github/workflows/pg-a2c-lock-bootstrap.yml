@@ -33,7 +33,9 @@ jobs:
           ref: 6650c31304e5a0472b276c36018c1df8f42ac983
           path: EV4-Constructability-Engineer-Repo
           persist-credentials: false
-      - name: Compute immutable A2C lock
+      - name: Set up uv
+        uses: astral-sh/setup-uv@08807647e7069bb48b6ef5acd8ec9567f424441b
+      - name: Compute authorities and capture focused diagnostics
         shell: bash
         run: |
           python - <<'PY'
@@ -58,15 +60,7 @@ jobs:
           files = []
           for role, repository, commit, path, identity, root in records:
               data = (root / path).read_bytes()
-              files.append({
-                  "accepted_commit": commit,
-                  "contract_or_schema_id": identity,
-                  "path": path,
-                  "repository": repository,
-                  "role": role,
-                  "sha256_file_bytes": hashlib.sha256(data).hexdigest(),
-                  "size_bytes": len(data),
-              })
+              files.append({"accepted_commit": commit, "contract_or_schema_id": identity, "path": path, "repository": repository, "role": role, "sha256_file_bytes": hashlib.sha256(data).hexdigest(), "size_bytes": len(data)})
           lock = {"files": files, "schema_version": "external-contract-lock.v1", "transition_id": "ev4-architect-to-ce-transition@1.0.0"}
           out = Path("bootstrap-authorities")
           out.mkdir()
@@ -80,6 +74,20 @@ jobs:
           for target_name, path in visible.items():
               (out / target_name).write_bytes((Path("EV4-Project-Gate") / path).read_bytes())
           PY
+          set +e
+          (
+            cd EV4-Project-Gate
+            uv sync --locked --extra dev --extra ui
+            uv run python -m py_compile \
+              src/ev4_transition/cli.py \
+              src/ev4_transition/producer_integration/a2c_dispatch.py \
+              src/ev4_transition/io/secure_snapshot.py \
+              src/ev4_transition/io/safe_publication.py \
+              src/ev4_transition/runners/repository_identity.py
+            uv run pytest -q tests/producer_integration/test_prompt05_producer_integration.py tests/producer_integration/test_pg_a2c_io.py
+          ) > bootstrap-authorities/focused-tests.txt 2>&1
+          echo "$?" > bootstrap-authorities/focused-tests.exit-code
+          exit 0
       - name: Upload current authorities
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
