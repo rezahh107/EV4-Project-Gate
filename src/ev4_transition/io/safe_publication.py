@@ -125,8 +125,9 @@ def _safe_destination(raw_path: str | Path, base: Path) -> Path:
     raw = Path(raw_path)
     if any(part == ".." for part in raw.parts):
         raise PublicationError("PG_A2C_PATH_TRAVERSAL_FORBIDDEN", "Output paths must not contain parent traversal segments.", path=str(raw))
-    destination = raw if raw.is_absolute() else base / raw
-    resolved = destination.resolve(strict=False)
+    candidate = raw if raw.is_absolute() else base / raw
+    _assert_destination_unused(candidate)
+    resolved = candidate.resolve(strict=False)
     try:
         resolved.relative_to(base)
     except ValueError as exc:
