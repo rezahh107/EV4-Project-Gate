@@ -12,7 +12,8 @@ from .diagnostics import Diagnostic, diagnostic, sort_diagnostics
 TRANSITION_ID = "ev4-architect-to-ce-transition@1.0.0"
 LOCK_SCHEMA_VERSION = "external-contract-lock.v1"
 ARCHITECT_REPO = "rezahh107/EV4-Architect-Repo"
-ARCHITECT_COMMIT = "be9bdea9ae246b1587043f2582c1a950ea2a6ec5"
+ARCHITECT_COMMIT = "b0651668b97f682bb17f66840c8e8c503fd3935d"
+ARCHITECT_RUNTIME_COMMIT = "be9bdea9ae246b1587043f2582c1a950ea2a6ec5"
 CE_REPO = "rezahh107/EV4-Constructability-Engineer-Repo"
 CE_COMMIT = "6650c31304e5a0472b276c36018c1df8f42ac983"
 
@@ -30,28 +31,28 @@ EXPECTED_ARCHITECT_TO_CE_DEPENDENCIES: dict[str, ExpectedDependency] = {
     "architect_payload_schema": ExpectedDependency(
         role="architect_payload_schema",
         repository=ARCHITECT_REPO,
-        accepted_commit=ARCHITECT_COMMIT,
+        accepted_commit=ARCHITECT_RUNTIME_COMMIT,
         path="schemas/ev4-architect-stage-payload.v1.schema.json",
         contract_or_schema_id="ev4-architect-stage-payload@1.0.0",
     ),
     "architect_payload_validator": ExpectedDependency(
         role="architect_payload_validator",
         repository=ARCHITECT_REPO,
-        accepted_commit=ARCHITECT_COMMIT,
+        accepted_commit=ARCHITECT_RUNTIME_COMMIT,
         path="scripts/check-architect-stage-payload.py",
         contract_or_schema_id="ev4-architect-stage-payload-validator@1.0.0",
     ),
     "architect_valid_fixture": ExpectedDependency(
         role="architect_valid_fixture",
         repository=ARCHITECT_REPO,
-        accepted_commit=ARCHITECT_COMMIT,
+        accepted_commit=ARCHITECT_RUNTIME_COMMIT,
         path="fixtures/architect-stage-payload/valid/minimal-complete.v1.json",
         contract_or_schema_id="ev4-architect-stage-payload@1.0.0",
     ),
     "architect_insufficient_fixture": ExpectedDependency(
         role="architect_insufficient_fixture",
         repository=ARCHITECT_REPO,
-        accepted_commit=ARCHITECT_COMMIT,
+        accepted_commit=ARCHITECT_RUNTIME_COMMIT,
         path="fixtures/architect-stage-payload/insufficient-evidence/missing-real-stage-output.v1.json",
         contract_or_schema_id="ev4-architect-stage-payload@1.0.0",
     ),
