@@ -15,7 +15,10 @@ from ev4_transition.canonical_json import bytes_sha256, canonical_dumps
 class PublicationError(OSError):
     def __init__(self, code: str, message: str, **details: Any) -> None:
         self.code = code
-        self.details = details
+        normalized = dict(details)
+        if "path" in normalized:
+            normalized["artifact_path"] = normalized.pop("path")
+        self.details = normalized
         super().__init__(message)
 
 
