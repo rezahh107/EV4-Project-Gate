@@ -35,7 +35,7 @@ jobs:
           persist-credentials: false
       - name: Set up uv
         uses: astral-sh/setup-uv@08807647e7069bb48b6ef5acd8ec9567f424441b
-      - name: Compute authorities and capture focused diagnostics
+      - name: Compute authorities and capture A2C diagnostics
         shell: bash
         run: |
           python - <<'PY'
@@ -83,10 +83,21 @@ jobs:
               src/ev4_transition/producer_integration/a2c_dispatch.py \
               src/ev4_transition/io/secure_snapshot.py \
               src/ev4_transition/io/safe_publication.py \
-              src/ev4_transition/runners/repository_identity.py
-            uv run pytest -q tests/producer_integration/test_prompt05_producer_integration.py tests/producer_integration/test_pg_a2c_io.py
-          ) > bootstrap-authorities/focused-tests.txt 2>&1
-          echo "$?" > bootstrap-authorities/focused-tests.exit-code
+              src/ev4_transition/runners/repository_identity.py \
+              scripts/pg-a2c-current-head-smoke.py
+            EV4_ARCHITECT_REPO="${GITHUB_WORKSPACE}/EV4-Architect-Repo" \
+            EV4_CE_REPO="${GITHUB_WORKSPACE}/EV4-Constructability-Engineer-Repo" \
+              uv run pytest -vv --tb=long tests/test_architect_to_ce_transition.py
+            uv run pytest -vv --tb=long \
+              tests/producer_integration/test_prompt05_producer_integration.py \
+              tests/producer_integration/test_pg_a2c_io.py \
+              tests/producer_integration/test_pg_a2c_dispatch.py
+            uv run python scripts/pg-a2c-current-head-smoke.py \
+              --architect-repo "${GITHUB_WORKSPACE}/EV4-Architect-Repo" \
+              --ce-repo "${GITHUB_WORKSPACE}/EV4-Constructability-Engineer-Repo" \
+              --evidence-dir bootstrap-authorities/current-head-evidence
+          ) > bootstrap-authorities/a2c-tests.txt 2>&1
+          echo "$?" > bootstrap-authorities/a2c-tests.exit-code
           exit 0
       - name: Upload current authorities
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
