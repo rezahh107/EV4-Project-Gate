@@ -108,9 +108,9 @@ def _response(result: dict[str, Any]) -> ProducerHandoffResponse:
 
 
 def _is_file(value: Any) -> bool:
-    if not isinstance(value, str) or not value:
+    if not isinstance(value, (str, Path)) or not str(value).strip():
         return False
     try:
         return Path(value).is_file()
-    except (OSError, ValueError):
+    except (OSError, ValueError, RuntimeError):
         return False
