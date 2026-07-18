@@ -53,6 +53,9 @@ jobs:
         if: github.event_name == 'pull_request'
         run: test "$(git -C EV4-Project-Gate rev-parse HEAD)" = "${{ github.event.pull_request.head.sha }}"
 
+      - name: Record Project Gate source identity
+        run: git -C EV4-Project-Gate rev-parse HEAD > EV4-Project-Gate/kroad-011-exact-tested-sha.txt
+
       - name: Checkout pinned Decision Kernel
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
         with:
@@ -148,8 +151,13 @@ jobs:
       - name: Run complete Project Gate pytest suite
         working-directory: EV4-Project-Gate
         run: |
+          set +e
           set -o pipefail
           uv run pytest --tb=short 2>&1 | tee kroad-011-pytest.log
+          status=${PIPESTATUS[0]}
+          set -e
+          printf '%s\n' "$status" > kroad-011-pytest.exit-code
+          exit "$status"
 
       - name: Verify capability truth
         working-directory: EV4-Project-Gate
@@ -181,9 +189,11 @@ jobs:
         with:
           name: kroad-011-validation-artifacts
           path: |
+            EV4-Project-Gate/kroad-011-exact-tested-sha.txt
             EV4-Project-Gate/kernel-decision-intake-lock-computed.json
             EV4-Project-Gate/kernel-bridge-output.json
             EV4-Project-Gate/kroad-011-pytest.log
+            EV4-Project-Gate/kroad-011-pytest.exit-code
           if-no-files-found: error
 
       - name: Record exact tested head
