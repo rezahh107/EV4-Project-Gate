@@ -24,9 +24,14 @@ jobs:
       - name: Checkout Project Gate
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
         with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
           path: EV4-Project-Gate
           fetch-depth: 0
           persist-credentials: false
+
+      - name: Assert exact Project Gate PR head
+        if: github.event_name == 'pull_request'
+        run: test "$(git -C EV4-Project-Gate rev-parse HEAD)" = "${{ github.event.pull_request.head.sha }}"
 
       - name: Verify dispatched exact head
         if: github.event_name == 'workflow_dispatch'
@@ -99,7 +104,7 @@ jobs:
 
       - name: Prompt-05 transition and capability tests
         working-directory: EV4-Project-Gate
-        run: uv run pytest -q tests/transitions/test_builder_to_responsive.py tests/transitions/test_final_gate.py tests/test_cli.py tests/test_contract_source.py
+        run: uv run pytest -q tests/test_contract_source.py tests/transitions/test_builder_to_responsive.py tests/transitions/test_final_gate.py tests/test_cli.py
 
       - name: Recompute and compare immutable locks
         working-directory: EV4-Project-Gate
@@ -135,4 +140,6 @@ jobs:
           retention-days: 14
 
       - name: Record exact head
-        run: echo "Prompt-05 validated source head ${{ github.sha }}" >> "$GITHUB_STEP_SUMMARY"
+        run: |
+          TESTED_SHA="$(git -C EV4-Project-Gate rev-parse HEAD)"
+          echo "Prompt-05 validated source head ${TESTED_SHA}" >> "$GITHUB_STEP_SUMMARY"
