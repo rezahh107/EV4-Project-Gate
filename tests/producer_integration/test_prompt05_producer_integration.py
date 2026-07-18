@@ -42,13 +42,32 @@ def test_valid_producer_emitted_intakes_do_not_mutate():
         assert result["acquisition_mode"] == "producer_emitted_gate_artifact"
 
 
-def test_all_transition_targets_resolve():
+def test_all_transition_targets_resolve_at_intake_boundary():
     cases = {"architect":"architect-to-ce","ce":"ce-to-builder","builder":"builder-to-responsive","responsive":"final-evidence-gate"}
     for stage, transition in cases.items():
-        result = transition_producer_export(transition, load(f"fixtures/producer-emitted/valid/{stage}-export.v1.json"))
+        result = intake_producer_export(load(f"fixtures/producer-emitted/valid/{stage}-export.v1.json"), transition_name=transition)
         assert result["status"] == "accepted", result
         assert result["resolved_transition"] == transition
-        assert result["downstream_artifact"]["status"] == "not_fabricated"
+
+
+def test_architect_dispatch_without_immutable_runtime_evidence_fails_closed():
+    result = transition_producer_export(
+        "architect-to-ce",
+        load("fixtures/producer-emitted/valid/architect-export.v1.json"),
+    )
+    assert result["status"] == "insufficient_evidence"
+    assert result["handoff_allowed"] is False
+    assert result["producer_validation"]["official_validator_status"] == "not_run"
+    assert any(d["code"] == "PG_A2C_RUNTIME_EVIDENCE_REQUIRED" for d in result["diagnostics"])
+
+
+def test_non_a2c_transition_remains_classification_only():
+    result = transition_producer_export(
+        "ce-to-builder",
+        load("fixtures/producer-emitted/valid/ce-export.v1.json"),
+    )
+    assert result["status"] == "accepted"
+    assert result["downstream_artifact"]["status"] == "not_fabricated"
 
 
 def test_invalid_modes_and_targets_fail_closed():
@@ -66,12 +85,12 @@ def test_invalid_modes_and_targets_fail_closed():
         assert any(d["code"] == code for d in result["diagnostics"]), result
 
 
-def test_cli_explicit_producer_mode_smoke():
+def test_cli_producer_mode_requires_exact_owner_checkouts():
     proc = subprocess.run([sys.executable, "-m", "ev4_transition.cli", "transition", "architect-to-ce", "fixtures/producer-emitted/valid/architect-export.v1.json", "--acquisition-mode", "producer_emitted_gate_artifact"], text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    assert proc.returncode == 0, proc.stderr + proc.stdout
+    assert proc.returncode == 2, proc.stderr + proc.stdout
     payload = json.loads(proc.stdout)
-    assert payload["status"] == "accepted"
-    assert payload["acquisition_mode"] == "producer_emitted_gate_artifact"
+    assert payload["status"] == "insufficient_evidence"
+    assert any(d["code"] == "CLI_LOCAL_PATH_REQUIRED" for d in payload["diagnostics"])
 
 
 def write_json(path: Path, payload):

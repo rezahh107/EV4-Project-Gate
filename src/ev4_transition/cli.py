@@ -12,6 +12,7 @@ from .transitions.final_gate import final_gate_from_local_paths
 from .behavioral_coverage import CoverageSourceError, inspect_coverage_source, validate_coverage_source
 from .bundle_validator import BundleValidator, ResultValidationError
 from .canonical_json import canonical_dumps, load_json_file
+from .io.secure_snapshot import SnapshotError, capture_json_snapshot
 from .presentation.status_mapping import exit_code_for_status
 from .reports import render_plain_summary
 from .validator_runner import run_architect_validator, run_ce_validator
@@ -41,6 +42,8 @@ def main(argv: list[str] | None = None) -> int:
     transition_parser.add_argument("--project-gate-repo")
     transition_parser.add_argument("--kernel-repo")
     transition_parser.add_argument("--lock")
+    transition_parser.add_argument("--output", default="ce-input.json")
+    transition_parser.add_argument("--receipt-output", default="project-gate-a2c-receipt.json")
     transition_parser.add_argument("--format", choices=["json", "persian"], default="json")
     transition_parser.add_argument("--acquisition-mode", choices=["pinned_owner_file_computation", "producer_emitted_gate_artifact"], default="pinned_owner_file_computation")
 
@@ -66,24 +69,60 @@ def main(argv: list[str] | None = None) -> int:
 
     if args.command == "transition":
         bundle_path = Path(args.bundle)
-        try:
-            bundle = load_json_file(bundle_path)
-        except json.JSONDecodeError as exc:
-            payload = _simple_invalid("MALFORMED_JSON", "File is not valid JSON.", line=exc.lineno, column=exc.colno)
-            _emit(payload, args.format)
-            return 1
-        except OSError as exc:
-            payload = _simple_invalid("FILE_READ_ERROR", "File could not be read.", error_type=type(exc).__name__)
-            _emit(payload, args.format)
-            return 1
+        snapshot = None
         if args.acquisition_mode == "producer_emitted_gate_artifact":
-            result = transition_producer_export(args.transition_name, bundle, repository_root=args.schema_root and ".")
-            _emit(result, args.format)
-            return _exit_for_status(result["status"])
+            try:
+                snapshot = capture_json_snapshot(bundle_path)
+                bundle = snapshot.value
+            except SnapshotError as exc:
+                payload = {
+                    "status": exc.status,
+                    "diagnostics": [
+                        {
+                            "code": exc.code,
+                            "severity": "insufficient_evidence" if exc.status == "insufficient_evidence" else "error",
+                            "message": str(exc),
+                            "path": "$",
+                            "details": exc.details,
+                        }
+                    ],
+                    "handoff_allowed": False,
+                }
+                _emit(payload, args.format)
+                return _exit_for_status(payload["status"])
+        else:
+            try:
+                bundle = load_json_file(bundle_path)
+            except json.JSONDecodeError as exc:
+                payload = _simple_invalid("MALFORMED_JSON", "File is not valid JSON.", line=exc.lineno, column=exc.colno)
+                _emit(payload, args.format)
+                return 1
+            except OSError as exc:
+                payload = _simple_invalid("FILE_READ_ERROR", "File could not be read.", error_type=type(exc).__name__)
+                _emit(payload, args.format)
+                return 1
+
         preflight = _transition_preflight(args)
         if preflight is not None:
             _emit(preflight, args.format)
             return _exit_for_status(preflight["status"])
+
+        if args.acquisition_mode == "producer_emitted_gate_artifact":
+            result = transition_producer_export(
+                args.transition_name,
+                bundle,
+                snapshot=snapshot,
+                schema_root=args.schema_root,
+                lock_path=args.lock or "contracts/locks/architect-to-ce-transition.v1.lock.json",
+                architect_repo=args.architect_repo,
+                ce_repo=args.ce_repo,
+                project_gate_repo=args.project_gate_repo or ".",
+                output_path=args.output,
+                receipt_path=args.receipt_output,
+                repository_root=".",
+            )
+            _emit(result, args.format)
+            return _exit_for_status(result["status"])
         try:
             result = _run_transition(args, bundle)
         except ResultValidationError as exc:
@@ -97,7 +136,6 @@ def main(argv: list[str] | None = None) -> int:
     info = _load_capability_status()
     _emit(info, args.format)
     return 0
-
 
 
 def _run_transition(args: argparse.Namespace, bundle: dict[str, Any]) -> dict[str, Any]:
@@ -142,7 +180,6 @@ def _run_transition(args: argparse.Namespace, bundle: dict[str, Any]) -> dict[st
     return _simple_insufficient("CLI_TRANSITION_NOT_WIRED", "Transition is not wired in the public CLI.", transition_name=args.transition_name)
 
 
-
 def _transition_preflight(args: argparse.Namespace) -> dict[str, Any] | None:
     required_by_transition = {
         "architect-to-ce": ["architect_repo", "ce_repo"],
@@ -166,16 +203,13 @@ def _transition_preflight(args: argparse.Namespace) -> dict[str, Any] | None:
     return None
 
 
-
 def _looks_like_url(value: str) -> bool:
     lowered = value.lower()
     return lowered.startswith(("http://", "https://", "git@")) or "github.com" in lowered
 
 
-
 def _simple_insufficient(code: str, message: str, **details: Any) -> dict[str, Any]:
     return {"status": "insufficient_evidence", "diagnostics": [{"code": code, "severity": "insufficient_evidence", "message": message, "path": "$", "details": details}]}
-
 
 
 def _load_capability_status() -> dict[str, Any]:
@@ -194,7 +228,6 @@ def _load_capability_status() -> dict[str, Any]:
         if guarded_name not in payload.get("public_cli_transitions", []):
             raise ValueError(f"{guarded_name} guarded CLI exposure is not recorded")
     return payload
-
 
 
 def _coverage_command(args: argparse.Namespace) -> int:
@@ -222,15 +255,12 @@ def _coverage_command(args: argparse.Namespace) -> int:
     raise AssertionError(f"unknown coverage command: {args.coverage_command}")
 
 
-
 def _simple_invalid(code: str, message: str, **details: Any) -> dict[str, Any]:
     return {"status": "invalid", "diagnostics": [{"code": code, "severity": "error", "message": message, "path": "$", "details": details}]}
 
 
-
 def _exit_for_status(status: str) -> int:
     return exit_code_for_status(status)
-
 
 
 def _emit(payload: dict[str, Any], fmt: str) -> None:

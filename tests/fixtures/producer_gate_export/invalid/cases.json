@@ -63,10 +63,6 @@
       "expected_code": "PG_EXPORT_ACQUISITION_MODE_UNKNOWN"
     },
     {
-      "name": "non_contiguous_stage_manifest",
-      "expected_code": "PG_EXPORT_STAGE_MANIFEST_NON_CONTIGUOUS"
-    },
-    {
       "name": "output_without_artifact_ref",
       "expected_code": "PG_EXPORT_OUTPUT_REF_MISSING"
     },

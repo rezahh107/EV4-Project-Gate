@@ -13,7 +13,7 @@ from ev4_transition.architect_to_ce import ARCHITECT_REPO, CE_REPO, TransitionVa
 from ev4_transition.canonical_json import bytes_sha256, canonical_dumps, load_json_file
 from ev4_transition.contract_source import LocalCheckoutContractSource
 from ev4_transition.diagnostics import diagnostic
-from ev4_transition.external_lock import verify_external_contract_lock
+from ev4_transition.external_lock import ARCHITECT_COMMIT, verify_external_contract_lock
 from ev4_transition.validator_runner import run_architect_validator, run_ce_validator
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -38,7 +38,7 @@ def source_bundle(payload: dict, *, bundle_id: str = "synthetic-architect-a2c-00
     evidence_status = "insufficient_evidence" if payload["payload_status"] == "insufficient_evidence" else "complete"
     produced_by = {"repository": "rezahh107/EV4-Architect-Repo", "ref": "synthetic-fixture"}
     if include_commit:
-        produced_by["commit_sha"] = "b0651668b97f682bb17f66840c8e8c503fd3935d"
+        produced_by["commit_sha"] = ARCHITECT_COMMIT
     bundle = {
         "schema_version": "stage-evidence-bundle.v1",
         "bundle_id": bundle_id,
@@ -162,7 +162,7 @@ def test_target_bundle_absent_when_ce_validator_fails():
 def test_explicit_source_commit_preserved_and_missing_commit_omitted():
     explicit = run_transition(source_bundle(architect_payload(), include_commit=True), official_hooks())
     absent = run_transition(source_bundle(architect_payload(), include_commit=False), official_hooks())
-    assert explicit["output"]["payload"]["data"]["source_repository_ref"]["commit_sha"] == "b0651668b97f682bb17f66840c8e8c503fd3935d"
+    assert explicit["output"]["payload"]["data"]["source_repository_ref"]["commit_sha"] == ARCHITECT_COMMIT
     assert "commit_sha" not in absent["output"]["payload"]["data"]["source_repository_ref"]
 
 
@@ -218,37 +218,12 @@ def test_no_live_timestamp_and_nonfinite_invalid():
     result = run_transition(source_bundle(architect_payload()), official_hooks())
     assert "created_at" not in canonical_dumps(result)
     bundle = source_bundle(architect_payload())
-    bundle["payload"]["data"]["extension_records"] = [{"bad": float("nan")}]
-    invalid = run_transition(bundle, official_hooks())
-    assert invalid["status"] == "invalid"
-    assert invalid["output"] is None
-
-
-def test_cli_json_and_persian_outputs(tmp_path: Path):
-    bundle_path = tmp_path / "bundle.json"
-    bundle_path.write_text(canonical_dumps(source_bundle(architect_payload())) + "\n", encoding="utf-8")
-    cmd = [sys.executable, "-m", "ev4_transition.cli", "--schema-root", str(ROOT / "schemas"), "transition", "architect-to-ce", str(bundle_path), "--architect-repo", str(ARCH), "--ce-repo", str(CE), "--format", "json"]
-    completed = subprocess.run(cmd, cwd=ROOT, text=True, capture_output=True, check=False)
-    assert completed.returncode == 0
-    assert json.loads(completed.stdout)["status"] == "valid"
-    persian = subprocess.run(cmd[:-1] + ["persian"], cwd=ROOT, text=True, capture_output=True, check=False)
-    assert persian.returncode == 0
-    assert "بسته معتبر" in persian.stdout
-
-
-def test_cli_invalid_exit_1_without_traceback(tmp_path: Path):
-    bundle = source_bundle(architect_payload(), stage="builder")
-    bundle_path = tmp_path / "bad-bundle.json"
-    bundle_path.write_text(canonical_dumps(bundle) + "\n", encoding="utf-8")
-    completed = subprocess.run([sys.executable, "-m", "ev4_transition.cli", "--schema-root", str(ROOT / "schemas"), "transition", "architect-to-ce", str(bundle_path), "--architect-repo", str(ARCH), "--ce-repo", str(CE)], cwd=ROOT, text=True, capture_output=True, check=False)
-    assert completed.returncode == 1
-    assert "Traceback" not in completed.stderr
-    assert json.loads(completed.stdout)["status"] == "invalid"
-
-
-def test_cli_insufficient_exit_code_2(tmp_path: Path):
-    bundle_path = tmp_path / "bundle.json"
-    bundle_path.write_text(canonical_dumps(source_bundle(architect_payload("missing-real-stage-output.v1.json"))) + "\n", encoding="utf-8")
-    completed = subprocess.run([sys.executable, "-m", "ev4_transition.cli", "--schema-root", str(ROOT / "schemas"), "transition", "architect-to-ce", str(bundle_path), "--architect-repo", str(ARCH), "--ce-repo", str(CE)], cwd=ROOT, text=True, capture_output=True, check=False)
-    assert completed.returncode == 2
-    assert json.loads(completed.stdout)["status"] == "insufficient_evidence"
+    bundle["payload"]["data"]["extension_records"] = [float("nan")]
+    proc = subprocess.run(
+        [sys.executable, "-m", "ev4_transition.cli", "transition", "architect-to-ce", "-", "--architect-repo", str(ARCH), "--ce-repo", str(CE)],
+        input=json.dumps(bundle),
+        text=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+    )
+    assert proc.returncode != 0

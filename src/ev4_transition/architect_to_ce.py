@@ -8,11 +8,15 @@ from typing import Any, Callable
 from jsonschema import Draft202012Validator
 
 from .bundle_validator import BundleValidator, ResultValidationError
-from .canonical_json import CANONICAL_JSON_VERSION, CanonicalJsonError, canonical_sha256, load_json_file
+from .canonical_json import (
+    CANONICAL_JSON_VERSION,
+    CanonicalJsonError,
+    canonical_sha256,
+    load_json_file,
+)
 from .contract_source import ContractSource, LocalCheckoutContractSource
 from .diagnostics import Diagnostic, diagnostic, sort_diagnostics, status_from_diagnostics
 from .external_lock import (
-    ARCHITECT_COMMIT,
     ARCHITECT_REPO,
     CE_REPO,
     EXPECTED_ARCHITECT_TO_CE_DEPENDENCIES,
@@ -28,8 +32,13 @@ MAPPING_CONTRACT_ID = "ev4-architect-stage-to-ce-intake-mapping@1.1.0"
 PG_REPO = "rezahh107/EV4-Project-Gate"
 
 CE_FORBIDDEN_FIELDS = {
-    "ce_review_units", "action_proposed", "proof_states", "constructability_review",
-    "implementation_strategy_map", "builder_executable_package", "first_safe_builder_batch",
+    "ce_review_units",
+    "action_proposed",
+    "proof_states",
+    "constructability_review",
+    "implementation_strategy_map",
+    "builder_executable_package",
+    "first_safe_builder_batch",
     "confirmation_request",
 }
 
@@ -47,8 +56,14 @@ class TransitionValidatorHooks:
     events: list[str] | None = None
 
 
-def default_config(schema_root: str | Path = "schemas", lock_path: str | Path = "contracts/locks/architect-to-ce-transition.v1.lock.json") -> ArchitectToCeTransitionConfig:
-    return ArchitectToCeTransitionConfig(schema_root=Path(schema_root), lock=load_json_file(lock_path))
+def default_config(
+    schema_root: str | Path = "schemas",
+    lock_path: str | Path = "contracts/locks/architect-to-ce-transition.v1.lock.json",
+) -> ArchitectToCeTransitionConfig:
+    return ArchitectToCeTransitionConfig(
+        schema_root=Path(schema_root),
+        lock=load_json_file(lock_path),
+    )
 
 
 def transition_architect_to_ce(
@@ -63,7 +78,13 @@ def transition_architect_to_ce(
     _event(validator_hooks, "source_bundle_envelope")
     envelope = bundle_validator.validate_bundle(source_bundle)
     if envelope["status"] == "invalid":
-        return _result(source_bundle, None, _import_diags(envelope["diagnostics"]), transition_config, validator_hooks)
+        return _result(
+            source_bundle,
+            None,
+            _import_diags(envelope["diagnostics"]),
+            transition_config,
+            validator_hooks,
+        )
     diagnostics.extend(_import_diags(envelope["diagnostics"]))
 
     _event(validator_hooks, "source_identity")
@@ -72,19 +93,35 @@ def transition_architect_to_ce(
         return _result(source_bundle, None, diagnostics, transition_config, validator_hooks)
 
     _event(validator_hooks, "expected_pin_and_file_hash")
-    diagnostics.extend(verify_external_contract_lock(transition_config.lock, contract_source))
+    diagnostics.extend(
+        verify_external_contract_lock(transition_config.lock, contract_source)
+    )
     if _has_error(diagnostics):
         return _result(source_bundle, None, diagnostics, transition_config, validator_hooks)
 
     payload_dict = source_bundle.get("payload") if isinstance(source_bundle, dict) else None
     source_payload = payload_dict.get("data") if isinstance(payload_dict, dict) else None
     if not isinstance(source_payload, dict):
-        diagnostics.append(diagnostic("PG_A2C_SOURCE_PAYLOAD_NOT_OBJECT", "error", "Source payload data must be an object.", "$.payload.data"))
+        diagnostics.append(
+            diagnostic(
+                "PG_A2C_SOURCE_PAYLOAD_NOT_OBJECT",
+                "error",
+                "Source payload data must be an object.",
+                "$.payload.data",
+            )
+        )
         return _result(source_bundle, None, diagnostics, transition_config, validator_hooks)
 
     _event(validator_hooks, "architect_schema")
     architect_schema = _load_external_json(contract_source, "architect_payload_schema")
-    diagnostics.extend(_json_schema_diagnostics(architect_schema, source_payload, "PG_A2C_ARCHITECT_SCHEMA_VALIDATION_FAILED", "PG-A2C-01"))
+    diagnostics.extend(
+        _json_schema_diagnostics(
+            architect_schema,
+            source_payload,
+            "PG_A2C_ARCHITECT_SCHEMA_VALIDATION_FAILED",
+            "PG-A2C-01",
+        )
+    )
     if _has_error(diagnostics):
         return _result(source_bundle, None, diagnostics, transition_config, validator_hooks)
 
@@ -94,15 +131,39 @@ def transition_architect_to_ce(
     if _has_error(diagnostics):
         return _result(source_bundle, None, diagnostics, transition_config, validator_hooks)
 
+    ce_schema = _load_external_json(contract_source, "ce_intake_schema")
+    source_contract_commit = _ce_source_contract_commit(ce_schema)
+    if source_contract_commit is None:
+        diagnostics.append(
+            diagnostic(
+                "PG_A2C_CE_SOURCE_CONTRACT_IDENTITY_UNAVAILABLE",
+                "error",
+                "The immutable CE intake schema does not expose its accepted Architect source-contract commit.",
+                "$.properties.source_contract.properties.accepted_main_merge_commit.const",
+                rule_id="PG-A2C-10",
+            )
+        )
+        return _result(source_bundle, None, diagnostics, transition_config, validator_hooks)
+
     _event(validator_hooks, "mapper")
-    ce_payload = _map_payload(source_bundle, source_payload)
+    ce_payload = _map_payload(
+        source_bundle,
+        source_payload,
+        source_contract_commit=source_contract_commit,
+    )
     diagnostics.extend(_mapping_invariant_diagnostics(source_payload, ce_payload))
     if _has_error(diagnostics):
         return _result(source_bundle, None, diagnostics, transition_config, validator_hooks)
 
     _event(validator_hooks, "ce_schema")
-    ce_schema = _load_external_json(contract_source, "ce_intake_schema")
-    diagnostics.extend(_json_schema_diagnostics(ce_schema, ce_payload, "PG_A2C_CE_SCHEMA_VALIDATION_FAILED", "PG-A2C-10"))
+    diagnostics.extend(
+        _json_schema_diagnostics(
+            ce_schema,
+            ce_payload,
+            "PG_A2C_CE_SCHEMA_VALIDATION_FAILED",
+            "PG-A2C-10",
+        )
+    )
     if _has_error(diagnostics):
         return _result(source_bundle, None, diagnostics, transition_config, validator_hooks)
 
@@ -119,7 +180,13 @@ def transition_architect_to_ce(
     diagnostics.extend(_import_diags(target_envelope["diagnostics"]))
     if _has_error(diagnostics):
         return _result(source_bundle, None, diagnostics, transition_config, validator_hooks)
-    return _result(source_bundle, target_bundle, diagnostics, transition_config, validator_hooks)
+    return _result(
+        source_bundle,
+        target_bundle,
+        diagnostics,
+        transition_config,
+        validator_hooks,
+    )
 
 
 def _event(hooks: TransitionValidatorHooks | None, name: str) -> None:
@@ -134,50 +201,156 @@ def _has_error(diagnostics: list[Diagnostic]) -> bool:
 def _source_identity_diagnostics(bundle: dict[str, Any]) -> list[Diagnostic]:
     diagnostics: list[Diagnostic] = []
     if bundle.get("stage") != "architect":
-        diagnostics.append(diagnostic("PG_A2C_WRONG_SOURCE_STAGE", "error", "Source bundle stage must be architect.", "$.stage", rule_id="PG-A2C-01"))
+        diagnostics.append(
+            diagnostic(
+                "PG_A2C_WRONG_SOURCE_STAGE",
+                "error",
+                "Source bundle stage must be architect.",
+                "$.stage",
+                rule_id="PG-A2C-01",
+            )
+        )
     payload_schema = bundle.get("payload_schema") or {}
     if payload_schema.get("id") != SOURCE_SCHEMA_ID:
-        diagnostics.append(diagnostic("PG_A2C_SOURCE_SCHEMA_ID_MISMATCH", "error", "Source payload schema id must be Architect Stage Payload v1.", "$.payload_schema.id", expected=SOURCE_SCHEMA_ID, actual=payload_schema.get("id")))
+        diagnostics.append(
+            diagnostic(
+                "PG_A2C_SOURCE_SCHEMA_ID_MISMATCH",
+                "error",
+                "Source payload schema id must be Architect Stage Payload v1.",
+                "$.payload_schema.id",
+                expected=SOURCE_SCHEMA_ID,
+                actual=payload_schema.get("id"),
+            )
+        )
     if payload_schema.get("version") != "1.0.0":
-        diagnostics.append(diagnostic("PG_A2C_SOURCE_SCHEMA_VERSION_MISMATCH", "error", "Source payload schema version must be 1.0.0.", "$.payload_schema.version"))
+        diagnostics.append(
+            diagnostic(
+                "PG_A2C_SOURCE_SCHEMA_VERSION_MISMATCH",
+                "error",
+                "Source payload schema version must be 1.0.0.",
+                "$.payload_schema.version",
+            )
+        )
     if payload_schema.get("owner_repository") != ARCHITECT_REPO:
-        diagnostics.append(diagnostic("PG_A2C_SOURCE_OWNER_MISMATCH", "error", "Source payload owner must remain the Architect repository.", "$.payload_schema.owner_repository", expected=ARCHITECT_REPO, actual=payload_schema.get("owner_repository")))
+        diagnostics.append(
+            diagnostic(
+                "PG_A2C_SOURCE_OWNER_MISMATCH",
+                "error",
+                "Source payload owner must remain the Architect repository.",
+                "$.payload_schema.owner_repository",
+                expected=ARCHITECT_REPO,
+                actual=payload_schema.get("owner_repository"),
+            )
+        )
     payload = bundle.get("payload") or {}
     if payload.get("schema_id") != SOURCE_SCHEMA_ID:
-        diagnostics.append(diagnostic("PG_A2C_SOURCE_PAYLOAD_SCHEMA_MISMATCH", "error", "Source payload wrapper schema_id must be Architect Stage Payload v1.", "$.payload.schema_id"))
+        diagnostics.append(
+            diagnostic(
+                "PG_A2C_SOURCE_PAYLOAD_SCHEMA_MISMATCH",
+                "error",
+                "Source payload wrapper schema_id must be Architect Stage Payload v1.",
+                "$.payload.schema_id",
+            )
+        )
     data = payload.get("data") or {}
     if isinstance(data, dict) and data.get("schema_id") != SOURCE_SCHEMA_ID:
-        diagnostics.append(diagnostic("PG_A2C_SOURCE_PAYLOAD_DATA_SCHEMA_MISMATCH", "error", "Source payload data schema_id must be Architect Stage Payload v1.", "$.payload.data.schema_id"))
+        diagnostics.append(
+            diagnostic(
+                "PG_A2C_SOURCE_PAYLOAD_DATA_SCHEMA_MISMATCH",
+                "error",
+                "Source payload data schema_id must be Architect Stage Payload v1.",
+                "$.payload.data.schema_id",
+            )
+        )
     if isinstance(data, dict) and data.get("owner_repository") != ARCHITECT_REPO:
-        diagnostics.append(diagnostic("PG_A2C_SOURCE_PAYLOAD_OWNER_MISMATCH", "error", "Source payload data owner must be Architect.", "$.payload.data.owner_repository"))
+        diagnostics.append(
+            diagnostic(
+                "PG_A2C_SOURCE_PAYLOAD_OWNER_MISMATCH",
+                "error",
+                "Source payload data owner must be Architect.",
+                "$.payload.data.owner_repository",
+            )
+        )
     return diagnostics
 
 
 def _load_external_json(source: ContractSource, role: str) -> dict[str, Any]:
     expected = EXPECTED_ARCHITECT_TO_CE_DEPENDENCIES[role]
-    return json.loads(source.read_bytes(expected.repository, expected.accepted_commit, expected.path).decode("utf-8"))
+    return json.loads(
+        source.read_bytes(
+            expected.repository,
+            expected.accepted_commit,
+            expected.path,
+        ).decode("utf-8")
+    )
 
 
-def _json_schema_diagnostics(schema: dict[str, Any], value: dict[str, Any], code: str, rule_id: str) -> list[Diagnostic]:
+def _json_schema_diagnostics(
+    schema: dict[str, Any],
+    value: dict[str, Any],
+    code: str,
+    rule_id: str,
+) -> list[Diagnostic]:
     Draft202012Validator.check_schema(schema)
     validator = Draft202012Validator(schema)
-    return [diagnostic(code, "error", err.message, _json_path(list(err.path)), rule_id=rule_id) for err in sorted(validator.iter_errors(value), key=lambda e: (_json_path(list(e.path)), e.message))]
+    return [
+        diagnostic(
+            code,
+            "error",
+            err.message,
+            _json_path(list(err.path)),
+            rule_id=rule_id,
+        )
+        for err in sorted(
+            validator.iter_errors(value),
+            key=lambda item: (_json_path(list(item.path)), item.message),
+        )
+    ]
 
 
-def _map_payload(source_bundle: dict[str, Any], p: dict[str, Any]) -> dict[str, Any]:
-    architecture = p["architecture_identity"]
+def _ce_source_contract_commit(ce_schema: dict[str, Any]) -> str | None:
+    value = (
+        (((ce_schema.get("properties") or {}).get("source_contract") or {}).get("properties") or {})
+        .get("accepted_main_merge_commit", {})
+        .get("const")
+    )
+    if not isinstance(value, str) or len(value) != 40:
+        return None
+    try:
+        int(value, 16)
+    except ValueError:
+        return None
+    return value
+
+
+def _map_payload(
+    source_bundle: dict[str, Any],
+    payload: dict[str, Any],
+    *,
+    source_contract_commit: str,
+) -> dict[str, Any]:
+    architecture = payload["architecture_identity"]
     decision = architecture["decision_source"]
-    structure = p["approved_structure_model"]
-    intent = p["architect_intent"]
-    unresolved = list(p.get("unresolved_evidence", []))
-    intake_status = "insufficient_evidence" if p.get("payload_status") == "insufficient_evidence" else "complete"
+    structure = payload["approved_structure_model"]
+    intent = payload["architect_intent"]
+    unresolved = list(payload.get("unresolved_evidence", []))
+    intake_status = (
+        "insufficient_evidence"
+        if payload.get("payload_status") == "insufficient_evidence"
+        else "complete"
+    )
     ce_payload: dict[str, Any] = {
         "schema_id": TARGET_SCHEMA_ID,
         "schema_version": "1.1.0",
         "owner_repository": CE_REPO,
         "intake_status": intake_status,
-        "synthetic": bool(p.get("synthetic")),
-        "source_contract": {"schema_id": SOURCE_SCHEMA_ID, "schema_version": "1.0.0", "owner_repository": ARCHITECT_REPO, "accepted_main_merge_commit": ARCHITECT_COMMIT},
+        "synthetic": bool(payload.get("synthetic")),
+        "source_contract": {
+            "schema_id": SOURCE_SCHEMA_ID,
+            "schema_version": "1.0.0",
+            "owner_repository": ARCHITECT_REPO,
+            "accepted_main_merge_commit": source_contract_commit,
+        },
         "source_repository_ref": _source_repository_ref(source_bundle),
         "project_gate_transition": {
             "executed": True,
@@ -185,37 +358,126 @@ def _map_payload(source_bundle: dict[str, Any], p: dict[str, Any]) -> dict[str, 
             "transition_version": TRANSITION_VERSION,
             "producer_repository": PG_REPO,
             "source_bundle_id": source_bundle["bundle_id"],
-            "source_bundle_hash": {"algorithm": "sha256", "canonicalization": CANONICAL_JSON_VERSION, "scope": "source_bundle", "value": canonical_sha256(source_bundle)},
+            "source_bundle_hash": {
+                "algorithm": "sha256",
+                "canonicalization": CANONICAL_JSON_VERSION,
+                "scope": "source_bundle",
+                "value": canonical_sha256(source_bundle),
+            },
         },
-        "selected_architecture": {"selected_candidate_id": architecture["selected_candidate_id"], "selected_candidate_locked": architecture["selected_candidate_locked"], "architecture_family": architecture["architecture_family"], "decision_source_refs": sorted(set(decision["evidence_refs"] + decision["locked_decision_refs"] + decision["source_evidence_refs"])), "approved_structure_ref": decision["approved_structure_ref"]},
-        "structure_projection": {"root_node_id": structure["root_node_id"], "nodes": [_map_node(node) for node in sorted(structure["structure_nodes"], key=lambda n: n["node_id"])]},
-        "architect_intent_preserved": {"class_intent": {"approved_class_names": list(intent["class_intent"]["approved_class_names"])}, "responsive_risk_seeds": [{"risk_id": item["risk_id"], "state": item["state"], "evidence_refs": list(item["evidence_refs"])} for item in intent["responsive_risk_seeds"]], "dynamic_loop_intent": {"status": intent["dynamic_loop_intent"]["status"], "evidence_refs": list(intent["dynamic_loop_intent"].get("evidence_refs", []))}},
-        "evidence_register": [dict(item) for item in p["evidence_register"]],
-        "unresolved_evidence": [{"unresolved_id": item["unresolved_id"], "state": item["state"], "owner": item["owner"], "reason": item["reason"], "evidence_refs": list(item.get("evidence_refs", []))} for item in unresolved],
-        "forbidden_work": list(p["forbidden_work"]),
+        "selected_architecture": {
+            "selected_candidate_id": architecture["selected_candidate_id"],
+            "selected_candidate_locked": architecture["selected_candidate_locked"],
+            "architecture_family": architecture["architecture_family"],
+            "decision_source_refs": sorted(
+                set(
+                    decision["evidence_refs"]
+                    + decision["locked_decision_refs"]
+                    + decision["source_evidence_refs"]
+                )
+            ),
+            "approved_structure_ref": decision["approved_structure_ref"],
+        },
+        "structure_projection": {
+            "root_node_id": structure["root_node_id"],
+            "nodes": [
+                _map_node(node)
+                for node in sorted(
+                    structure["structure_nodes"],
+                    key=lambda item: item["node_id"],
+                )
+            ],
+        },
+        "architect_intent_preserved": {
+            "class_intent": {
+                "approved_class_names": list(
+                    intent["class_intent"]["approved_class_names"]
+                )
+            },
+            "responsive_risk_seeds": [
+                {
+                    "risk_id": item["risk_id"],
+                    "state": item["state"],
+                    "evidence_refs": list(item["evidence_refs"]),
+                }
+                for item in intent["responsive_risk_seeds"]
+            ],
+            "dynamic_loop_intent": {
+                "status": intent["dynamic_loop_intent"]["status"],
+                "evidence_refs": list(
+                    intent["dynamic_loop_intent"].get("evidence_refs", [])
+                ),
+            },
+        },
+        "evidence_register": [dict(item) for item in payload["evidence_register"]],
+        "unresolved_evidence": [
+            {
+                "unresolved_id": item["unresolved_id"],
+                "state": item["state"],
+                "owner": item["owner"],
+                "reason": item["reason"],
+                "evidence_refs": list(item.get("evidence_refs", [])),
+            }
+            for item in unresolved
+        ],
+        "forbidden_work": list(payload["forbidden_work"]),
         "negative_boundary_assertions": _negative_boundary_assertions(),
-        "ce_processing_prerequisites": {"ce_review_required": True, "intake_contains_ce_conclusions": False, "intake_contains_builder_authorization": False, "real_cross_repository_validation_available": False},
-        "mapping_contract": {"mapping_id": MAPPING_CONTRACT_ID, "mapping_version": "1.1.0", "source_schema_id": SOURCE_SCHEMA_ID, "target_schema_id": TARGET_SCHEMA_ID},
+        "ce_processing_prerequisites": {
+            "ce_review_required": True,
+            "intake_contains_ce_conclusions": False,
+            "intake_contains_builder_authorization": False,
+            "real_cross_repository_validation_available": False,
+        },
+        "mapping_contract": {
+            "mapping_id": MAPPING_CONTRACT_ID,
+            "mapping_version": "1.1.0",
+            "source_schema_id": SOURCE_SCHEMA_ID,
+            "target_schema_id": TARGET_SCHEMA_ID,
+        },
         "mapping_trace": _mapping_trace(),
-        "legacy_contract_policy": {"canonical_architect_facing_intake": TARGET_SCHEMA_ID, "legacy_status": "v1.0.0_historical_compatibility"},
+        "legacy_contract_policy": {
+            "canonical_architect_facing_intake": TARGET_SCHEMA_ID,
+            "legacy_status": "v1.0.0_historical_compatibility",
+        },
         "real_cross_repository_validation": "not_available",
         "validation_contract": {"rules": [f"CE-I{i:02d}" for i in range(1, 22)]},
     }
     if intake_status == "insufficient_evidence":
-        ce_payload["missing_evidence"] = [_missing_evidence(item) for item in unresolved] or [{"missing_id": "missing-architect-evidence", "affected_ce_conclusion": "intake_acceptance", "required_source": "Architect payload declared insufficient evidence.", "current_evidence_owner": "architect", "ce_processing_can_partially_continue": False}]
+        ce_payload["missing_evidence"] = [
+            _missing_evidence(item) for item in unresolved
+        ] or [
+            {
+                "missing_id": "missing-architect-evidence",
+                "affected_ce_conclusion": "intake_acceptance",
+                "required_source": "Architect payload declared insufficient evidence.",
+                "current_evidence_owner": "architect",
+                "ce_processing_can_partially_continue": False,
+            }
+        ]
     return ce_payload
 
 
 def _source_repository_ref(source_bundle: dict[str, Any]) -> dict[str, Any]:
     produced_by = source_bundle.get("produced_by") or {}
-    out = {"repository": produced_by.get("repository"), "ref": produced_by.get("ref"), "bundle_id": source_bundle["bundle_id"]}
+    result = {
+        "repository": produced_by.get("repository"),
+        "ref": produced_by.get("ref"),
+        "bundle_id": source_bundle["bundle_id"],
+    }
     if produced_by.get("commit_sha"):
-        out["commit_sha"] = produced_by["commit_sha"]
-    return out
+        result["commit_sha"] = produced_by["commit_sha"]
+    return result
 
 
 def _map_node(node: dict[str, Any]) -> dict[str, Any]:
-    return {"source_node_id": node["node_id"], "parent_node_id": node.get("parent_node_id"), "node_kind": node["node_kind"], "role": node["role"], "evidence_refs": list(node["evidence_refs"]), "children": sorted(node.get("children", []))}
+    return {
+        "source_node_id": node["node_id"],
+        "parent_node_id": node.get("parent_node_id"),
+        "node_kind": node["node_kind"],
+        "role": node["role"],
+        "evidence_refs": list(node["evidence_refs"]),
+        "children": sorted(node.get("children", [])),
+    }
 
 
 def _negative_boundary_assertions() -> dict[str, bool]:
@@ -237,8 +499,19 @@ def _negative_boundary_assertions() -> dict[str, bool]:
 
 def _missing_evidence(item: dict[str, Any]) -> dict[str, Any]:
     blocks = set(item.get("blocks", []))
-    conclusion = "intake_acceptance" if "ce_transition" in blocks or "architect_stage_payload_acceptance" in blocks else "constructability_review_scope"
-    return {"missing_id": item["unresolved_id"], "affected_ce_conclusion": conclusion, "required_source": item["reason"], "current_evidence_owner": item["owner"], "ce_processing_can_partially_continue": conclusion != "intake_acceptance"}
+    conclusion = (
+        "intake_acceptance"
+        if "ce_transition" in blocks
+        or "architect_stage_payload_acceptance" in blocks
+        else "constructability_review_scope"
+    )
+    return {
+        "missing_id": item["unresolved_id"],
+        "affected_ce_conclusion": conclusion,
+        "required_source": item["reason"],
+        "current_evidence_owner": item["owner"],
+        "ce_processing_can_partially_continue": conclusion != "intake_acceptance",
+    }
 
 
 def _mapping_trace() -> list[dict[str, Any]]:
@@ -267,26 +540,77 @@ def _mapping_trace() -> list[dict[str, Any]]:
     ]
 
 
-def _trace(source: str, target: str, classification: str, ordering: str, missing: str, duplicate: str, unsupported: str, provenance: str, unresolved: str, rule_id: str | None = None) -> dict[str, Any]:
-    out: dict[str, Any] = {"source_path": source, "target_path": target, "classification": classification, "ordering_rule": ordering, "missing_source_behavior": missing, "duplicate_behavior": duplicate, "unsupported_field_behavior": unsupported, "provenance_behavior": provenance, "unresolved_evidence_behavior": unresolved}
+def _trace(
+    source: str,
+    target: str,
+    classification: str,
+    ordering: str,
+    missing: str,
+    duplicate: str,
+    unsupported: str,
+    provenance: str,
+    unresolved: str,
+    rule_id: str | None = None,
+) -> dict[str, Any]:
+    result: dict[str, Any] = {
+        "source_path": source,
+        "target_path": target,
+        "classification": classification,
+        "ordering_rule": ordering,
+        "missing_source_behavior": missing,
+        "duplicate_behavior": duplicate,
+        "unsupported_field_behavior": unsupported,
+        "provenance_behavior": provenance,
+        "unresolved_evidence_behavior": unresolved,
+    }
     if rule_id is not None:
-        out["derivation_rule"] = {"id": rule_id, "version": "1.0.0"}
-    return out
+        result["derivation_rule"] = {"id": rule_id, "version": "1.0.0"}
+    return result
 
 
-def _mapping_invariant_diagnostics(source: dict[str, Any], target: dict[str, Any]) -> list[Diagnostic]:
-    out: list[Diagnostic] = []
+def _mapping_invariant_diagnostics(
+    source: dict[str, Any],
+    target: dict[str, Any],
+) -> list[Diagnostic]:
+    diagnostics: list[Diagnostic] = []
     target_id = (target.get("selected_architecture") or {}).get("selected_candidate_id")
     source_id = (source.get("architecture_identity") or {}).get("selected_candidate_id")
     if target_id != source_id:
-        out.append(diagnostic("PG_A2C_SELECTED_IDENTITY_CHANGED", "error", "Selected candidate identity changed during transition.", "$.selected_architecture.selected_candidate_id"))
+        diagnostics.append(
+            diagnostic(
+                "PG_A2C_SELECTED_IDENTITY_CHANGED",
+                "error",
+                "Selected candidate identity changed during transition.",
+                "$.selected_architecture.selected_candidate_id",
+            )
+        )
     forbidden_found = sorted(CE_FORBIDDEN_FIELDS & _all_keys(target))
     if forbidden_found:
-        out.append(diagnostic("PG_A2C_CE_OWNED_FIELD_EMITTED", "error", "Transition emitted CE-owned decision fields.", "$", forbidden_fields=forbidden_found))
-    positives = [k for k, v in (target.get("negative_boundary_assertions") or {}).items() if v is not False]
+        diagnostics.append(
+            diagnostic(
+                "PG_A2C_CE_OWNED_FIELD_EMITTED",
+                "error",
+                "Transition emitted CE-owned decision fields.",
+                "$",
+                forbidden_fields=forbidden_found,
+            )
+        )
+    positives = [
+        key
+        for key, value in (target.get("negative_boundary_assertions") or {}).items()
+        if value is not False
+    ]
     if positives:
-        out.append(diagnostic("PG_A2C_POSITIVE_READINESS_CLAIM", "error", "Transition emitted positive downstream readiness assertions.", "$.negative_boundary_assertions", positive_fields=positives))
-    return out
+        diagnostics.append(
+            diagnostic(
+                "PG_A2C_POSITIVE_READINESS_CLAIM",
+                "error",
+                "Transition emitted positive downstream readiness assertions.",
+                "$.negative_boundary_assertions",
+                positive_fields=positives,
+            )
+        )
+    return diagnostics
 
 
 def _all_keys(value: Any) -> set[str]:
@@ -301,28 +625,122 @@ def _all_keys(value: Any) -> set[str]:
     return keys
 
 
-def _target_bundle(source_bundle: dict[str, Any], ce_payload: dict[str, Any]) -> dict[str, Any]:
+def _target_bundle(
+    source_bundle: dict[str, Any],
+    ce_payload: dict[str, Any],
+) -> dict[str, Any]:
     evidence_status = ce_payload["intake_status"]
-    bundle = {"schema_version": "stage-evidence-bundle.v1", "bundle_id": "pg-a2c-v1-" + canonical_sha256(ce_payload)[:16], "stage": "ce", "payload_schema": {"id": TARGET_SCHEMA_ID, "version": "1.1.0", "owner_repository": CE_REPO}, "produced_by": {"repository": PG_REPO, "ref": TRANSITION_ID}, "evidence_status": evidence_status, "payload": {"schema_id": TARGET_SCHEMA_ID, "data": ce_payload}, "evidence": list(source_bundle.get("evidence", [])) + [_transition_evidence(ce_payload)], "provenance": {"source": source_bundle["bundle_id"], "created_by": TRANSITION_ID}, "synthetic": bool(source_bundle.get("synthetic"))}
+    bundle: dict[str, Any] = {
+        "schema_version": "stage-evidence-bundle.v1",
+        "bundle_id": "pg-a2c-v1-" + canonical_sha256(ce_payload)[:16],
+        "stage": "ce",
+        "payload_schema": {
+            "id": TARGET_SCHEMA_ID,
+            "version": "1.1.0",
+            "owner_repository": CE_REPO,
+        },
+        "produced_by": {"repository": PG_REPO, "ref": TRANSITION_ID},
+        "evidence_status": evidence_status,
+        "payload": {"schema_id": TARGET_SCHEMA_ID, "data": ce_payload},
+        "evidence": list(source_bundle.get("evidence", []))
+        + [_transition_evidence(ce_payload)],
+        "provenance": {
+            "source": source_bundle["bundle_id"],
+            "created_by": TRANSITION_ID,
+        },
+        "synthetic": bool(source_bundle.get("synthetic")),
+    }
     if evidence_status == "insufficient_evidence":
-        bundle["missing_evidence"] = [{"id": item["missing_id"], "owner": item["current_evidence_owner"], "reason": item["required_source"]} for item in ce_payload.get("missing_evidence", [])]
+        bundle["missing_evidence"] = [
+            {
+                "id": item["missing_id"],
+                "owner": item["current_evidence_owner"],
+                "reason": item["required_source"],
+            }
+            for item in ce_payload.get("missing_evidence", [])
+        ]
     return bundle
 
 
 def _transition_evidence(ce_payload: dict[str, Any]) -> dict[str, Any]:
-    return {"id": "pg-a2c-transition-v1", "kind": "report", "state": "derived", "description": "Deterministic Project Gate Architect-to-CE transition result.", "artifact_hash": {"algorithm": "sha256", "value": canonical_sha256(ce_payload), "scope": "canonical_json"}, "source": {"type": "repo_path", "reference": "src/ev4_transition/architect_to_ce.py"}, "derivation_rule": {"id": TRANSITION_ID, "version": TRANSITION_VERSION}}
+    return {
+        "id": "pg-a2c-transition-v1",
+        "kind": "report",
+        "state": "derived",
+        "description": "Deterministic Project Gate Architect-to-CE transition result.",
+        "artifact_hash": {
+            "algorithm": "sha256",
+            "value": canonical_sha256(ce_payload),
+            "scope": "canonical_json",
+        },
+        "source": {
+            "type": "repo_path",
+            "reference": "src/ev4_transition/architect_to_ce.py",
+        },
+        "derivation_rule": {"id": TRANSITION_ID, "version": TRANSITION_VERSION},
+    }
 
 
-def _result(source_bundle: Any, output: dict[str, Any] | None, diagnostics: list[Diagnostic], config: ArchitectToCeTransitionConfig, validator_hooks: TransitionValidatorHooks | None = None) -> dict[str, Any]:
+def _result(
+    source_bundle: Any,
+    output: dict[str, Any] | None,
+    diagnostics: list[Diagnostic],
+    config: ArchitectToCeTransitionConfig,
+    validator_hooks: TransitionValidatorHooks | None = None,
+) -> dict[str, Any]:
     ordered = sort_diagnostics(diagnostics)
     status = status_from_diagnostics(ordered)
-    if output is not None and status == "valid" and output.get("evidence_status") == "insufficient_evidence":
+    if (
+        output is not None
+        and status == "valid"
+        and output.get("evidence_status") == "insufficient_evidence"
+    ):
         status = "insufficient_evidence"
     if status == "invalid":
         output = None
-    source_payload = source_bundle.get("payload", {}).get("data") if isinstance(source_bundle, dict) else None
+    source_payload = (
+        source_bundle.get("payload", {}).get("data")
+        if isinstance(source_bundle, dict)
+        else None
+    )
     target_payload = output.get("payload", {}).get("data") if output else None
-    result = {"schema_version": "architect-to-ce-transition-result.v1", "result_type": "architect_to_ce_transition", "transition": {"id": TRANSITION_ID, "version": TRANSITION_VERSION, "source_payload_schema": SOURCE_SCHEMA_ID, "target_payload_schema": TARGET_SCHEMA_ID, "mapping_contract": MAPPING_CONTRACT_ID}, "status": status, "source_stage": "architect", "target_stage": "ce", "diagnostics": [d.to_dict() for d in ordered], "hashes": {"source_bundle": _hash_or_none(source_bundle, "source_bundle"), "source_payload": _hash_or_none(source_payload, "source_payload"), "target_payload": _hash_or_none(target_payload, "target_payload"), "target_bundle": _hash_or_none(output, "target_bundle"), "external_contract_lock": {"algorithm": "sha256", "canonicalization": CANONICAL_JSON_VERSION, "scope": "external_contract_lock", "value": lock_file_hash(config.lock)}}, "provenance": {"source_bundle_id": source_bundle.get("bundle_id") if isinstance(source_bundle, dict) else None, "transition_id": TRANSITION_ID, "verification_state": "verified_by_synthetic_fixture"}, "output": output}
+    result = {
+        "schema_version": "architect-to-ce-transition-result.v1",
+        "result_type": "architect_to_ce_transition",
+        "transition": {
+            "id": TRANSITION_ID,
+            "version": TRANSITION_VERSION,
+            "source_payload_schema": SOURCE_SCHEMA_ID,
+            "target_payload_schema": TARGET_SCHEMA_ID,
+            "mapping_contract": MAPPING_CONTRACT_ID,
+        },
+        "status": status,
+        "source_stage": "architect",
+        "target_stage": "ce",
+        "diagnostics": [item.to_dict() for item in ordered],
+        "hashes": {
+            "source_bundle": _hash_or_none(source_bundle, "source_bundle"),
+            "source_payload": _hash_or_none(source_payload, "source_payload"),
+            "target_payload": _hash_or_none(target_payload, "target_payload"),
+            "target_bundle": _hash_or_none(output, "target_bundle"),
+            "external_contract_lock": {
+                "algorithm": "sha256",
+                "canonicalization": CANONICAL_JSON_VERSION,
+                "scope": "external_contract_lock",
+                "value": lock_file_hash(config.lock),
+            },
+        },
+        "provenance": {
+            "source_bundle_id": (
+                source_bundle.get("bundle_id")
+                if isinstance(source_bundle, dict)
+                else None
+            ),
+            "transition_id": TRANSITION_ID,
+            "verification_state": "verified_by_synthetic_fixture",
+        },
+        "output": output,
+    }
     _event(validator_hooks, "final_result_schema")
     _validate_transition_result(result, config.schema_root)
     return result
@@ -335,26 +753,55 @@ def _hash_or_none(value: Any, scope: str) -> dict[str, str] | None:
         digest = canonical_sha256(value)
     except CanonicalJsonError:
         return None
-    return {"algorithm": "sha256", "canonicalization": CANONICAL_JSON_VERSION, "scope": scope, "value": digest}
+    return {
+        "algorithm": "sha256",
+        "canonicalization": CANONICAL_JSON_VERSION,
+        "scope": scope,
+        "value": digest,
+    }
 
 
-def _validate_transition_result(result: dict[str, Any], schema_root: Path) -> None:
-    schema = load_json_file(schema_root / "architect-to-ce-transition-result" / "architect-to-ce-transition-result.v1.schema.json")
+def _validate_transition_result(
+    result: dict[str, Any],
+    schema_root: Path,
+) -> None:
+    schema = load_json_file(
+        schema_root
+        / "architect-to-ce-transition-result"
+        / "architect-to-ce-transition-result.v1.schema.json"
+    )
     validator = Draft202012Validator(schema)
-    errors = sorted(validator.iter_errors(result), key=lambda e: (_json_path(list(e.path)), e.message))
+    errors = sorted(
+        validator.iter_errors(result),
+        key=lambda item: (_json_path(list(item.path)), item.message),
+    )
     if errors:
-        raise ResultValidationError("; ".join(f"{_json_path(list(e.path))}: {e.message}" for e in errors))
+        raise ResultValidationError(
+            "; ".join(
+                f"{_json_path(list(item.path))}: {item.message}"
+                for item in errors
+            )
+        )
 
 
 def _import_diags(items: list[dict[str, Any]]) -> list[Diagnostic]:
-    return [diagnostic(item["code"], item["severity"], item["message"], item["path"], **item.get("details", {})) for item in items]
+    return [
+        diagnostic(
+            item["code"],
+            item["severity"],
+            item["message"],
+            item["path"],
+            **item.get("details", {}),
+        )
+        for item in items
+    ]
 
 
 def _json_path(parts: list[Any]) -> str:
-    out = "$"
+    result = "$"
     for part in parts:
-        out += f"[{part}]" if isinstance(part, int) else f".{part}"
-    return out
+        result += f"[{part}]" if isinstance(part, int) else f".{part}"
+    return result
 
 
 def transition_from_local_paths(
@@ -366,6 +813,19 @@ def transition_from_local_paths(
     validator_hooks: TransitionValidatorHooks | None = None,
 ) -> dict[str, Any]:
     lock = load_json_file(lock_path)
-    source = LocalCheckoutContractSource({ARCHITECT_REPO: Path(architect_repo), CE_REPO: Path(ce_repo)})
-    config = ArchitectToCeTransitionConfig(schema_root=Path(schema_root), lock=lock)
-    return transition_architect_to_ce(source_bundle, source, config, validator_hooks=validator_hooks)
+    source = LocalCheckoutContractSource(
+        {
+            ARCHITECT_REPO: Path(architect_repo),
+            CE_REPO: Path(ce_repo),
+        }
+    )
+    config = ArchitectToCeTransitionConfig(
+        schema_root=Path(schema_root),
+        lock=lock,
+    )
+    return transition_architect_to_ce(
+        source_bundle,
+        source,
+        config,
+        validator_hooks=validator_hooks,
+    )

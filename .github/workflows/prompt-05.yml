@@ -24,8 +24,17 @@ jobs:
       - name: Checkout Project Gate
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
         with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
           path: EV4-Project-Gate
+          fetch-depth: 0
           persist-credentials: false
+
+      - name: Assert exact Project Gate PR head
+        if: github.event_name == 'pull_request'
+        run: test "$(git -C EV4-Project-Gate rev-parse HEAD)" = "${{ github.event.pull_request.head.sha }}"
+
+      - name: Record Project Gate source identity
+        run: git -C EV4-Project-Gate rev-parse HEAD > EV4-Project-Gate/prompt-05-exact-tested-sha.txt
 
       - name: Verify dispatched exact head
         if: github.event_name == 'workflow_dispatch'
@@ -98,21 +107,45 @@ jobs:
 
       - name: Prompt-05 transition and capability tests
         working-directory: EV4-Project-Gate
-        run: uv run pytest -q tests/transitions/test_builder_to_responsive.py tests/transitions/test_final_gate.py tests/test_cli.py
+        run: |
+          set +e
+          set -o pipefail
+          uv run pytest -q \
+            tests/test_contract_source.py \
+            tests/transitions/test_builder_to_responsive.py \
+            tests/transitions/test_final_gate.py \
+            tests/test_cli.py 2>&1 | tee prompt-05-pytest.log
+          status=${PIPESTATUS[0]}
+          set -e
+          printf '%s\n' "$status" > prompt-05-pytest.exit-code
+          exit "$status"
 
       - name: Recompute and compare immutable locks
         working-directory: EV4-Project-Gate
         run: |
+          set +e
+          status=0
           uv run python scripts/compute-builder-to-responsive-lock.py \
             --builder-repo ../EV4-Builder-Assistant-Repo \
             --responsive-repo ../EV4-Responsive-Architect \
-            --output /tmp/b2r-lock.json
-          cmp /tmp/b2r-lock.json contracts/locks/builder-to-responsive-transition.v1.lock.json
-          uv run python scripts/compute-final-gate-lock.py \
-            --project-gate-repo . \
-            --responsive-repo ../EV4-Responsive-Architect \
-            --output /tmp/final-lock.json
-          cmp /tmp/final-lock.json contracts/locks/final-gate.v1.lock.json
+            --output /tmp/b2r-lock.json || status=$?
+          if [ "$status" -eq 0 ]; then
+            cmp /tmp/b2r-lock.json contracts/locks/builder-to-responsive-transition.v1.lock.json || status=$?
+          fi
+          if [ "$status" -eq 0 ]; then
+            uv run python scripts/compute-final-gate-lock.py \
+              --project-gate-repo . \
+              --responsive-repo ../EV4-Responsive-Architect \
+              --output /tmp/final-lock.json || status=$?
+          fi
+          if [ "$status" -eq 0 ]; then
+            cmp /tmp/final-lock.json contracts/locks/final-gate.v1.lock.json || status=$?
+          fi
+          printf '%s\n' "$status" > prompt-05-locks.exit-code
+          if [ "$status" -eq 0 ]; then
+            sha256sum /tmp/b2r-lock.json /tmp/final-lock.json > prompt-05-locks.sha256
+          fi
+          exit "$status"
 
       - name: Run pinned official Responsive validators
         working-directory: EV4-Responsive-Architect
@@ -130,8 +163,15 @@ jobs:
           path: |
             /tmp/b2r-lock.json
             /tmp/final-lock.json
+            EV4-Project-Gate/prompt-05-exact-tested-sha.txt
+            EV4-Project-Gate/prompt-05-pytest.log
+            EV4-Project-Gate/prompt-05-pytest.exit-code
+            EV4-Project-Gate/prompt-05-locks.exit-code
+            EV4-Project-Gate/prompt-05-locks.sha256
           if-no-files-found: ignore
           retention-days: 14
 
       - name: Record exact head
-        run: echo "Prompt-05 validated source head ${{ github.sha }}" >> "$GITHUB_STEP_SUMMARY"
+        run: |
+          TESTED_SHA="$(git -C EV4-Project-Gate rev-parse HEAD)"
+          echo "Prompt-05 validated source head ${TESTED_SHA}" >> "$GITHUB_STEP_SUMMARY"

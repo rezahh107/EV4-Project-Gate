@@ -67,11 +67,11 @@ The transition executes the official Architect and CE validators in CLI/CI when 
 transition_id: ev4-architect-to-ce-transition@1.0.0
 architect:
   repository: rezahh107/EV4-Architect-Repo
-  commit: b0651668b97f682bb17f66840c8e8c503fd3935d
+  commit: be9bdea9ae246b1587043f2582c1a950ea2a6ec5
   schema: ev4-architect-stage-payload@1.0.0
 ce:
   repository: rezahh107/EV4-Constructability-Engineer-Repo
-  commit: 546680a2e2a309c0d7e0ddbfc017e9e194ece7cb
+  commit: 6650c31304e5a0472b276c36018c1df8f42ac983
   intake_schema: ev4-ce-architect-stage-intake@1.1.0
   mapping_contract: ev4-architect-stage-to-ce-intake-mapping@1.1.0
 verification_state: synthetic_fixture_only

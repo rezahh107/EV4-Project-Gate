@@ -17,10 +17,15 @@ jobs:
   immutable-sha-producer-integration:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout Project Gate
+      - name: Checkout exact Project Gate PR head
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
         with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
           persist-credentials: false
+      - name: Assert exact Project Gate PR head
+        if: github.event_name == 'pull_request'
+        shell: bash
+        run: test "$(git rev-parse HEAD)" = "${{ github.event.pull_request.head.sha }}"
       - name: Set up uv
         uses: astral-sh/setup-uv@08807647e7069bb48b6ef5acd8ec9567f424441b
       - name: Sync Project Gate dependencies
@@ -32,15 +37,15 @@ jobs:
           r = validate_adoption_registry()
           assert r["status"] == "valid", r
           PY
-          uv run pytest -q tests/producer_integration/test_prompt05_producer_integration.py
+          uv run pytest -q tests/producer_integration/test_prompt05_producer_integration.py tests/producer_integration/test_pg_a2c_io.py
       - name: Checkout Architect immutable SHA
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
         with:
           repository: rezahh107/EV4-Architect-Repo
-          ref: bf0b63c1f5d78725e7ea24371bab3360d9452a4f
+          ref: be9bdea9ae246b1587043f2582c1a950ea2a6ec5
           path: producers/architect
           persist-credentials: false
-      - name: Checkout CE immutable SHA
+      - name: Checkout CE producer immutable SHA
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
         with:
           repository: rezahh107/EV4-Constructability-Engineer-Repo
@@ -64,13 +69,15 @@ jobs:
       - name: Exact Git blob hash checks from adoption registry
         run: |
           uv run python - <<'PY'
-          import json, subprocess, hashlib, pathlib
+          import json, subprocess, hashlib
           registry=json.load(open('contracts/producer-adoption/ev4-producer-adoption-set.v1.json'))
           roots={'architect':'producers/architect','ce':'producers/ce','builder':'producers/builder','responsive':'producers/responsive'}
           for producer in registry['producers']:
               root=roots[producer['stage']]
               sha=producer['runtime_pin']['merged_commit_sha']
               for rec in producer['hash_verification']['records']:
+                  if rec['commit_sha'] != sha:
+                      raise SystemExit(f"record pin mismatch: {producer['stage']} {rec['path']}")
                   data=subprocess.check_output(['git','-C',root,'show',f"{sha}:{rec['path']}"])
                   actual=hashlib.sha256(data).hexdigest()
                   if actual != rec['sha256']:
@@ -81,7 +88,6 @@ jobs:
           uv run python - <<'PY'
           import json
           from pathlib import Path
-
           registry = json.load(open('contracts/producer-adoption/ev4-producer-adoption-set.v1.json'))
           roots = {
               'architect': Path('producers/architect'),
@@ -92,11 +98,7 @@ jobs:
           missing = []
           for producer in registry['producers']:
               stage = producer['stage']
-              validator_paths = [
-                  artifact['path']
-                  for artifact in producer.get('artifacts', [])
-                  if artifact.get('role') == 'validator'
-              ]
+              validator_paths = [artifact['path'] for artifact in producer.get('artifacts', []) if artifact.get('role') == 'validator']
               if not validator_paths:
                   missing.append(f'{stage}: no validator artifact recorded')
                   continue

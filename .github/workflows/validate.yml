@@ -26,10 +26,15 @@ jobs:
   skeleton:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
+      - name: Checkout exact Project Gate source
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
         with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
           persist-credentials: false
+
+      - name: Assert exact Project Gate PR head
+        if: github.event_name == 'pull_request'
+        run: test "$(git rev-parse HEAD)" = "${{ github.event.pull_request.head.sha }}"
 
       - name: Verify dispatched exact head
         if: github.event_name == 'workflow_dispatch'
@@ -110,17 +115,22 @@ jobs:
   python-core:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout Project Gate
+      - name: Checkout exact Project Gate source
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
         with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
           path: EV4-Project-Gate
           persist-credentials: false
+
+      - name: Assert exact Project Gate PR head
+        if: github.event_name == 'pull_request'
+        run: test "$(git -C EV4-Project-Gate rev-parse HEAD)" = "${{ github.event.pull_request.head.sha }}"
 
       - name: Checkout Architect pinned contract repo
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
         with:
           repository: rezahh107/EV4-Architect-Repo
-          ref: b0651668b97f682bb17f66840c8e8c503fd3935d
+          ref: be9bdea9ae246b1587043f2582c1a950ea2a6ec5
           path: EV4-Architect-Repo
           persist-credentials: false
 
@@ -128,7 +138,7 @@ jobs:
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
         with:
           repository: rezahh107/EV4-Constructability-Engineer-Repo
-          ref: 546680a2e2a309c0d7e0ddbfc017e9e194ece7cb
+          ref: 6650c31304e5a0472b276c36018c1df8f42ac983
           path: EV4-Constructability-Engineer-Repo
           persist-credentials: false
 
@@ -198,6 +208,10 @@ jobs:
           EV4_ARCHITECT_REPO: ${{ github.workspace }}/EV4-Architect-Repo
           EV4_CE_REPO: ${{ github.workspace }}/EV4-Constructability-Engineer-Repo
         run: uv run pytest tests/test_architect_to_ce_transition.py
+
+      - name: PG-A2C producer dispatch and adversarial tests
+        working-directory: EV4-Project-Gate
+        run: uv run pytest -q tests/producer_integration/test_prompt05_producer_integration.py tests/producer_integration/test_pg_a2c_io.py tests/producer_integration/test_pg_a2c_dispatch.py
 
       - name: Prompt 01 unit tests
         working-directory: EV4-Project-Gate
@@ -350,6 +364,26 @@ jobs:
           EV4_ARCHITECT_REPO: ${{ github.workspace }}/EV4-Architect-Repo
           EV4_CE_REPO: ${{ github.workspace }}/EV4-Constructability-Engineer-Repo
         run: uv run python scripts/transition-smoke.py --architect-repo "$EV4_ARCHITECT_REPO" --ce-repo "$EV4_CE_REPO"
+
+      - name: Current-head Architect export to standalone CE input
+        working-directory: EV4-Project-Gate
+        env:
+          EV4_ARCHITECT_REPO: ${{ github.workspace }}/EV4-Architect-Repo
+          EV4_CE_REPO: ${{ github.workspace }}/EV4-Constructability-Engineer-Repo
+        run: |
+          uv run python scripts/pg-a2c-current-head-smoke.py \
+            --architect-repo "$EV4_ARCHITECT_REPO" \
+            --ce-repo "$EV4_CE_REPO" \
+            --evidence-dir pg-a2c-exact-head-evidence
+
+      - name: Upload PG-A2C exact-head evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: pg-a2c-exact-head-${{ github.event.pull_request.head.sha || github.sha }}
+          path: EV4-Project-Gate/pg-a2c-exact-head-evidence
+          if-no-files-found: error
+          retention-days: 14
 
       - name: Record exact tested head
         run: echo "Python core validated source head ${{ github.sha }}" >> "$GITHUB_STEP_SUMMARY"

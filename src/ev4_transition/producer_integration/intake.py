@@ -5,6 +5,7 @@ from pathlib import Path
 from typing import Any
 
 from ev4_transition.canonical_json import canonical_dumps, load_json_file
+from ev4_transition.io.secure_snapshot import JsonInputSnapshot
 from ev4_transition.producer_gate_export import ProducerGateExportValidator
 
 from .join_preflight import validate_join_evidence_packet
@@ -40,15 +41,7 @@ def intake_producer_export(
             "invalid",
             None,
             None,
-            [
-                _diag(
-                    "PG_EXPORT_SCHEMA_INVALID",
-                    "error",
-                    "$",
-                    "Producer Gate Export input must be a JSON object.",
-                    "Producer",
-                )
-            ],
+            [_diag("PG_EXPORT_SCHEMA_INVALID", "error", "$", "Producer Gate Export input must be a JSON object.", "Producer")],
         )
 
     item = copy.deepcopy(artifact)
@@ -112,6 +105,14 @@ def transition_producer_export(
     artifact: Any,
     *,
     join_packet_path: str | Path = "docs/evidence/JOIN_EVIDENCE_PACKET_v1.json",
+    snapshot: JsonInputSnapshot | None = None,
+    schema_root: str | Path = "schemas",
+    lock_path: str | Path = "contracts/locks/architect-to-ce-transition.v1.lock.json",
+    architect_repo: str | Path | None = None,
+    ce_repo: str | Path | None = None,
+    project_gate_repo: str | Path = ".",
+    output_path: str | Path = "ce-input.json",
+    receipt_path: str | Path = "project-gate-a2c-receipt.json",
     **kwargs: Any,
 ) -> dict[str, Any]:
     preflight = validate_join_evidence_packet(join_packet_path)
@@ -124,14 +125,57 @@ def transition_producer_export(
     result = intake_producer_export(artifact, transition_name=transition_name, **kwargs)
     result["transition_id"] = transition_name
     result["join_evidence_preflight"] = preflight
-    if result["status"] == "accepted":
+    if result["status"] == "invalid":
+        return result
+
+    if result.get("resolved_transition") != "architect-to-ce":
         result["producer_validation"] = {
             "status": "passed",
             "official_validator_status": "not_run",
-            "note": "Project Gate shared intake accepted the producer-emitted envelope; official owner tool execution requires immutable local producer checkout in CI.",
+            "note": "The shared intake resolved a non-A2C target; this task does not dispatch other transitions.",
         }
         result["downstream_artifact"] = {"status": "not_fabricated"}
-    return result
+        return result
+
+    missing = []
+    if snapshot is None:
+        missing.append("immutable source snapshot")
+    if architect_repo is None:
+        missing.append("Architect checkout")
+    if ce_repo is None:
+        missing.append("CE checkout")
+    if missing:
+        result["status"] = "insufficient_evidence"
+        result["diagnostics"] = [
+            _diag(
+                "PG_A2C_RUNTIME_EVIDENCE_REQUIRED",
+                "insufficient_evidence",
+                "$",
+                "Producer-emitted A2C dispatch requires immutable source bytes and exact owner checkouts.",
+                "Project Gate",
+                missing=missing,
+            )
+        ]
+        result["producer_validation"] = {"status": "not_run", "official_validator_status": "not_run"}
+        result["downstream_artifact"] = {"status": "not_published"}
+        return result
+
+    from .a2c_dispatch import dispatch_architect_export
+
+    dispatched = dispatch_architect_export(
+        artifact,
+        result,
+        snapshot=snapshot,
+        schema_root=schema_root,
+        lock_path=lock_path,
+        architect_repo=architect_repo,
+        ce_repo=ce_repo,
+        project_gate_repo=project_gate_repo,
+        output_path=output_path,
+        receipt_path=receipt_path,
+    )
+    dispatched["join_evidence_preflight"] = preflight
+    return dispatched
 
 
 def _result(status: str, producer: Any, transition: Any, diagnostics: list[dict[str, Any]]) -> dict[str, Any]:
@@ -142,6 +186,7 @@ def _result(status: str, producer: Any, transition: Any, diagnostics: list[dict[
         "producer": producer or {},
         "resolved_transition": transition,
         "common_validation": "passed" if status == "accepted" else "failed",
+        "handoff_allowed": False,
         "diagnostics": diagnostics,
     }
 
