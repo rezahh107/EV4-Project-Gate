@@ -2,6 +2,8 @@
 
 این سند راهنمای استفاده از پنل محلی Project Gate است. پنل فقط یک لایه انسانی برای اجرای بررسی‌های Project Gate است و منطق transition، schema، validator یا قرارداد specialist جدید ایجاد نمی‌کند.
 
+شروع سریع برای استفاده روزمره: [`LOCAL_OPERATOR_PANEL_QUICK_START.fa.md`](LOCAL_OPERATOR_PANEL_QUICK_START.fa.md)
+
 راهنمای جامع و جزءبه‌جزء رابط کاربری: [`LOCAL_OPERATOR_PANEL_USER_GUIDE.fa.md`](LOCAL_OPERATOR_PANEL_USER_GUIDE.fa.md)
 
 ## جریان عملیاتی
