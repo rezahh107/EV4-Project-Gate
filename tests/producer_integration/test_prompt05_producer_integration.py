@@ -1,7 +1,13 @@
 from __future__ import annotations
-import copy, json, subprocess, sys
-from pathlib import Path
 
+import copy
+import json
+import subprocess
+import sys
+from pathlib import Path
+from types import SimpleNamespace
+
+from ev4_transition import cli as cli_module
 from ev4_transition.producer_integration import intake as intake_module
 from ev4_transition.producer_integration.join_preflight import validate_join_evidence_packet
 from ev4_transition.producer_integration.registry import validate_adoption_registry, git_blob_sha256
@@ -44,7 +50,7 @@ def test_valid_producer_emitted_intakes_do_not_mutate():
 
 
 def test_all_transition_targets_resolve_at_intake_boundary():
-    cases = {"architect":"architect-to-ce","ce":"ce-to-builder","builder":"builder-to-responsive","responsive":"final-evidence-gate"}
+    cases = {"architect": "architect-to-ce", "ce": "ce-to-builder", "builder": "builder-to-responsive", "responsive": "final-evidence-gate"}
     for stage, transition in cases.items():
         result = intake_producer_export(load(f"fixtures/producer-emitted/valid/{stage}-export.v1.json"), transition_name=transition)
         assert result["status"] == "accepted", result
@@ -73,11 +79,23 @@ def test_c2b_dispatch_without_immutable_runtime_evidence_fails_closed():
     assert any(d["code"] == "PG_C2B_RUNTIME_EVIDENCE_REQUIRED" for d in result["diagnostics"])
 
 
-def test_direct_c2b_dispatch_selects_c2b_lock_default(monkeypatch):
-    captured = {}
-
+def _configure_direct_dispatch(monkeypatch, resolved_transition: str):
     monkeypatch.setattr(intake_module, "validate_join_evidence_packet", lambda _path: {"status": "passed", "prompt_5_execution_allowed": True, "diagnostics": []})
-    monkeypatch.setattr(intake_module, "intake_producer_export", lambda *args, **kwargs: {"status": "accepted", "resolved_transition": "ce-to-builder", "diagnostics": [], "handoff_allowed": False})
+    monkeypatch.setattr(
+        intake_module,
+        "intake_producer_export",
+        lambda *args, **kwargs: {
+            "status": "accepted",
+            "resolved_transition": resolved_transition,
+            "diagnostics": [],
+            "handoff_allowed": False,
+        },
+    )
+
+
+def test_direct_c2b_dispatch_uses_c2b_defaults_when_paths_omitted(monkeypatch):
+    captured = {}
+    _configure_direct_dispatch(monkeypatch, "ce-to-builder")
 
     from ev4_transition.producer_integration import c2b_dispatch
 
@@ -94,6 +112,97 @@ def test_direct_c2b_dispatch_selects_c2b_lock_default(monkeypatch):
         builder_repo="builder-repo",
     )
     assert result["status"] == "accepted"
+    assert captured["lock_path"] == "contracts/locks/ce-to-builder-transition.v1.lock.json"
+    assert captured["output_path"] == "builder-input.json"
+    assert captured["receipt_path"] == "project-gate-c2b-receipt.json"
+
+
+def test_direct_c2b_dispatch_preserves_explicit_custom_paths(monkeypatch):
+    captured = {}
+    _configure_direct_dispatch(monkeypatch, "ce-to-builder")
+
+    from ev4_transition.producer_integration import c2b_dispatch
+
+    def capture_dispatch(*args, **kwargs):
+        captured.update(kwargs)
+        return {"status": "accepted", "diagnostics": [], "handoff_allowed": True}
+
+    monkeypatch.setattr(c2b_dispatch, "dispatch_ce_export", capture_dispatch)
+    transition_producer_export(
+        "ce-to-builder",
+        {},
+        snapshot=object(),
+        ce_repo="ce-repo",
+        builder_repo="builder-repo",
+        lock_path="custom-lock.json",
+        output_path="custom-builder.json",
+        receipt_path="custom-receipt.json",
+    )
+    assert captured["lock_path"] == "custom-lock.json"
+    assert captured["output_path"] == "custom-builder.json"
+    assert captured["receipt_path"] == "custom-receipt.json"
+
+
+def test_direct_a2c_dispatch_preserves_a2c_defaults(monkeypatch):
+    captured = {}
+    _configure_direct_dispatch(monkeypatch, "architect-to-ce")
+
+    from ev4_transition.producer_integration import a2c_dispatch
+
+    def capture_dispatch(*args, **kwargs):
+        captured.update(kwargs)
+        return {"status": "accepted", "diagnostics": [], "handoff_allowed": True}
+
+    monkeypatch.setattr(a2c_dispatch, "dispatch_architect_export", capture_dispatch)
+    transition_producer_export(
+        "architect-to-ce",
+        {},
+        snapshot=object(),
+        architect_repo="architect-repo",
+        ce_repo="ce-repo",
+    )
+    assert captured["lock_path"] == "contracts/locks/architect-to-ce-transition.v1.lock.json"
+    assert captured["output_path"] == "ce-input.json"
+    assert captured["receipt_path"] == "project-gate-a2c-receipt.json"
+
+
+def test_cli_producer_emitted_c2b_uses_c2b_output_defaults(tmp_path, monkeypatch):
+    captured = {}
+    ce_repo = tmp_path / "ce"
+    builder_repo = tmp_path / "builder"
+    ce_repo.mkdir()
+    builder_repo.mkdir()
+    source = tmp_path / "ce-project-gate.json"
+    source.write_text("{}", encoding="utf-8")
+
+    _configure_direct_dispatch(monkeypatch, "ce-to-builder")
+
+    from ev4_transition.producer_integration import c2b_dispatch
+
+    def capture_dispatch(*args, **kwargs):
+        captured.update(kwargs)
+        return {"status": "accepted", "diagnostics": [], "handoff_allowed": True}
+
+    monkeypatch.setattr(c2b_dispatch, "dispatch_ce_export", capture_dispatch)
+    monkeypatch.setattr(cli_module, "capture_json_snapshot", lambda _path: SimpleNamespace(value={}, path=source))
+    monkeypatch.setattr(cli_module, "_emit", lambda payload, fmt: None)
+
+    exit_code = cli_module.main(
+        [
+            "transition",
+            "ce-to-builder",
+            str(source),
+            "--acquisition-mode",
+            "producer_emitted_gate_artifact",
+            "--ce-repo",
+            str(ce_repo),
+            "--builder-repo",
+            str(builder_repo),
+        ]
+    )
+    assert exit_code == 0
+    assert captured["output_path"] == "builder-input.json"
+    assert captured["receipt_path"] == "project-gate-c2b-receipt.json"
     assert captured["lock_path"] == "contracts/locks/ce-to-builder-transition.v1.lock.json"
 
 
