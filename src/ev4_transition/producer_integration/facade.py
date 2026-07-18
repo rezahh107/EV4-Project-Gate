@@ -408,11 +408,12 @@ def _repository_path(
         if not candidate.is_dir():
             return None, [
                 _diag(
-                    "PG_INT_REPOSITORY_PATH_NOT_DIRECTORY",
-                    "insufficient_evidence",
+                    "PG_INT_REPOSITORY_PATH_UNSAFE",
+                    "error",
                     path_expr,
                     "The required local repository checkout path is not a directory.",
                     field=field,
+                    observed_path=str(candidate),
                 )
             ]
     except _PATH_ERRORS as exc:
