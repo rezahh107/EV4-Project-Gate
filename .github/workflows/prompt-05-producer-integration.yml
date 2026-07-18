@@ -30,14 +30,14 @@ jobs:
         uses: astral-sh/setup-uv@08807647e7069bb48b6ef5acd8ec9567f424441b
       - name: Sync Project Gate dependencies
         run: uv sync --locked --extra dev --extra ui
-      - name: Validate adoption registry and Prompt 5 tests
+      - name: Validate adoption registry and producer integration tests
         run: |
           uv run python - <<'PY'
           from ev4_transition.producer_integration.registry import validate_adoption_registry
           r = validate_adoption_registry()
           assert r["status"] == "valid", r
           PY
-          uv run pytest -q tests/producer_integration/test_prompt05_producer_integration.py tests/producer_integration/test_pg_a2c_io.py
+          uv run pytest -q tests/producer_integration/test_prompt05_producer_integration.py tests/producer_integration/test_pg_a2c_io.py tests/producer_integration/test_pg_c2b_dispatch.py
       - name: Checkout Architect immutable SHA
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
         with:
@@ -49,7 +49,7 @@ jobs:
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
         with:
           repository: rezahh107/EV4-Constructability-Engineer-Repo
-          ref: 189163669cca0caf5adb62c97d78dae580129f15
+          ref: 6650c31304e5a0472b276c36018c1df8f42ac983
           path: producers/ce
           persist-credentials: false
       - name: Checkout Builder immutable SHA
