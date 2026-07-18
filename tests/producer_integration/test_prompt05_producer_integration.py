@@ -2,6 +2,7 @@ from __future__ import annotations
 import copy, json, subprocess, sys
 from pathlib import Path
 
+from ev4_transition.producer_integration import intake as intake_module
 from ev4_transition.producer_integration.join_preflight import validate_join_evidence_packet
 from ev4_transition.producer_integration.registry import validate_adoption_registry, git_blob_sha256
 from ev4_transition.producer_integration.intake import intake_producer_export, transition_producer_export
@@ -70,6 +71,30 @@ def test_c2b_dispatch_without_immutable_runtime_evidence_fails_closed():
     assert result["handoff_allowed"] is False
     assert result["downstream_artifact"]["status"] == "not_published"
     assert any(d["code"] == "PG_C2B_RUNTIME_EVIDENCE_REQUIRED" for d in result["diagnostics"])
+
+
+def test_direct_c2b_dispatch_selects_c2b_lock_default(monkeypatch):
+    captured = {}
+
+    monkeypatch.setattr(intake_module, "validate_join_evidence_packet", lambda _path: {"status": "passed", "prompt_5_execution_allowed": True, "diagnostics": []})
+    monkeypatch.setattr(intake_module, "intake_producer_export", lambda *args, **kwargs: {"status": "accepted", "resolved_transition": "ce-to-builder", "diagnostics": [], "handoff_allowed": False})
+
+    from ev4_transition.producer_integration import c2b_dispatch
+
+    def capture_dispatch(*args, **kwargs):
+        captured.update(kwargs)
+        return {"status": "accepted", "diagnostics": [], "handoff_allowed": True}
+
+    monkeypatch.setattr(c2b_dispatch, "dispatch_ce_export", capture_dispatch)
+    result = transition_producer_export(
+        "ce-to-builder",
+        {},
+        snapshot=object(),
+        ce_repo="ce-repo",
+        builder_repo="builder-repo",
+    )
+    assert result["status"] == "accepted"
+    assert captured["lock_path"] == "contracts/locks/ce-to-builder-transition.v1.lock.json"
 
 
 def test_invalid_modes_and_targets_fail_closed():
