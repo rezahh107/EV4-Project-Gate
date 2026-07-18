@@ -58,6 +58,7 @@ This section is updated by GitHub Actions after a pull request is merged. It rec
 
 | PR | Title | Head branch | Head commit | Merge commit | Skeleton Health | Recorded by |
 |---|---|---|---|---|---|---|
+| `#55` | `feat: complete producer-emitted CE to Builder handoff` | `feature/project-gate-ce-export-dispatch` | `6ea6dd6940260e663f0c5e86a95bf914ee2c7f58` | `47ac93c14d801f2c12c473004a3913ce9a0b373b` | `CI_PASSED` | `rezahh107 on rezahh107/EV4-Project-Gate` |
 | `#54` | `feat: complete Architect-to-CE producer export dispatch` | `feature/project-gate-architect-export-dispatch` | `b6290c7862d83ff7c1b4ea20031dc6842b2c2ddf` | `2f31c2049980cf5f7cbf7a2a5df8a5fc56828303` | `CI_PASSED` | `rezahh107 on rezahh107/EV4-Project-Gate` |
 | `#53` | `docs(status): reconcile capability truth with verified closure evidence` | `agent/docs-status-kroad-011-20260715` | `2174643a54ddcdebb1d6513cf4bb392a0be6e4b8` | `8cf32c65a3934ef79295d59de85daca124607ee9` | `CI_PASSED` | `rezahh107 on rezahh107/EV4-Project-Gate` |
 | `#52` | `Post-merge KROAD-011 evidence and governance correction` | `fix/kroad-011-evidence-and-governance-correction` | `9b3c48634f8921446979c1b93c1bc4f3eae8ed13` | `c030460aa90b0b234c2e421554d4f8eb45061210` | `CI_PASSED` | `rezahh107 on rezahh107/EV4-Project-Gate` |
