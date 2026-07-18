@@ -502,7 +502,7 @@ def _existing_path(
             "error",
             path_expr,
             "The required local path is invalid or inaccessible.",
-            path=str(candidate),
+            observed_path=str(candidate),
             expected_kind=expected_kind,
             error_type=type(exc).__name__,
         )
@@ -512,7 +512,7 @@ def _existing_path(
             "error",
             path_expr,
             "The required local path is missing or has the wrong type.",
-            path=str(candidate),
+            observed_path=str(candidate),
             expected_kind=expected_kind,
         )
     return candidate, None
