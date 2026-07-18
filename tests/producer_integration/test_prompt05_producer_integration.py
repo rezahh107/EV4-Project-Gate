@@ -61,13 +61,15 @@ def test_architect_dispatch_without_immutable_runtime_evidence_fails_closed():
     assert any(d["code"] == "PG_A2C_RUNTIME_EVIDENCE_REQUIRED" for d in result["diagnostics"])
 
 
-def test_non_a2c_transition_remains_classification_only():
+def test_c2b_dispatch_without_immutable_runtime_evidence_fails_closed():
     result = transition_producer_export(
         "ce-to-builder",
         load("fixtures/producer-emitted/valid/ce-export.v1.json"),
     )
-    assert result["status"] == "accepted"
-    assert result["downstream_artifact"]["status"] == "not_fabricated"
+    assert result["status"] == "insufficient_evidence"
+    assert result["handoff_allowed"] is False
+    assert result["downstream_artifact"]["status"] == "not_published"
+    assert any(d["code"] == "PG_C2B_RUNTIME_EVIDENCE_REQUIRED" for d in result["diagnostics"])
 
 
 def test_invalid_modes_and_targets_fail_closed():
