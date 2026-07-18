@@ -103,6 +103,8 @@ uv run ev4-project-gate-ui
 
 ## اسناد مرتبط
 
+- `docs/LOCAL_OPERATOR_PANEL_QUICK_START.fa.md`
+- `docs/LOCAL_OPERATOR_PANEL_USER_GUIDE.fa.md`
 - `docs/OPERATOR_GUIDE.md`
 - `docs/DIAGNOSTIC_GUIDE.md`
 - `docs/UI_SERVICE_CONTRACT.md`

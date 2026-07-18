@@ -2,6 +2,10 @@
 
 این سند راهنمای استفاده از پنل محلی Project Gate است. پنل فقط یک لایه انسانی برای اجرای بررسی‌های Project Gate است و منطق transition، schema، validator یا قرارداد specialist جدید ایجاد نمی‌کند.
 
+شروع سریع برای استفاده روزمره: [`LOCAL_OPERATOR_PANEL_QUICK_START.fa.md`](LOCAL_OPERATOR_PANEL_QUICK_START.fa.md)
+
+راهنمای جامع و جزءبه‌جزء رابط کاربری: [`LOCAL_OPERATOR_PANEL_USER_GUIDE.fa.md`](LOCAL_OPERATOR_PANEL_USER_GUIDE.fa.md)
+
 ## جریان عملیاتی
 
 ```text
@@ -9,8 +13,10 @@ source Stage Evidence Bundle
 -> optional Local Repository Preflight
 -> Project Gate check / transition
 -> result.json + report.md + report.html
--> optional downstream input bundle only when output is produced
+-> standalone downstream artifact only through the official transition workflow
 ```
+
+`result.json` و مقدار تو‌در‌توی `result.output` downstream semantic input نیستند.
 
 ## روش پیشنهادی
 
@@ -23,14 +29,22 @@ source Stage Evidence Bundle
 
 ## transitionها و ورودی مورد انتظار
 
-| transition | ورودی JSON مورد انتظار | خروجی مرحله بعد |
+| transition | ورودی JSON مورد انتظار | artifact رسمی مرحله بعد |
 |---|---|---|
 | `validate_bundle` | هر `Stage Evidence Bundle` برای اعتبارسنجی envelope | ندارد؛ validation-only است. |
-| `architect_to_ce` | Architect bundle با `stage=architect` و `ev4-architect-stage-payload@1.0.0` | در صورت موفقیت، CE input bundle با `stage=ce`. |
-| `ce_to_builder` | CE bundle با `stage=ce` | فقط با شواهد/checkout معتبر؛ fail-closed. |
-| `builder_to_responsive` | Builder bundle با `stage=builder` | فقط با شواهد/checkout معتبر؛ fail-closed. |
-| `final_gate` | Responsive/final evidence ورودی مورد انتظار gate نهایی | فقط با شواهد معتبر؛ fail-closed. |
-| `inspect_capabilities` | ورودی JSON لازم ندارد | فقط snapshot قابلیت‌ها را نشان می‌دهد. |
+| `architect_to_ce` | Architect bundle با `stage=architect` و `ev4-architect-stage-payload@1.0.0` | فقط `ce-input.json` تولیدشده توسط `docs/PG_A2C_OPERATOR_WORKFLOW.md`. |
+| `ce_to_builder` | CE bundle با `stage=ce` | فقط `builder-input.json` تولیدشده توسط `docs/PG_C2B_OPERATOR_WORKFLOW.md`. |
+| `builder_to_responsive` | Builder bundle با `stage=builder` | فقط با workflow رسمی و شواهد/checkout معتبر؛ fail-closed. |
+| `final_gate` | Responsive/final evidence ورودی مورد انتظار gate نهایی | فقط با workflow رسمی و شواهد معتبر؛ fail-closed. |
+| `inspect_capabilities` | ورودی JSON لازم ندارد | ندارد؛ فقط snapshot قابلیت‌ها را نشان می‌دهد. |
+
+## مرز report و downstream artifact
+
+- `result.json`، `report.md` و `report.html` خروجی‌های گزارشی UI هستند.
+- `result.output` را inspect، extract، copy یا به‌عنوان artifact canonical بازسازی نکن.
+- برای Architect → CE فقط standalone `ce-input.json` را استفاده کن؛ `project-gate-a2c-receipt.json` جدا برای audit می‌ماند.
+- برای CE → Builder فقط standalone `builder-input.json` را استفاده کن؛ `project-gate-c2b-receipt.json` جدا برای audit می‌ماند.
+- receipt یا report را با ورودی semantic specialist بعدی ترکیب نکن.
 
 ## مسیرهای local repository
 
