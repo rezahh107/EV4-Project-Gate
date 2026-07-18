@@ -183,3 +183,19 @@ def test_source_mutation_before_receipt_records_partial_publication(tmp_path: Pa
     assert (tmp_path / "builder-input.json").exists()
     assert not (tmp_path / "project-gate-c2b-receipt.json").exists()
     assert any(item["code"] == "PG_C2B_INPUT_MUTATED_BEFORE_PUBLICATION" for item in result["diagnostics"])
+
+
+def test_missing_or_unreadable_lock_returns_structured_invalid(tmp_path: Path, monkeypatch):
+    _configure_success(monkeypatch)
+
+    def fail_lock(*args, **kwargs):
+        raise FileNotFoundError("missing lock")
+
+    monkeypatch.setattr(c2b_dispatch, "transition_from_local_paths", fail_lock)
+    result = _run(tmp_path, monkeypatch)
+    assert result["status"] == "invalid"
+    assert result["handoff_allowed"] is False
+    assert result["downstream_artifact"]["status"] == "not_published"
+    assert any(item["code"] == "PG_C2B_LOCK_READ_FAILED" for item in result["diagnostics"])
+    assert not (tmp_path / "builder-input.json").exists()
+    assert not (tmp_path / "project-gate-c2b-receipt.json").exists()
