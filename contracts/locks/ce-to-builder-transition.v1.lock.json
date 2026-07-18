@@ -1,1 +1,113 @@
-{"files":[{"accepted_commit":"6650c31304e5a0472b276c36018c1df8f42ac983","contract_or_schema_id":"ev4-builder-executable-package@1.0.0","path":"docs/CE_TO_BUILDER_PRODUCER_CONTRACT.md","repository":"rezahh107/EV4-Constructability-Engineer-Repo","role":"ce_producer_contract","sha256_file_bytes":"76822b90d15c1360774e6c8af3e08ee11b918244d8921f9ce6d5e277d6fbbe30"},{"accepted_commit":"6650c31304e5a0472b276c36018c1df8f42ac983","contract_or_schema_id":"ev4-builder-executable-package@1.0.0","path":"schemas/builder_executable_package.schema.json","repository":"rezahh107/EV4-Constructability-Engineer-Repo","role":"ce_builder_executable_schema","sha256_file_bytes":"ca9d2b867d2d840bcbe15631ffd174fe1f7e8180ca66a7ee6ceac3da88c05ac5"},{"accepted_commit":"6650c31304e5a0472b276c36018c1df8f42ac983","contract_or_schema_id":"validator/engine.py","path":"validator/engine.py","repository":"rezahh107/EV4-Constructability-Engineer-Repo","role":"ce_validator_engine","sha256_file_bytes":"13acc2f189848baa677e2e38ca03e2e08b89bedafb0f2adcf04f66c149cb6d39"},{"accepted_commit":"6650c31304e5a0472b276c36018c1df8f42ac983","contract_or_schema_id":"validator/rules.py","path":"validator/rules.py","repository":"rezahh107/EV4-Constructability-Engineer-Repo","role":"ce_validator_rules","sha256_file_bytes":"9fd4e46a58743c5d8cebf4b998a20e50054086aa5652d42078999e4ef88bcdee"},{"accepted_commit":"6650c31304e5a0472b276c36018c1df8f42ac983","contract_or_schema_id":"ev4-builder-executable-package@1.0.0","path":"tests/role-alignment/valid/executable_visual_reference_package.json","repository":"rezahh107/EV4-Constructability-Engineer-Repo","role":"ce_valid_fixture","sha256_file_bytes":"a5858cc8a3d92f4962d1e4c826326984e99c55d511f3b2a4fe0bfd0b7c85f422"},{"accepted_commit":"b599c000118dcbe77572d6f387da5da0f46d1f91","contract_or_schema_id":"ev4-builder-context-package@1.0.0","path":"input-contracts/BUILDER_CONTEXT_INPUT_CONTRACT.md","repository":"rezahh107/EV4-Builder-Assistant-Repo","role":"builder_input_contract","sha256_file_bytes":"14ec684b0c42f5162344b4b6e987befd3a049bc46b1bcc488060165a96793b57"},{"accepted_commit":"b599c000118dcbe77572d6f387da5da0f46d1f91","contract_or_schema_id":"ev4-builder-context-package@1.0.0","path":"schemas/builder-context-package.schema.json","repository":"rezahh107/EV4-Builder-Assistant-Repo","role":"builder_context_schema","sha256_file_bytes":"540f0db550c952bd9202a1844311f0d6eaabca9f5bb63df36811224ba44587b4"},{"accepted_commit":"b599c000118dcbe77572d6f387da5da0f46d1f91","contract_or_schema_id":"ce_to_builder_contract_gate","path":"docs/CE_TO_BUILDER_CONTRACT_GATE.md","repository":"rezahh107/EV4-Builder-Assistant-Repo","role":"builder_gate_doc","sha256_file_bytes":"c7532ab4340b63d340acf47e94867bf60f34d4bfeb7a7b1b193de2b43628baae"},{"accepted_commit":"b599c000118dcbe77572d6f387da5da0f46d1f91","contract_or_schema_id":"ce_to_builder_contract_gate","path":"scripts/validate-ce-to-builder-contract-gate.mjs","repository":"rezahh107/EV4-Builder-Assistant-Repo","role":"builder_gate_script","sha256_file_bytes":"93724135d21127190803492b0528117ddf87c2d2b0836a27935d682afca15450"},{"accepted_commit":"b599c000118dcbe77572d6f387da5da0f46d1f91","contract_or_schema_id":"normalizeCeBuilderExecutablePackage","path":"docs/CE_BUILDER_PACKAGE_ADAPTER_CONTRACT.md","repository":"rezahh107/EV4-Builder-Assistant-Repo","role":"builder_adapter_contract","sha256_file_bytes":"1fd7295d2b033a3b89b331a44c0a9a6687529fe143e5dc993f6c5b3f290d8924"},{"accepted_commit":"b599c000118dcbe77572d6f387da5da0f46d1f91","contract_or_schema_id":"normalizeCeBuilderExecutablePackage","path":"scripts/normalize-ce-builder-executable-package.mjs","repository":"rezahh107/EV4-Builder-Assistant-Repo","role":"builder_adapter_script","sha256_file_bytes":"9ce2ec2a2aff748d2b04ebcc9d5f9c095131e5e94934cae2bf1f61a1259c8f64"},{"accepted_commit":"b599c000118dcbe77572d6f387da5da0f46d1f91","contract_or_schema_id":"ce-builder-transformation-registry.v1","path":"data/ce-builder-transformation-registry.v1.json","repository":"rezahh107/EV4-Builder-Assistant-Repo","role":"builder_transform_registry","sha256_file_bytes":"b1845a5c49d0acf6724a9623682e9d7dbbb9626404e669881353df84c7d06049"},{"accepted_commit":"b599c000118dcbe77572d6f387da5da0f46d1f91","contract_or_schema_id":"Cross-field validation","path":"scripts/validate-package.mjs","repository":"rezahh107/EV4-Builder-Assistant-Repo","role":"builder_output_validator","sha256_file_bytes":"0e3c5a7224b308dcec3fb82aaf58914314cd53fd19f443cacbd19807c735950e"}],"hash_algorithm":"sha256_file_bytes","note":"Computed from exact pinned owner checkout file bytes by scripts/compute-ce-to-builder-lock.py.","schema_version":"ce-to-builder-transition-lock.v1","status":"computed_from_pinned_owner_file_bytes","transition_id":"ev4-ce-to-builder-transition@1.0.0"}
+{
+    "schema_version": "ce-to-builder-transition-lock.v1",
+    "transition_id": "ev4-ce-to-builder-transition@1.0.0",
+    "status": "computed_from_pinned_owner_file_bytes",
+    "hash_algorithm": "sha256_file_bytes",
+    "note": "Computed from exact pinned owner checkout file bytes by scripts/compute-ce-to-builder-lock.py.",
+    "files": [
+        {
+            "role": "ce_producer_contract",
+            "repository": "rezahh107/EV4-Constructability-Engineer-Repo",
+            "accepted_commit": "6650c31304e5a0472b276c36018c1df8f42ac983",
+            "path": "docs/CE_TO_BUILDER_PRODUCER_CONTRACT.md",
+            "contract_or_schema_id": "ev4-builder-executable-package@1.0.0",
+            "sha256_file_bytes": "76822b90d15c1360774e6c8af3e08ee11b918244d8921f9ce6d5e277d6fbbe30"
+        },
+        {
+            "role": "ce_builder_executable_schema",
+            "repository": "rezahh107/EV4-Constructability-Engineer-Repo",
+            "accepted_commit": "6650c31304e5a0472b276c36018c1df8f42ac983",
+            "path": "schemas/builder_executable_package.schema.json",
+            "contract_or_schema_id": "ev4-builder-executable-package@1.0.0",
+            "sha256_file_bytes": "ca9d2b867d2d840bcbe15631ffd174fe1f7e8180ca66a7ee6ceac3da88c05ac5"
+        },
+        {
+            "role": "ce_validator_engine",
+            "repository": "rezahh107/EV4-Constructability-Engineer-Repo",
+            "accepted_commit": "6650c31304e5a0472b276c36018c1df8f42ac983",
+            "path": "validator/engine.py",
+            "contract_or_schema_id": "validator/engine.py",
+            "sha256_file_bytes": "13acc2f189848baa677e2e38ca03e2e08b89bedafb0f2adcf04f66c149cb6d39"
+        },
+        {
+            "role": "ce_validator_rules",
+            "repository": "rezahh107/EV4-Constructability-Engineer-Repo",
+            "accepted_commit": "6650c31304e5a0472b276c36018c1df8f42ac983",
+            "path": "validator/rules.py",
+            "contract_or_schema_id": "validator/rules.py",
+            "sha256_file_bytes": "9fd4e46a58743c5d8cebf4b998a20e50054086aa5652d42078999e4ef88bcdee"
+        },
+        {
+            "role": "ce_valid_fixture",
+            "repository": "rezahh107/EV4-Constructability-Engineer-Repo",
+            "accepted_commit": "6650c31304e5a0472b276c36018c1df8f42ac983",
+            "path": "tests/role-alignment/valid/executable_visual_reference_package.json",
+            "contract_or_schema_id": "ev4-builder-executable-package@1.0.0",
+            "sha256_file_bytes": "a5858cc8a3d92f4962d1e4c826326984e99c55d511f3b2a4fe0bfd0b7c85f422"
+        },
+        {
+            "role": "builder_input_contract",
+            "repository": "rezahh107/EV4-Builder-Assistant-Repo",
+            "accepted_commit": "b599c000118dcbe77572d6f387da5da0f46d1f91",
+            "path": "input-contracts/BUILDER_CONTEXT_INPUT_CONTRACT.md",
+            "contract_or_schema_id": "ev4-builder-context-package@1.0.0",
+            "sha256_file_bytes": "14ec684b0c42f5162344b4b6e987befd3a049bc46b1bcc488060165a96793b57"
+        },
+        {
+            "role": "builder_context_schema",
+            "repository": "rezahh107/EV4-Builder-Assistant-Repo",
+            "accepted_commit": "b599c000118dcbe77572d6f387da5da0f46d1f91",
+            "path": "schemas/builder-context-package.schema.json",
+            "contract_or_schema_id": "ev4-builder-context-package@1.0.0",
+            "sha256_file_bytes": "540f0db550c952bd9202a1844311f0d6eaabca9f5bb63df36811224ba44587b4"
+        },
+        {
+            "role": "builder_gate_doc",
+            "repository": "rezahh107/EV4-Builder-Assistant-Repo",
+            "accepted_commit": "b599c000118dcbe77572d6f387da5da0f46d1f91",
+            "path": "docs/CE_TO_BUILDER_CONTRACT_GATE.md",
+            "contract_or_schema_id": "ce_to_builder_contract_gate",
+            "sha256_file_bytes": "c7532ab4340b63d340acf47e94867bf60f34d4bfeb7a7b1b193de2b43628baae"
+        },
+        {
+            "role": "builder_gate_script",
+            "repository": "rezahh107/EV4-Builder-Assistant-Repo",
+            "accepted_commit": "b599c000118dcbe77572d6f387da5da0f46d1f91",
+            "path": "scripts/validate-ce-to-builder-contract-gate.mjs",
+            "contract_or_schema_id": "ce_to_builder_contract_gate",
+            "sha256_file_bytes": "93724135d21127190803492b0528117ddf87c2d2b0836a27935d682afca15450"
+        },
+        {
+            "role": "builder_adapter_contract",
+            "repository": "rezahh107/EV4-Builder-Assistant-Repo",
+            "accepted_commit": "b599c000118dcbe77572d6f387da5da0f46d1f91",
+            "path": "docs/CE_BUILDER_PACKAGE_ADAPTER_CONTRACT.md",
+            "contract_or_schema_id": "normalizeCeBuilderExecutablePackage",
+            "sha256_file_bytes": "1fd7295d2b033a3b89b331a44c0a9a6687529fe143e5dc993f6c5b3f290d8924"
+        },
+        {
+            "role": "builder_adapter_script",
+            "repository": "rezahh107/EV4-Builder-Assistant-Repo",
+            "accepted_commit": "b599c000118dcbe77572d6f387da5da0f46d1f91",
+            "path": "scripts/normalize-ce-builder-executable-package.mjs",
+            "contract_or_schema_id": "normalizeCeBuilderExecutablePackage",
+            "sha256_file_bytes": "9ce2ec2a2aff748d2b04ebcc9d5f9c095131e5e94934cae2bf1f61a1259c8f64"
+        },
+        {
+            "role": "builder_transform_registry",
+            "repository": "rezahh107/EV4-Builder-Assistant-Repo",
+            "accepted_commit": "b599c000118dcbe77572d6f387da5da0f46d1f91",
+            "path": "data/ce-builder-transformation-registry.v1.json",
+            "contract_or_schema_id": "ce-builder-transformation-registry.v1",
+            "sha256_file_bytes": "b1845a5c49d0acf6724a9623682e9d7dbbb9626404e669881353df84c7d06049"
+        },
+        {
+            "role": "builder_output_validator",
+            "repository": "rezahh107/EV4-Builder-Assistant-Repo",
+            "accepted_commit": "b599c000118dcbe77572d6f387da5da0f46d1f91",
+            "path": "scripts/validate-package.mjs",
+            "contract_or_schema_id": "Cross-field validation",
+            "sha256_file_bytes": "0e3c5a7224b308dcec3fb82aaf58914314cd53fd19f443cacbd19807c735950e"
+        }
+    ]
+}
