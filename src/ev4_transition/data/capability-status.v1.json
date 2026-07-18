@@ -152,12 +152,31 @@
       "builder_owned_post_write_validator": "scripts/validate-package.mjs (Cross-field validation)",
       "decision_lineage": "not_required_by_current_adapter_output",
       "implementation_pull_request": 55,
-      "implementation_state": "implemented_pending_rereview",
+      "implementation_state": "merged",
       "local_unit_tests": {
         "result": "implemented",
         "scope": "focused publication, deterministic receipt projection, lock mutation, lock identity, collision, blocked transition, default-path, and partial-publication scenarios"
       },
       "real_non_synthetic_handoff": "insufficient_evidence"
+    },
+    "pg_int": {
+      "base_main_sha": "ef4385f5aef2622ddb1f60ae66b0b1df10c195c5",
+      "implementation_state": "implemented_on_feature_branch_pending_rereview",
+      "routing_authority": "validated_producer_gate_export",
+      "supported_transitions": [
+        "architect-to-ce",
+        "ce-to-builder"
+      ],
+      "standalone_outputs": [
+        "ce-input.json",
+        "builder-input.json"
+      ],
+      "separate_receipts": [
+        "project-gate-a2c-receipt.json",
+        "project-gate-c2b-receipt.json"
+      ],
+      "real_non_synthetic_a2c": "insufficient_evidence",
+      "real_non_synthetic_c2b": "insufficient_evidence"
     }
   },
   "implemented": [
@@ -179,6 +198,10 @@
     "KROAD-011 kernel decision intake internal orchestration baseline",
     "final evidence gate orchestration baseline",
     "local operator UI shell",
+    "PG-INT validated producer-export routing facade",
+    "PG-INT unified local service API",
+    "PG-INT ev4-handoff CLI entrypoint",
+    "PG-INT stage-aware local handoff UI",
     "minimal_cli",
     "producer adoption registry",
     "explicit producer_emitted_gate_artifact intake",
@@ -208,9 +231,20 @@
     "current_main_sha": "2ed9c256160e177605c08d3250d5ea7836b6bbf0",
     "current_main_relation": "one_historical_ledger_only_commit_ahead"
   },
+  "pg_int": {
+    "api_exposure": "local_service_and_operator_entrypoints",
+    "implementation_state": "implemented_on_feature_branch_pending_rereview",
+    "routing_source": "validated_envelope_only",
+    "filename_routing": "forbidden",
+    "operator_transition_selection": "not_used",
+    "specialist_execution": "not_performed",
+    "e2e_01": "not_executed",
+    "real_non_synthetic_handoff": "insufficient_evidence"
+  },
   "not_implemented": [
     "real EV4 artifact validation",
     "real non-synthetic Architect-to-CE handoff evidence",
+    "real non-synthetic CE-to-Builder handoff evidence",
     "KROAD-012 downstream producer integration",
     "KROAD-013 runtime or browser evidence collection",
     "KROAD-014 re-audit automation",
