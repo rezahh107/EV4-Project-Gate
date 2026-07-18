@@ -171,12 +171,16 @@ def transition_producer_export(
 
         from .c2b_dispatch import dispatch_ce_export
 
+        selected_lock_path = lock_path
+        if str(lock_path) == "contracts/locks/architect-to-ce-transition.v1.lock.json":
+            selected_lock_path = "contracts/locks/ce-to-builder-transition.v1.lock.json"
+
         dispatched = dispatch_ce_export(
             artifact,
             result,
             snapshot=snapshot,
             schema_root=schema_root,
-            lock_path=lock_path,
+            lock_path=selected_lock_path,
             ce_repo=ce_repo,
             builder_repo=builder_repo,
             project_gate_repo=project_gate_repo,
