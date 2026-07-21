@@ -4,11 +4,11 @@ from html import escape
 import json
 import os
 from pathlib import Path
-import subprocess
 from typing import Any
 
 from ev4_transition.presentation.theme_tokens import THEME_TOKENS, css_custom_properties
 from ev4_transition.service.preflight import run_preflight
+from ev4_transition.runners.open_output_folder import open_directory
 
 from .adapters import build_capability_rows, build_gate_request, run_operator_check
 from .components import CAPABILITY_HEADERS, DIAGNOSTIC_HEADERS
@@ -88,7 +88,7 @@ def operator_gradio_theme(gr: Any) -> Any:
 def operator_panel_css() -> str:
     return css_custom_properties() + """
     .gradio-container { color-scheme: light dark; background: var(--ev4-surface-base) !important; color: var(--ev4-text-primary) !important; font-family: var(--ev4-font-fa-ui); font-size: 16px; line-height: 1.7; }
-    .ev4-app, .ev4-shell, .ev4-rtl, .ev4-rtl textarea, .ev4-rtl input { direction: rtl; text-align: right; font-family: var(--ev4-font-fa-ui); line-height: 1.75; }
+    .ev4-app, .ev4-shell, .ev4-rtl, .ev4-rtl textarea, .ev4-rtl input { direction: rtl; text-align: right; font-family: var(--ev4-font-fa-ui); line-height: 1.75; letter-spacing: normal; }
     .ev4-shell { max-width: 1120px; margin: 0 auto 0.75rem; }
     .ev4-header, .ev4-section, .ev4-dataframe, .ev4-download, .ev4-status-content, .ev4-preflight-result { background: var(--ev4-surface-raised); border: 1px solid var(--ev4-border-default); border-radius: 16px; padding: 0.75rem; box-shadow: 0 14px 34px var(--ev4-shadow-raised); }
     .ev4-header { padding: 1.15rem 1.25rem; }
@@ -323,21 +323,10 @@ def open_output_folder(result_json: str | None) -> str:
         directory = Path(paths[0]).resolve().parent
         if not directory.is_dir():
             return "پوشه خروجی معتبر وجود ندارد."
-        if os.name == "nt":
-            os.startfile(str(directory))  # type: ignore[attr-defined]
-        elif sys_platform() == "darwin":
-            subprocess.Popen(["open", str(directory)])
-        else:
-            subprocess.Popen(["xdg-open", str(directory)])
+        open_directory(directory)
         return f"پوشه باز شد: `{directory}`"
     except Exception as exc:
         return f"باز کردن پوشه ممکن نشد: `{type(exc).__name__}`"
-
-
-def sys_platform() -> str:
-    import sys
-
-    return sys.platform
 
 
 def main() -> None:
