@@ -197,3 +197,46 @@ def test_producer_preflight_blocks_regular_file_repo_and_output(monkeypatch, tmp
         output_dir=str(file_path),
     )
     assert run_preflight(output_request).status == "blocked"
+
+
+def test_cli_output_dir_is_the_selected_publication_root(monkeypatch, tmp_path: Path) -> None:
+    import ev4_transition.cli as cli
+
+    captured: dict = {}
+
+    class Response:
+        status = "accepted"
+
+        def to_dict(self):
+            return {
+                "status": "accepted",
+                "engine_result": {"status": "accepted", "handoff_allowed": True},
+                "service_diagnostics": [],
+            }
+
+    monkeypatch.setattr(cli, "_transition_preflight", lambda *args, **kwargs: None)
+
+    def fake_run(request):
+        captured["request"] = request
+        return Response()
+
+    monkeypatch.setattr(cli, "run_gate_request", fake_run)
+    exit_code = cli.main([
+        "transition",
+        "architect-to-ce",
+        "producer.json",
+        "--acquisition-mode",
+        "producer_emitted_gate_artifact",
+        "--project-gate-repo",
+        str(tmp_path),
+        "--architect-repo",
+        str(tmp_path),
+        "--ce-repo",
+        str(tmp_path),
+        "--output-dir",
+        str(tmp_path / "external-output"),
+    ])
+    assert exit_code == 0
+    assert captured["request"].output_dir == str(tmp_path / "external-output")
+    assert captured["request"].output_path is None
+    assert captured["request"].receipt_path is None

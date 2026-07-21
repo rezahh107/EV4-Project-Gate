@@ -42,6 +42,7 @@ def main(argv: list[str] | None = None) -> int:
     transition_parser.add_argument("--project-gate-repo")
     transition_parser.add_argument("--kernel-repo")
     transition_parser.add_argument("--lock")
+    transition_parser.add_argument("--output-dir")
     transition_parser.add_argument("--output")
     transition_parser.add_argument("--receipt-output")
     transition_parser.add_argument("--format", choices=["json", "persian"], default="json")
@@ -90,6 +91,7 @@ def main(argv: list[str] | None = None) -> int:
             acquisition_mode=args.acquisition_mode,
             schema_root=args.schema_root,
             lock_path=args.lock,
+            output_dir=args.output_dir,
             output_path=args.output,
             receipt_path=args.receipt_output,
         )
