@@ -8,7 +8,7 @@ import tarfile
 import tempfile
 from typing import Any
 
-_EXCLUDED_PARTS = {".git", ".venv", "__pycache__", ".pytest_cache"}
+from ev4_transition.runners.git_archive import GitArchiveRunnerError, run_git
 
 
 class EvidencePackagingError(ValueError):
@@ -21,12 +21,9 @@ def package_source_evidence(
     manifest_path: str | Path,
     *,
     tested_head_sha: str,
+    repository: str = "rezahh107/EV4-Project-Gate",
 ) -> dict[str, Any]:
-    """Create a deterministic evidence carrier outside its source tree.
-
-    The archive and manifest are rejected when located inside the source tree,
-    eliminating self-inclusion and source mutation during packaging.
-    """
+    """Archive the exact Git commit tree and keep generated evidence separate."""
 
     source = Path(source_root).expanduser().resolve(strict=True)
     archive = Path(archive_path).expanduser().resolve()
@@ -37,19 +34,31 @@ def package_source_evidence(
     _reject_inside_source(source, manifest, "manifest_path")
     if archive == manifest:
         raise EvidencePackagingError("archive_path and manifest_path must differ")
-    if not tested_head_sha or len(tested_head_sha.strip()) < 7:
-        raise EvidencePackagingError("tested_head_sha is required")
+    expected = tested_head_sha.strip()
+    if len(expected) != 40 or any(char not in "0123456789abcdefABCDEF" for char in expected):
+        raise EvidencePackagingError("tested_head_sha must be a full 40-character commit SHA")
+
+    actual = run_git(source, "rev-parse", "HEAD")
+    if actual != expected:
+        raise EvidencePackagingError(f"tested_head_sha does not match checked-out HEAD: expected={expected} actual={actual}")
+    run_git(source, "cat-file", "-e", f"{expected}^{{commit}}")
+    tree_sha = run_git(source, "rev-parse", f"{expected}^{{tree}}")
+    tracked_entries = _git_tree_entries(source, expected)
 
     archive.parent.mkdir(parents=True, exist_ok=True)
     manifest.parent.mkdir(parents=True, exist_ok=True)
-    temp_archive = Path(tempfile.mkstemp(prefix=archive.name + ".", suffix=".tmp", dir=archive.parent)[1])
+    descriptor, temp_name = tempfile.mkstemp(prefix=archive.name + ".", suffix=".tmp", dir=archive.parent)
+    os.close(descriptor)
+    temp_archive = Path(temp_name)
     try:
-        with tarfile.open(temp_archive, mode="w:gz", format=tarfile.PAX_FORMAT) as handle:
-            for path in sorted(source.rglob("*")):
-                relative = path.relative_to(source)
-                if _excluded(relative):
-                    continue
-                handle.add(path, arcname=relative.as_posix(), recursive=False)
+        run_git(source, "archive", "--format=tar", f"--output={temp_archive}", expected)
+        archived_entries = _archive_file_entries(temp_archive)
+        if archived_entries != tracked_entries:
+            missing = sorted(tracked_entries - archived_entries)
+            extra = sorted(archived_entries - tracked_entries)
+            raise EvidencePackagingError(
+                f"git archive file set differs from commit tree: missing={missing[:10]} extra={extra[:10]}"
+            )
         digest = _sha256_file(temp_archive)
         os.replace(temp_archive, archive)
     except Exception:
@@ -57,10 +66,16 @@ def package_source_evidence(
         raise
 
     payload: dict[str, Any] = {
-        "schema_version": "ev4-ci-source-evidence.v1",
-        "tested_head_sha": tested_head_sha.strip(),
+        "schema_version": "ev4-ci-source-evidence.v2",
+        "repository": repository,
+        "commit_sha": expected,
+        "tree_sha": tree_sha,
+        "packaging_method": "git_archive",
+        "archive_format": "tar",
         "archive_path": str(archive),
         "archive_sha256": digest,
+        "tracked_entry_count": len(tracked_entries),
+        "generated_files_included": False,
         "packaging_result": "success",
     }
     temp_manifest = manifest.with_suffix(manifest.suffix + ".tmp")
@@ -69,16 +84,22 @@ def package_source_evidence(
     return payload
 
 
+def _git_tree_entries(source: Path, commit_sha: str) -> set[str]:
+    raw = run_git(source, "ls-tree", "-r", "-z", "--name-only", commit_sha)
+    return {item for item in raw.split("\0") if item}
+
+
+def _archive_file_entries(path: Path) -> set[str]:
+    with tarfile.open(path, "r:") as handle:
+        return {member.name.rstrip("/") for member in handle.getmembers() if member.isfile() or member.issym()}
+
+
 def _reject_inside_source(source: Path, candidate: Path, field: str) -> None:
     try:
         candidate.relative_to(source)
     except ValueError:
         return
     raise EvidencePackagingError(f"{field} must be outside source_root")
-
-
-def _excluded(relative: Path) -> bool:
-    return any(part in _EXCLUDED_PARTS for part in relative.parts)
 
 
 def _sha256_file(path: Path) -> str:

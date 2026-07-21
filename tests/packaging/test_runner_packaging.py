@@ -50,8 +50,9 @@ def test_installed_wheel_imports_ui_and_all_runners(built_wheel: Path, tmp_path:
     script = """
 from ev4_transition.runners.native_dialog import select_directory
 from ev4_transition.runners.open_output_folder import open_directory
+from ev4_transition.runners.git_archive import run_git
 from ev4_transition.ui.app import build_demo
-assert select_directory and open_directory and build_demo
+assert select_directory and open_directory and run_git and build_demo
 print('PACKAGED_IMPORT_OK')
 """
     env = dict(os.environ)

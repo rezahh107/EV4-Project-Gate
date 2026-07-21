@@ -63,43 +63,19 @@ def run_producer_handoff_request(request: ProducerHandoffRequest) -> ProducerHan
         selected_source = _authoritative_source_path(request.source_path, request.source_snapshot)
     except SnapshotError as exc:
         return _response(_snapshot_failure(exc))
-    output_dir, output_path, receipt_path = _publication_arguments(request)
     result = execute_producer_handoff(
         selected_source,
         project_gate_repo=repos.project_gate_repo_path or ".",
         architect_repo=repos.architect_repo_path,
         ce_repo=repos.ce_repo_path,
         builder_repo=repos.builder_repo_path,
-        output_dir=output_dir,
-        output_path=output_path,
-        receipt_path=receipt_path,
+        output_dir=request.output_dir,
+        output_path=request.output_path,
+        receipt_path=request.receipt_path,
         schema_root=request.schema_root,
         lock_path=request.lock_path,
     )
     return _response(result)
-
-
-def _publication_arguments(request: ProducerHandoffRequest) -> tuple[str | None, str | None, str | None]:
-    if request.output_dir is not None and str(request.output_dir).strip():
-        return request.output_dir, request.output_path, request.receipt_path
-
-    explicit = [value for value in (request.output_path, request.receipt_path) if value is not None and str(value).strip()]
-    if not explicit:
-        return None, None, None
-
-    workspace = Path.cwd().resolve()
-    resolved = [Path(str(value)).expanduser() for value in explicit]
-    resolved = [path if path.is_absolute() else workspace / path for path in resolved]
-    parents = {path.parent.resolve() for path in resolved}
-    if len(parents) == 1:
-        parent = str(next(iter(parents)))
-        output_name = Path(str(request.output_path)).name if request.output_path is not None else None
-        receipt_name = Path(str(request.receipt_path)).name if request.receipt_path is not None else None
-        return parent, output_name, receipt_name
-
-    output = str(resolved[0]) if request.output_path is not None else None
-    receipt = str(resolved[-1]) if request.receipt_path is not None else None
-    return str(workspace), output, receipt
 
 
 def _authoritative_source_path(

@@ -106,11 +106,11 @@ jobs:
           mkdir -p "$EVIDENCE_DIR/source"
           uv run python scripts/package-ci-evidence.py \
             --source "$GITHUB_WORKSPACE" \
-            --archive "$EVIDENCE_DIR/source/pr-head-source.tar.gz" \
+            --archive "$EVIDENCE_DIR/source/pr-head-source.tar" \
             --manifest "$EVIDENCE_DIR/source/source-evidence-manifest.json" \
             --tested-head-sha "$TESTED_HEAD_SHA" \
             | tee "$EVIDENCE_DIR/source/source-packaging.log"
-          test -s "$EVIDENCE_DIR/source/pr-head-source.tar.gz"
+          test -s "$EVIDENCE_DIR/source/pr-head-source.tar"
           test -s "$EVIDENCE_DIR/source/source-evidence-manifest.json"
 
       - name: Upload exact-head UI and repair evidence

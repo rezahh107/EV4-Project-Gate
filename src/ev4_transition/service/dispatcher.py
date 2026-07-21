@@ -1,10 +1,8 @@
 from __future__ import annotations
 
 from copy import deepcopy
-from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
-from uuid import uuid4
 
 from ev4_transition.architect_to_ce import TransitionValidatorHooks, transition_from_local_paths as architect_to_ce_from_local_paths
 from ev4_transition.bundle_validator import BundleValidator, ResultValidationError
@@ -101,13 +99,12 @@ def _run_producer_emitted_request(request: GateRequest) -> GateResponse:
             ],
         )
 
-    output_dir = _execution_directory(request.output_dir) if request.output_dir and not request.output_path and not request.receipt_path else request.output_dir
     response = run_producer_handoff_request(
         ProducerHandoffRequest(
             source_path=request.input_json_path,
             source_snapshot=request.input_snapshot,
             repo_paths=request.repo_paths,
-            output_dir=output_dir,
+            output_dir=request.output_dir,
             output_path=request.output_path,
             receipt_path=request.receipt_path,
             schema_root=request.schema_root,
@@ -135,14 +132,6 @@ def _run_producer_emitted_request(request: GateRequest) -> GateResponse:
         user_message_fa=response.user_message_fa,
         next_action_fa=response.next_action_fa,
     )
-
-
-def _execution_directory(base: str) -> str:
-    root = Path(base).expanduser()
-    stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
-    candidate = root / f"run-{stamp}-{uuid4().hex[:10]}"
-    candidate.mkdir(parents=True, exist_ok=False)
-    return str(candidate)
 
 
 def _diagnostic_from_dict(item: dict[str, Any]) -> ServiceDiagnostic:
