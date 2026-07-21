@@ -5,7 +5,7 @@ from dataclasses import asdict, dataclass, field
 from pathlib import Path
 from typing import Any
 
-from ev4_transition.io.secure_snapshot import JsonInputSnapshot
+from ev4_transition.io.secure_snapshot import JsonInputSnapshot, SnapshotError, validate_json_snapshot
 
 from ev4_transition.producer_integration.facade import execute_producer_handoff, inspect_producer_handoff
 
@@ -46,9 +46,12 @@ def inspect_producer_handoff_request(
     source_snapshot: JsonInputSnapshot | None = None,
     project_gate_repo_path: str | None = ".",
 ) -> ProducerHandoffResponse:
+    try:
+        selected_source = _authoritative_source_path(source_path, source_snapshot)
+    except SnapshotError as exc:
+        return _response(_snapshot_failure(exc))
     result = inspect_producer_handoff(
-        source_path,
-        snapshot=source_snapshot,
+        selected_source,
         project_gate_repo=project_gate_repo_path or ".",
     )
     return _response(result)
@@ -56,9 +59,12 @@ def inspect_producer_handoff_request(
 
 def run_producer_handoff_request(request: ProducerHandoffRequest) -> ProducerHandoffResponse:
     repos = request.repo_paths
+    try:
+        selected_source = _authoritative_source_path(request.source_path, request.source_snapshot)
+    except SnapshotError as exc:
+        return _response(_snapshot_failure(exc))
     result = execute_producer_handoff(
-        request.source_path,
-        snapshot=request.source_snapshot,
+        selected_source,
         project_gate_repo=repos.project_gate_repo_path or ".",
         architect_repo=repos.architect_repo_path,
         ce_repo=repos.ce_repo_path,
@@ -70,6 +76,37 @@ def run_producer_handoff_request(request: ProducerHandoffRequest) -> ProducerHan
         lock_path=request.lock_path,
     )
     return _response(result)
+
+
+def _authoritative_source_path(
+    source_path: str | None,
+    snapshot: JsonInputSnapshot | None,
+) -> str | None:
+    if snapshot is None:
+        return source_path
+    validated = validate_json_snapshot(snapshot, expected_source_path=source_path)
+    return str(validated.path)
+
+
+def _snapshot_failure(exc: SnapshotError) -> dict[str, Any]:
+    severity = "insufficient_evidence" if exc.status == "insufficient_evidence" else "error"
+    return {
+        "schema_version": "producer-emitted-transition-result.v1",
+        "status": exc.status,
+        "acquisition_mode": "producer_emitted_gate_artifact",
+        "resolved_transition": None,
+        "handoff_allowed": False,
+        "failure_class": "source_snapshot_failed",
+        "diagnostics": [
+            {
+                "code": exc.code,
+                "severity": severity,
+                "path": "$.input_snapshot",
+                "message": str(exc),
+                "details": dict(exc.details),
+            }
+        ],
+    }
 
 
 def _response(result: dict[str, Any]) -> ProducerHandoffResponse:
