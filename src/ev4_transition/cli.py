@@ -7,12 +7,19 @@ from typing import Any
 from .behavioral_coverage import CoverageSourceError, inspect_coverage_source, validate_coverage_source
 from .bundle_validator import BundleValidator
 from .canonical_json import canonical_dumps, load_json_file
-from .io.secure_snapshot import capture_json_snapshot
 from .presentation.status_mapping import exit_code_for_status
 from .reports import render_plain_summary
-from .service import GateRequest, RepoPaths, run_gate_request
+from .service import GateRequest, RepoPaths, cli_transition_names, contract_for_service, run_gate_request, service_choice_for_cli
 
 _CAPABILITY_STATUS_PATH = Path(__file__).resolve().parent / "data" / "capability-status.v1.json"
+_REPO_FIELD_TO_ARG = {
+    "project_gate_repo_path": "project_gate_repo",
+    "architect_repo_path": "architect_repo",
+    "ce_repo_path": "ce_repo",
+    "builder_repo_path": "builder_repo",
+    "responsive_repo_path": "responsive_repo",
+    "kernel_repo_path": "kernel_repo",
+}
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -26,7 +33,7 @@ def main(argv: list[str] | None = None) -> int:
     validate_parser.add_argument("--format", choices=["json", "persian"], default="json")
 
     transition_parser = sub.add_parser("transition", help="Run a deterministic Project Gate transition.")
-    transition_parser.add_argument("transition_name", choices=["architect-to-ce", "ce-to-builder", "builder-to-responsive", "final-evidence-gate"])
+    transition_parser.add_argument("transition_name", choices=cli_transition_names())
     transition_parser.add_argument("bundle")
     transition_parser.add_argument("--architect-repo")
     transition_parser.add_argument("--ce-repo")
@@ -38,7 +45,11 @@ def main(argv: list[str] | None = None) -> int:
     transition_parser.add_argument("--output")
     transition_parser.add_argument("--receipt-output")
     transition_parser.add_argument("--format", choices=["json", "persian"], default="json")
-    transition_parser.add_argument("--acquisition-mode", choices=["pinned_owner_file_computation", "producer_emitted_gate_artifact"], default="pinned_owner_file_computation")
+    transition_parser.add_argument(
+        "--acquisition-mode",
+        choices=["pinned_owner_file_computation", "producer_emitted_gate_artifact"],
+        default="pinned_owner_file_computation",
+    )
 
     coverage_parser = sub.add_parser("coverage", help="Inspect or validate Behavioral Rule Coverage.")
     coverage_sub = coverage_parser.add_subparsers(dest="coverage_command", required=True)
@@ -54,41 +65,27 @@ def main(argv: list[str] | None = None) -> int:
 
     args = parser.parse_args(argv)
     if args.command == "validate":
-        validator = BundleValidator(args.schema_root)
-        result = validator.validate_file(args.bundle, required_evidence_ids=args.require_evidence)
+        result = BundleValidator(args.schema_root).validate_file(args.bundle, required_evidence_ids=args.require_evidence)
         _emit(result, args.format)
         return _exit_for_status(result["status"])
 
     if args.command == "transition":
-        preflight_failure = _transition_preflight(args)
+        service_choice = service_choice_for_cli(args.transition_name)
+        preflight_failure = _transition_preflight(args, service_choice)
         if preflight_failure is not None:
             _emit(preflight_failure, args.format)
             return _exit_for_status(preflight_failure["status"])
 
-        snapshot = None
-        if args.acquisition_mode == "producer_emitted_gate_artifact":
-            try:
-                snapshot = capture_json_snapshot(args.bundle)
-            except Exception as exc:
-                payload = _simple_invalid(
-                    "CLI_PRODUCER_SOURCE_CAPTURE_FAILED",
-                    "The original producer source file could not be captured immutably.",
-                    error_type=type(exc).__name__,
-                    error=str(exc),
-                )
-                _emit(payload, args.format)
-                return _exit_for_status(payload["status"])
-
         request = GateRequest(
-            transition_choice=_service_choice(args.transition_name),  # type: ignore[arg-type]
+            transition_choice=service_choice,  # type: ignore[arg-type]
             input_json_path=args.bundle,
-            input_snapshot=snapshot,
             repo_paths=RepoPaths(
                 project_gate_repo_path=args.project_gate_repo or ".",
                 architect_repo_path=args.architect_repo,
                 ce_repo_path=args.ce_repo,
                 builder_repo_path=args.builder_repo,
                 responsive_repo_path=args.responsive_repo,
+                kernel_repo_path=args.kernel_repo,
             ),
             acquisition_mode=args.acquisition_mode,
             schema_root=args.schema_root,
@@ -107,15 +104,6 @@ def main(argv: list[str] | None = None) -> int:
     info = _load_capability_status()
     _emit(info, args.format)
     return 0
-
-
-def _service_choice(transition_name: str) -> str:
-    return {
-        "architect-to-ce": "architect_to_ce",
-        "ce-to-builder": "ce_to_builder",
-        "builder-to-responsive": "builder_to_responsive",
-        "final-evidence-gate": "final_gate",
-    }[transition_name]
 
 
 def _cli_payload(response: dict[str, Any]) -> dict[str, Any]:
@@ -137,43 +125,39 @@ def _cli_payload(response: dict[str, Any]) -> dict[str, Any]:
     }
 
 
-def _service_choice(transition_name: str) -> str:
-    return {
-        "architect-to-ce": "architect_to_ce",
-        "ce-to-builder": "ce_to_builder",
-        "builder-to-responsive": "builder_to_responsive",
-        "final-evidence-gate": "final_gate",
-    }[transition_name]
-
-
-def _default_lock_for_transition(transition_name: str) -> str:
-    return {
-        "architect-to-ce": "contracts/locks/architect-to-ce-transition.v1.lock.json",
-        "ce-to-builder": "contracts/locks/ce-to-builder-transition.v1.lock.json",
-        "builder-to-responsive": "contracts/locks/builder-to-responsive-transition.v1.lock.json",
-        "final-evidence-gate": "contracts/locks/final-gate.v1.lock.json",
-    }[transition_name]
-
-
-def _transition_preflight(args: argparse.Namespace) -> dict[str, Any] | None:
-    required_by_transition = {
-        "architect-to-ce": ["architect_repo", "ce_repo"],
-        "ce-to-builder": ["ce_repo", "builder_repo"],
-        "builder-to-responsive": ["builder_repo", "responsive_repo"],
-        "final-evidence-gate": ["project_gate_repo", "responsive_repo", "kernel_repo"],
-    }
-    for field in required_by_transition.get(args.transition_name, []):
-        value = getattr(args, field, None)
+def _transition_preflight(args: argparse.Namespace, service_choice: str | None = None) -> dict[str, Any] | None:
+    choice = service_choice or service_choice_for_cli(args.transition_name)
+    contract = contract_for_service(choice)
+    repo_fields = contract.producer_required_repo_fields if args.acquisition_mode == "producer_emitted_gate_artifact" else contract.required_repo_fields
+    for repo_field in repo_fields:
+        arg_field = _REPO_FIELD_TO_ARG[repo_field]
+        value = getattr(args, arg_field, None)
         if isinstance(value, str):
             value = value.strip()
-            setattr(args, field, value)
-        option = "--" + field.replace("_", "-")
+            setattr(args, arg_field, value)
+        option = "--" + arg_field.replace("_", "-")
         if not value:
-            return _simple_insufficient("CLI_LOCAL_PATH_REQUIRED", "A local checkout path is required for this guarded transition.", option=option, transition_name=args.transition_name)
+            return _simple_insufficient(
+                "CLI_LOCAL_PATH_REQUIRED",
+                "A local checkout path is required for this guarded transition.",
+                option=option,
+                transition_name=args.transition_name,
+            )
         if _looks_like_url(value):
-            return _simple_insufficient("CLI_GITHUB_URL_REJECTED", "GitHub URLs are rejected; provide a local checkout path.", option=option, transition_name=args.transition_name)
+            return _simple_insufficient(
+                "CLI_GITHUB_URL_REJECTED",
+                "GitHub URLs are rejected; provide a local checkout path.",
+                option=option,
+                transition_name=args.transition_name,
+            )
         if not Path(value).is_dir():
-            return _simple_insufficient("CLI_LOCAL_PATH_NOT_FOUND", "Local checkout path was not found.", option=option, path=value, transition_name=args.transition_name)
+            return _simple_insufficient(
+                "CLI_LOCAL_PATH_NOT_FOUND",
+                "Local checkout path was not found.",
+                option=option,
+                path=value,
+                transition_name=args.transition_name,
+            )
     return None
 
 
@@ -183,7 +167,10 @@ def _looks_like_url(value: str) -> bool:
 
 
 def _simple_insufficient(code: str, message: str, **details: Any) -> dict[str, Any]:
-    return {"status": "insufficient_evidence", "diagnostics": [{"code": code, "severity": "insufficient_evidence", "message": message, "path": "$", "details": details}]}
+    return {
+        "status": "insufficient_evidence",
+        "diagnostics": [{"code": code, "severity": "insufficient_evidence", "message": message, "path": "$", "details": details}],
+    }
 
 
 def _load_capability_status() -> dict[str, Any]:
@@ -227,10 +214,6 @@ def _coverage_command(args: argparse.Namespace) -> int:
     raise AssertionError(f"unknown coverage command: {args.coverage_command}")
 
 
-def _simple_invalid(code: str, message: str, **details: Any) -> dict[str, Any]:
-    return {"status": "invalid", "diagnostics": [{"code": code, "severity": "error", "message": message, "path": "$", "details": details}]}
-
-
 def _exit_for_status(status: str) -> int:
     return exit_code_for_status(status)
 
@@ -240,9 +223,27 @@ def _emit(payload: dict[str, Any], fmt: str) -> None:
         if "status" in payload:
             print(render_plain_summary(payload), end="")
         else:
-            print("هسته قطعی و گذارهای guarded از service مشترک استفاده می‌کنند.")
+            print(_render_capability_summary_fa(payload), end="")
         return
     print(canonical_dumps(payload))
+
+
+def _render_capability_summary_fa(payload: dict[str, Any]) -> str:
+    capabilities = payload.get("capabilities") if isinstance(payload.get("capabilities"), dict) else {}
+    rows = (
+        ("Architect → CE", capabilities.get("architect_to_ce")),
+        ("CE → Builder", capabilities.get("ce_to_builder")),
+        ("Builder → Responsive", capabilities.get("builder_to_responsive")),
+        ("Final Evidence Gate", capabilities.get("final_evidence_gate")),
+    )
+    lines = ["وضعیت قابلیت‌های Project Gate:"]
+    for label, value in rows:
+        item = value if isinstance(value, dict) else {}
+        exposure = item.get("cli_exposure", "unknown")
+        real = item.get("real_non_synthetic_handoff", item.get("real_non_synthetic_evidence", "unknown"))
+        mode = "functional" if label == "Architect → CE" else "guarded/fail-closed"
+        lines.append(f"- {label}: {mode}; cli={exposure}; real_evidence={real}")
+    return "\n".join(lines) + "\n"
 
 
 if __name__ == "__main__":
