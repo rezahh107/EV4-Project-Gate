@@ -5,6 +5,8 @@ from dataclasses import asdict, dataclass, field
 from pathlib import Path
 from typing import Any
 
+from ev4_transition.io.secure_snapshot import JsonInputSnapshot
+
 from ev4_transition.producer_integration.facade import execute_producer_handoff, inspect_producer_handoff
 
 from .models import RepoPaths
@@ -12,7 +14,8 @@ from .models import RepoPaths
 
 @dataclass(frozen=True)
 class ProducerHandoffRequest:
-    source_path: str
+    source_path: str | None = None
+    source_snapshot: JsonInputSnapshot | None = None
     repo_paths: RepoPaths = field(default_factory=RepoPaths)
     output_dir: str | None = None
     output_path: str | None = None
@@ -38,12 +41,14 @@ class ProducerHandoffResponse:
 
 
 def inspect_producer_handoff_request(
-    source_path: str,
+    source_path: str | None = None,
     *,
+    source_snapshot: JsonInputSnapshot | None = None,
     project_gate_repo_path: str | None = ".",
 ) -> ProducerHandoffResponse:
     result = inspect_producer_handoff(
         source_path,
+        snapshot=source_snapshot,
         project_gate_repo=project_gate_repo_path or ".",
     )
     return _response(result)
@@ -53,6 +58,7 @@ def run_producer_handoff_request(request: ProducerHandoffRequest) -> ProducerHan
     repos = request.repo_paths
     result = execute_producer_handoff(
         request.source_path,
+        snapshot=request.source_snapshot,
         project_gate_repo=repos.project_gate_repo_path or ".",
         architect_repo=repos.architect_repo_path,
         ce_repo=repos.ce_repo_path,
