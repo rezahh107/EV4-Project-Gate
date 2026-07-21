@@ -13,6 +13,7 @@ TransitionChoice = Literal[
     "builder_to_responsive",
     "final_gate",
 ]
+AcquisitionMode = Literal["pinned_owner_file_computation", "producer_emitted_gate_artifact"]
 InputSource = Literal["file_path", "json_text", "dict", "missing"]
 
 
@@ -55,8 +56,12 @@ class GateRequest:
     input_json_text: str | None = None
     input_data: dict[str, Any] | list[Any] | str | int | float | bool | None = None
     repo_paths: RepoPaths = field(default_factory=RepoPaths)
+    acquisition_mode: AcquisitionMode = "pinned_owner_file_computation"
     schema_root: str = "schemas"
     lock_path: str | None = None
+    output_dir: str | None = None
+    output_path: str | None = None
+    receipt_path: str | None = None
     required_evidence_ids: list[str] = field(default_factory=list)
     timeout_seconds: float = 30
     require_real_evidence: bool = True
@@ -87,6 +92,7 @@ class GateResponse:
     download_filenames: dict[str, str]
     user_message_fa: str
     next_action_fa: str
+    download_paths: list[str] = field(default_factory=list)
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -97,6 +103,7 @@ class GateResponse:
             "capabilities_snapshot": deepcopy(self.capabilities_snapshot),
             "report_bundle": self.report_bundle.to_dict(),
             "download_filenames": dict(self.download_filenames),
+            "download_paths": list(self.download_paths),
             "user_message_fa": self.user_message_fa,
             "next_action_fa": self.next_action_fa,
         }
