@@ -14,6 +14,7 @@ DEFAULT_SETTINGS: dict[str, str] = {
     "ce_repo_path": r"E:\GitHub\EV4 Constructability Engineer Repo",
     "builder_repo_path": r"E:\GitHub\Builder Assistant",
     "responsive_repo_path": r"E:\GitHub\EV4 Responsive Architect",
+    "kernel_repo_path": r"E:\GitHub\EV4-Decision-Kernel",
     "default_output_directory": r"E:\GitHub\EV4 Project Gate Outputs",
     "default_transition": "Architect → CE",
     "default_acquisition_mode": "producer_emitted_gate_artifact",
