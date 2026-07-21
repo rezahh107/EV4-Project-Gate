@@ -1,8 +1,10 @@
 from __future__ import annotations
 
 from copy import deepcopy
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
+from uuid import uuid4
 
 from ev4_transition.architect_to_ce import TransitionValidatorHooks, transition_from_local_paths as architect_to_ce_from_local_paths
 from ev4_transition.bundle_validator import BundleValidator, ResultValidationError
@@ -14,6 +16,7 @@ from ev4_transition.validator_runner import run_architect_validator, run_ce_vali
 from .capabilities import get_capabilities
 from .json_input import parse_json_input
 from .models import GateRequest, GateResponse, ServiceDiagnostic
+from .producer_handoff import ProducerHandoffRequest, run_producer_handoff_request
 from .repo_paths import resolve_relative_to_project_gate, validate_repo_paths
 from .reports import build_report_bundle
 
@@ -25,9 +28,15 @@ _LOCKS = {
     "builder_to_responsive": "contracts/locks/builder-to-responsive-transition.v1.lock.json",
     "final_gate": "contracts/locks/final-gate.v1.lock.json",
 }
+_PRODUCER_TRANSITIONS = {
+    "architect_to_ce": "architect-to-ce",
+    "ce_to_builder": "ce-to-builder",
+}
 
 
 def run_gate_request(request: GateRequest) -> GateResponse:
+    """Execute one authoritative transition lifecycle for GUI and CLI adapters."""
+
     choice = str(request.transition_choice)
     if choice not in _ALLOWED:
         return _response(choice, "invalid", None, [_diag("PG.SERVICE.TRANSITION_UNKNOWN", "error", "Unsupported transition choice.", "$.transition_choice")])
@@ -35,6 +44,9 @@ def run_gate_request(request: GateRequest) -> GateResponse:
         capabilities = get_capabilities()
         result = {"schema_version": "project-gate-service-result.v1", "result_type": "capability_inspection", "status": "accepted", "capabilities": deepcopy(capabilities)}
         return _response(choice, "accepted", result, [], capabilities_snapshot=capabilities)
+
+    if request.acquisition_mode == "producer_emitted_gate_artifact":
+        return _run_producer_emitted_request(request)
 
     parsed = parse_json_input(input_json_path=request.input_json_path, input_json_text=request.input_json_text, input_data=request.input_data)
     if parsed.diagnostics:
@@ -52,6 +64,88 @@ def run_gate_request(request: GateRequest) -> GateResponse:
     except Exception as exc:
         return _response(choice, "invalid", None, [_diag("PG.SERVICE.ENGINE_EXECUTION_FAILED", "error", "Project Gate engine execution failed.", "$", error_type=type(exc).__name__, error=str(exc))])
     return _response(choice, _status_from_engine(result), result, [])
+
+
+def _run_producer_emitted_request(request: GateRequest) -> GateResponse:
+    choice = str(request.transition_choice)
+    if choice not in _PRODUCER_TRANSITIONS:
+        return _response(
+            choice,
+            "invalid",
+            None,
+            [_diag("PG.UI.SOURCE_SCHEMA_TRANSITION_MISMATCH", "error", "Producer-emitted execution is not compatible with the selected transition.", "$.transition_choice", selected_transition=choice)],
+        )
+    if request.input_json_text is not None or request.input_data is not None or not request.input_json_path:
+        return _response(
+            choice,
+            "invalid",
+            None,
+            [
+                _diag(
+                    "PG.UI.PRODUCER_SOURCE_FILE_REQUIRED",
+                    "error",
+                    "در حالت producer_emitted_gate_artifact باید فایل اصلی Producer Gate Export را بارگذاری کنید؛ متن paste‌شده هویت فایل پایدار ندارد.",
+                    "$.input_json_path",
+                    acquisition_mode=request.acquisition_mode,
+                )
+            ],
+        )
+
+    output_dir = _execution_directory(request.output_dir) if request.output_dir and not request.output_path and not request.receipt_path else request.output_dir
+    response = run_producer_handoff_request(
+        ProducerHandoffRequest(
+            source_path=request.input_json_path,
+            repo_paths=request.repo_paths,
+            output_dir=output_dir,
+            output_path=request.output_path,
+            receipt_path=request.receipt_path,
+            schema_root=request.schema_root,
+            lock_path=request.lock_path,
+        )
+    )
+    expected = _PRODUCER_TRANSITIONS[choice]
+    if response.resolved_transition and response.resolved_transition != expected:
+        diagnostic = _diag(
+            "PG.UI.SOURCE_SCHEMA_TRANSITION_MISMATCH",
+            "error",
+            "The validated Producer Gate Export resolves to a different transition than the operator selection.",
+            "$.transition_choice",
+            selected_transition=choice,
+            resolved_transition=response.resolved_transition,
+        )
+        return _response(choice, "invalid", response.engine_result, [diagnostic])
+
+    diagnostics = [_diagnostic_from_dict(item) for item in response.diagnostics]
+    return _response(
+        choice,
+        response.status,
+        response.engine_result,
+        diagnostics,
+        download_paths=response.download_paths,
+        user_message_fa=response.user_message_fa,
+        next_action_fa=response.next_action_fa,
+    )
+
+
+def _execution_directory(base: str) -> str:
+    root = Path(base).expanduser()
+    stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+    candidate = root / f"run-{stamp}-{uuid4().hex[:10]}"
+    candidate.mkdir(parents=True, exist_ok=False)
+    return str(candidate)
+
+
+def _diagnostic_from_dict(item: dict[str, Any]) -> ServiceDiagnostic:
+    severity = str(item.get("severity", "error"))
+    if severity not in {"error", "warning", "info", "insufficient_evidence"}:
+        severity = "error"
+    return ServiceDiagnostic(
+        str(item.get("code", "PG.SERVICE.UNKNOWN_DIAGNOSTIC")),
+        severity,  # type: ignore[arg-type]
+        str(item.get("message", "")),
+        str(item.get("path", "$")),
+        deepcopy(item.get("details")) if isinstance(item.get("details"), dict) else {},
+    )
 
 
 def _execute(choice: str, request: GateRequest, payload: Any) -> dict[str, Any]:
@@ -81,7 +175,17 @@ def _lock_path(request: GateRequest, choice: str) -> Path:
     return resolve_relative_to_project_gate(request.repo_paths, request.lock_path or _LOCKS[choice])
 
 
-def _response(choice: str, status: str, engine_result: dict[str, Any] | None, diagnostics: list[ServiceDiagnostic], *, capabilities_snapshot: dict[str, Any] | None = None) -> GateResponse:
+def _response(
+    choice: str,
+    status: str,
+    engine_result: dict[str, Any] | None,
+    diagnostics: list[ServiceDiagnostic],
+    *,
+    capabilities_snapshot: dict[str, Any] | None = None,
+    download_paths: list[str] | None = None,
+    user_message_fa: str | None = None,
+    next_action_fa: str | None = None,
+) -> GateResponse:
     status = _normalize_status(status)
     service_diagnostics = [item.to_dict() for item in diagnostics]
     report_source = deepcopy(engine_result) if engine_result is not None else {"schema_version": "project-gate-service-result.v1", "result_type": "service_layer_failure", "transition_choice": choice, "status": status, "diagnostics": service_diagnostics, "output": None}
@@ -97,8 +201,9 @@ def _response(choice: str, status: str, engine_result: dict[str, Any] | None, di
         capabilities_snapshot=deepcopy(capabilities_snapshot) if capabilities_snapshot is not None else _safe_capabilities(),
         report_bundle=report_bundle,
         download_filenames=_download_filenames(choice),
-        user_message_fa=_user_message(status),
-        next_action_fa=_next_action(status),
+        download_paths=list(download_paths or []),
+        user_message_fa=user_message_fa or _user_message(status),
+        next_action_fa=next_action_fa or _next_action(status),
     )
 
 
