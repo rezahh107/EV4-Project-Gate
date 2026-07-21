@@ -56,7 +56,12 @@ jobs:
           echo "exit_code=$code" >> "$GITHUB_OUTPUT"
           exit "$code"
 
-      - name: Upload test evidence
+      - name: Package exact source snapshot
+        if: always()
+        shell: bash
+        run: tar --exclude=.git --exclude=.venv -czf pr-head-source.tar.gz .
+
+      - name: Upload test and source evidence
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
@@ -66,5 +71,6 @@ jobs:
             focused-junit.xml
             full-tests.log
             full-junit.xml
+            pr-head-source.tar.gz
           if-no-files-found: warn
           retention-days: 7
