@@ -32,3 +32,11 @@ jobs:
           uv lock --check --quiet
           uv sync --locked --extra dev --extra ui --quiet
           uv run pytest -x -q --tb=short
+
+      - name: Export current unified workflow
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: temporary-unified-workflow-source
+          path: .github/workflows/validate.yml
+          if-no-files-found: error
