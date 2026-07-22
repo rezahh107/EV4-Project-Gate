@@ -95,6 +95,23 @@ def required_repo_fields(service_choice: str) -> tuple[str, ...]:
     return contract_for_service(service_choice).required_repo_fields
 
 
+def effective_repository_fields(
+    service_choice: str,
+    acquisition_mode: str,
+) -> tuple[str, ...]:
+    """Return repository paths that can affect this exact request lifecycle.
+
+    Producer-emitted execution has an explicit repository set. Other modes may
+    consume both required and optional contract paths, for example the optional
+    Project Gate root used to resolve lock files.
+    """
+
+    contract = contract_for_service(service_choice)
+    if acquisition_mode == "producer_emitted_gate_artifact":
+        return contract.producer_required_repo_fields
+    return tuple(dict.fromkeys((*contract.required_repo_fields, *contract.optional_repo_fields)))
+
+
 def source_stage_for_service(service_choice: str) -> str | None:
     return contract_for_service(service_choice).source_stage
 

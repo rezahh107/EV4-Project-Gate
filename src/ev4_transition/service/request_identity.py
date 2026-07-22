@@ -9,6 +9,7 @@ from ev4_transition.canonical_json import canonical_dumps
 from ev4_transition.io.secure_snapshot import JsonInputSnapshot, obtain_json_snapshot
 
 from .models import GateRequest
+from .transition_contracts import effective_repository_fields
 
 
 @dataclass(frozen=True)
@@ -95,13 +96,13 @@ def _repository_paths(request: GateRequest) -> dict[str, str | None]:
     from .models import RepoPaths
 
     repos = request.repo_paths or RepoPaths()
+    fields = effective_repository_fields(
+        str(request.transition_choice),
+        str(request.acquisition_mode),
+    )
     return {
-        "project_gate_repo_path": _path_text(repos.project_gate_repo_path),
-        "architect_repo_path": _path_text(repos.architect_repo_path),
-        "ce_repo_path": _path_text(repos.ce_repo_path),
-        "builder_repo_path": _path_text(repos.builder_repo_path),
-        "responsive_repo_path": _path_text(repos.responsive_repo_path),
-        "kernel_repo_path": _path_text(repos.kernel_repo_path),
+        field: _path_text(getattr(repos, field))
+        for field in fields
     }
 
 
