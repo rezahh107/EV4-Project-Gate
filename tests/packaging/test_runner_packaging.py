@@ -19,7 +19,7 @@ def built_wheel(tmp_path_factory: pytest.TempPathFactory) -> Path:
     dist = tmp_path / "dist"
     dist.mkdir()
     completed = subprocess.run(
-        ["uv", "build", "--wheel", "--out-dir", str(dist), "--python", sys.executable, "--no-python-downloads", "--no-build-isolation"],
+        ["uv", "build", "--wheel", "--out-dir", str(dist), "--python", sys.executable, "--no-python-downloads"],
         cwd=ROOT,
         text=True,
         capture_output=True,
