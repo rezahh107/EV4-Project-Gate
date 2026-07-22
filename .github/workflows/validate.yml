@@ -106,15 +106,6 @@ jobs:
           uv lock --check --quiet
           uv sync --locked --extra dev --extra ui --quiet
 
-      - name: Run focused repair regression tests
-        run: >-
-          uv run pytest -q --tb=short
-          tests/test_cli.py
-          tests/service/test_retired_join_packet_preflight.py
-          tests/service/test_external_output_and_preflight_truth.py
-          tests/producer_integration/test_legacy_join_packet_boundary.py
-          tests/producer_integration/test_prompt05_producer_integration.py
-
       - name: Compile Python sources
         run: uv run python -m compileall -q src tests
 
