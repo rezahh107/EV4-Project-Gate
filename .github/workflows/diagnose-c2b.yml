@@ -1,0 +1,84 @@
+name: Temporary C2B Diagnosis
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/diagnose-c2b.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  diagnose-c2b:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout exact Project Gate Head
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          path: EV4-Project-Gate
+          fetch-depth: 1
+          persist-credentials: false
+          show-progress: false
+
+      - name: Checkout pinned CE
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+        with:
+          repository: rezahh107/EV4-Constructability-Engineer-Repo
+          ref: 6650c31304e5a0472b276c36018c1df8f42ac983
+          path: EV4-Constructability-Engineer-Repo
+          persist-credentials: false
+          show-progress: false
+
+      - name: Checkout pinned Builder
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+        with:
+          repository: rezahh107/EV4-Builder-Assistant-Repo
+          ref: b599c000118dcbe77572d6f387da5da0f46d1f91
+          path: EV4-Builder-Assistant-Repo
+          persist-credentials: false
+          show-progress: false
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@08807647e7069bb48b6ef5acd8ec9567f424441b
+        with:
+          version: "0.7.22"
+          enable-cache: false
+
+      - name: Install Project Gate
+        working-directory: EV4-Project-Gate
+        run: uv sync --locked --extra dev --extra ui --quiet
+
+      - name: Capture C2B command results
+        working-directory: EV4-Project-Gate
+        shell: bash
+        env:
+          EV4_CE_REPO: ${{ github.workspace }}/EV4-Constructability-Engineer-Repo
+          EV4_BUILDER_REPO: ${{ github.workspace }}/EV4-Builder-Assistant-Repo
+        run: |
+          set +e
+          : > c2b-diagnostic.log
+          overall=0
+          run_check() {
+            name="$1"
+            shift
+            echo "=== $name ===" >> c2b-diagnostic.log
+            "$@" >> c2b-diagnostic.log 2>&1
+            status=$?
+            echo "exit_code=$status" >> c2b-diagnostic.log
+            if [[ "$status" -ne 0 ]]; then overall=1; fi
+          }
+          run_check focused_tests uv run pytest -q tests/transitions/test_ce_to_builder.py tests/producer_integration/test_pg_c2b_dispatch.py
+          run_check compute_lock uv run python scripts/compute-ce-to-builder-lock.py --ce-repo "$EV4_CE_REPO" --builder-repo "$EV4_BUILDER_REPO" --output /tmp/c2b-lock.json
+          run_check compare_lock cmp /tmp/c2b-lock.json contracts/locks/ce-to-builder-transition.v1.lock.json
+          run_check verify_lock uv run python scripts/verify-ce-to-builder-lock.py --ce-repo "$EV4_CE_REPO" --builder-repo "$EV4_BUILDER_REPO"
+          run_check owner_smoke uv run python scripts/ce-to-builder-smoke.py --ce-repo "$EV4_CE_REPO" --builder-repo "$EV4_BUILDER_REPO" --fixture "$EV4_CE_REPO/tests/role-alignment/valid/executable_visual_reference_package.json"
+          exit "$overall"
+
+      - name: Upload temporary C2B diagnostic
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: temporary-c2b-diagnostic
+          path: EV4-Project-Gate/c2b-diagnostic.log
+          if-no-files-found: error
