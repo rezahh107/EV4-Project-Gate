@@ -2,25 +2,57 @@ from __future__ import annotations
 
 from typing import Any
 
+from ev4_transition.runners.open_output_folder import open_directory
+
 from .adapters import build_capability_rows
 from .app_callbacks import build_operator_callbacks
 from .app_support import (
+    HEADER_HELPER_FA,
+    HEADER_WARNING_FA,
     PREFLIGHT_HELPER_FA,
     _path_row,
     _reset_settings_callback,
     _save_settings_callback,
     browse_directory,
     invalidate_preflight_state,
-    open_output_folder,
+    open_output_folder as _open_output_folder,
     operator_gradio_theme,
     operator_header_html,
     operator_panel_css,
+    operator_run_outputs,
     repository_field_affects_request,
     run_authoritative_preflight,
+    workflow_state_html,
 )
 from .components import CAPABILITY_HEADERS, DIAGNOSTIC_HEADERS
 from .operator_settings import load_settings, settings_path
 from .state import initial_workflow_state, transition_choices
+
+__all__ = [
+    "HEADER_HELPER_FA",
+    "HEADER_WARNING_FA",
+    "PREFLIGHT_HELPER_FA",
+    "browse_directory",
+    "build_demo",
+    "invalidate_preflight_state",
+    "main",
+    "open_directory",
+    "open_output_folder",
+    "operator_gradio_theme",
+    "operator_header_html",
+    "operator_panel_css",
+    "operator_run_outputs",
+    "repository_field_affects_request",
+    "run_authoritative_preflight",
+    "workflow_state_html",
+]
+
+
+def open_output_folder(attempt_directory: str | None) -> str:
+    """Compatibility facade preserving the established open-directory patch seam."""
+
+    return _open_output_folder(attempt_directory, opener=open_directory)
+
 
 def build_demo():
     try:
