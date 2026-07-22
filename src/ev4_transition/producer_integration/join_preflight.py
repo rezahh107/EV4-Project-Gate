@@ -5,7 +5,6 @@ from typing import Any
 
 from ev4_transition.canonical_json import load_json_file
 
-DEFAULT_RETIRED_PACKET = Path("docs/evidence/JOIN_EVIDENCE_PACKET_v1.json")
 REQUIRED_EVIDENCE_STATE = {
     "producer_prs_merged": "verified",
     "expected_shas_match": "verified",
@@ -17,26 +16,15 @@ REQUIRED_EVIDENCE_STATE = {
 CODE = "PG-P05-JOIN-EVIDENCE-NOT-READY"
 
 
-def validate_join_evidence_packet(
-    path: str | Path = DEFAULT_RETIRED_PACKET,
-) -> dict[str, Any]:
-    """Validate an explicitly supplied legacy packet.
+def validate_join_evidence_packet(path: str | Path) -> dict[str, Any]:
+    """Fail closed when an explicit legacy compatibility packet is not ready.
 
-    The historical default packet has been retired from normal authorization.
-    Its absence therefore reports compatibility success with no authorization
-    effect. Explicit custom packets remain fail-closed for legacy callers.
+    Normal producer execution never calls this function. A caller must opt in by
+    supplying an explicit path; the result has no authority outside that legacy
+    compatibility check.
     """
 
     selected = Path(path)
-    if selected == DEFAULT_RETIRED_PACKET and not selected.exists():
-        return {
-            "status": "passed",
-            "path": str(selected),
-            "prompt_5_execution_allowed": True,
-            "authorization_effect": "none_retired_compatibility_only",
-            "diagnostics": [],
-        }
-
     try:
         packet = load_json_file(selected)
     except Exception as exc:
