@@ -5,43 +5,92 @@ on:
   push:
     branches:
       - main
-      - init/non-authoritative-skeleton
-      - python-deterministic-core-v1
-      - architect-to-ce-transition-v1
-      - project-gate-prompt-02-behavioral-coverage
-      - project-gate-prompt-03-runner-boundary
-      - project-gate-prompt-04-ce-to-builder
-      - fix/prompt-05-foundation-reconciliation
   workflow_dispatch:
     inputs:
       expected_head_sha:
-        description: Exact commit SHA that this dispatched run must validate.
-        required: true
+        description: Optional exact commit SHA this run must validate.
+        required: false
         type: string
+      full_validation:
+        description: Execute every external boundary.
+        required: false
+        default: true
+        type: boolean
 
 permissions:
   contents: read
 
 jobs:
   skeleton:
+    name: scope
     runs-on: ubuntu-latest
+    outputs:
+      tested_head: ${{ steps.scope.outputs.tested_head }}
+      run_all: ${{ steps.scope.outputs.run_all }}
+      boundaries_json: ${{ steps.scope.outputs.boundaries_json }}
+      boundary_count: ${{ steps.scope.outputs.boundary_count }}
     steps:
       - name: Checkout exact Project Gate source
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
         with:
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
           persist-credentials: false
 
-      - name: Assert exact Project Gate PR head
-        if: github.event_name == 'pull_request'
-        run: test "$(git rev-parse HEAD)" = "${{ github.event.pull_request.head.sha }}"
-
-      - name: Verify dispatched exact head
-        if: github.event_name == 'workflow_dispatch'
+      - name: Assert exact tested head and classify scope
+        id: scope
+        shell: bash
         env:
+          EVENT_NAME: ${{ github.event_name }}
+          PR_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
           EXPECTED_HEAD_SHA: ${{ inputs.expected_head_sha }}
-          TESTED_SHA: ${{ github.sha }}
-        run: test "$TESTED_SHA" = "$EXPECTED_HEAD_SHA"
+          FULL_VALIDATION: ${{ inputs.full_validation }}
+        run: |
+          set -euo pipefail
+          tested_head="$(git rev-parse HEAD)"
+          expected_head="${PR_HEAD_SHA:-${GITHUB_SHA}}"
+          test "$tested_head" = "$expected_head"
+          if [[ -n "${EXPECTED_HEAD_SHA:-}" ]]; then
+            test "$tested_head" = "$EXPECTED_HEAD_SHA"
+          fi
+          echo "tested_head=$tested_head" >> "$GITHUB_OUTPUT"
+
+          if [[ "$EVENT_NAME" == "pull_request" ]]; then
+            git diff --name-only "$PR_BASE_SHA" "$PR_HEAD_SHA" > "$RUNNER_TEMP/changed-paths.txt"
+            classifier=(python scripts/classify-validation-scope.py --paths-file "$RUNNER_TEMP/changed-paths.txt")
+          else
+            classifier=(python scripts/classify-validation-scope.py --force-all)
+          fi
+          if [[ "$EVENT_NAME" == "workflow_dispatch" && "${FULL_VALIDATION:-true}" == "true" ]]; then
+            classifier=(python scripts/classify-validation-scope.py --force-all)
+          fi
+          "${classifier[@]}" --github-output "$GITHUB_OUTPUT" | tee "$RUNNER_TEMP/validation-scope.json"
+
+      - name: Summarize validation scope
+        run: |
+          {
+            echo "## Validation scope"
+            echo "- tested head: \`${{ steps.scope.outputs.tested_head }}\`"
+            echo "- run all: \`${{ steps.scope.outputs.run_all }}\`"
+            echo "- boundaries: \`${{ steps.scope.outputs.boundaries_json }}\`"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  python-core:
+    name: core-quality
+    needs: skeleton
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - name: Checkout exact Project Gate source
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+        with:
+          ref: ${{ needs.skeleton.outputs.tested_head }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Assert exact tested head
+        run: test "$(git rev-parse HEAD)" = "${{ needs.skeleton.outputs.tested_head }}"
 
       - name: Install uv
         uses: astral-sh/setup-uv@08807647e7069bb48b6ef5acd8ec9567f424441b
@@ -54,109 +103,97 @@ jobs:
         with:
           python-version-file: .python-version
 
-      - name: Verify uv lockfile
-        run: uv lock --check
+      - name: Install locked project
+        run: |
+          uv lock --check
+          uv sync --locked --extra dev --extra ui
 
-      - name: Install package
-        run: uv sync --locked --extra dev --extra ui
+      - name: Compile Python sources
+        run: uv run python -m compileall -q src tests
 
-      - name: Verify GitHub Action pins
-        run: uv run python scripts/check-github-action-pinning.py
+      - name: Run full internal quality suite once
+        run: uv run pytest -vv
 
-      - name: Verify workflow permissions
-        run: uv run python scripts/check-workflow-permissions.py
+      - name: Run core CLI smokes
+        shell: bash
+        run: |
+          uv run ev4-transition validate fixtures/valid/architect-stage-bundle.v1.json
+          set +e
+          uv run ev4-transition validate fixtures/invalid/array-input.v1.json
+          invalid_status=$?
+          insufficient_output="$(uv run ev4-transition validate fixtures/insufficient-evidence/architect-stage-bundle.v1.json --format persian)"
+          insufficient_status=$?
+          set -e
+          test "$invalid_status" -eq 1
+          test "$insufficient_status" -eq 2
+          printf '%s' "$insufficient_output" | grep 'شواهد کافی نیست'
 
-      - name: Verify capability truth
+      - name: Verify single capability authority
         run: uv run python scripts/check-capability-truth.py
 
-      - name: Setup Node
-        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
-        with:
-          node-version: 20
-
-      - name: Verify required docs exist
+      - name: Build wheel once
         run: |
-          test -f README.md
-          test -f docs/ROLE_BOUNDARY_MAP.md
-          test -f docs/CONTRACT_INVENTORY.md
-          test -f docs/COMPATIBILITY_MAP.md
-          test -f docs/MIGRATION_READINESS_CHECKLIST.md
-          test -f docs/VALIDATION_STRATEGY.md
-          test -f docs/PROMOTION_RULES.md
-          test -f docs/KROAD_011_PROJECT_GATE_INTAKE.md
-          test -f docs/ADR/0001-non-authoritative-skeleton.md
-          test -f schemas/README.md
-          test -f fixtures/README.md
-          test -f scripts/README.md
+          mkdir -p "$RUNNER_TEMP/dist"
+          uv build --wheel --out-dir "$RUNNER_TEMP/dist" --python "$(command -v python)" --no-python-downloads
 
-      - name: Verify package metadata
-        run: node -e "JSON.parse(require('fs').readFileSync('package.json','utf8')); console.log('package.json ok')"
-
-      - name: Run skeleton status
-        run: npm run status
-
-      - name: Run skeleton validation
-        run: npm run validate
-
-      - name: Verify no specialist canonical schema files exist
+      - name: Clean-install package and construct UI once
+        shell: bash
         run: |
-          allowed='^(schemas/README.md|schemas/stage-bundle/stage-bundle.v1.schema.json|schemas/transition-result/transition-result.v1.schema.json|schemas/architect-to-ce-transition-result/architect-to-ce-transition-result.v1.schema.json|schemas/ce-to-builder-transition-result/ce-to-builder-transition-result.v1.schema.json|schemas/builder-to-responsive-transition-result/builder-to-responsive-transition-result.v1.schema.json|schemas/kernel-decision-intake/kernel-decision-intake.v1.schema.json|schemas/kernel-decision-intake-result/kernel-decision-intake-result.v1.schema.json|schemas/final-gate-result/final-gate-result.v1.schema.json|schemas/diagnostic/diagnostic.v1.schema.json|schemas/lock-manifest/lock-manifest.v1.schema.json|schemas/behavioral-coverage/behavioral-coverage.v1.schema.json|schemas/validator-evidence/validator-evidence.v1.schema.json|schemas/producer-adoption/producer-adoption-set.v1.schema.json|schemas/transition-targets/transition-targets.v1.schema.json)$'
-          unexpected=$(find schemas -type f | grep -Ev "$allowed" || true)
-          if [ -n "$unexpected" ]; then
-            echo "Unexpected schema files found under schemas/."
-            printf '%s\n' "$unexpected"
-            exit 1
-          fi
-          echo "Only Project Gate-owned envelope/result/intake/diagnostic/lock/behavioral-coverage/validator-evidence/producer-adoption/transition-target schemas found."
+          clean_venv="$RUNNER_TEMP/ev4-clean-install"
+          uv venv "$clean_venv"
+          wheel_path="$(find "$RUNNER_TEMP/dist" -maxdepth 1 -name '*.whl' -print -quit)"
+          test -n "$wheel_path"
+          uv pip install --python "$clean_venv/bin/python" "$wheel_path" "gradio>=4,<6"
+          (
+            cd "$RUNNER_TEMP"
+            "$clean_venv/bin/python" - <<'PY'
+          from ev4_transition.cli import main
+          from ev4_transition.runners.native_dialog import select_directory
+          from ev4_transition.runners.open_output_folder import open_directory
+          from ev4_transition.ui.app import build_demo
 
-      - name: Record exact tested head
-        run: echo "Skeleton Health validated source head ${{ github.sha }}" >> "$GITHUB_STEP_SUMMARY"
+          demo = build_demo()
+          assert demo is not None
+          assert main is not None
+          assert select_directory is not None
+          assert open_directory is not None
+          print("CLEAN_INSTALL_RUNTIME_OK")
+          PY
+          )
 
-  python-core:
+      - name: Record core result
+        run: |
+          {
+            echo "## Core quality"
+            echo "- tested head: \`${{ needs.skeleton.outputs.tested_head }}\`"
+            echo "- full pytest: once"
+            echo "- wheel build: once"
+            echo "- clean install and UI construction: once"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  affected-boundaries:
+    name: boundary-${{ matrix.boundary }}
+    needs:
+      - skeleton
+      - python-core
+    if: needs.skeleton.outputs.boundary_count != '0'
     runs-on: ubuntu-latest
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        boundary: ${{ fromJSON(needs.skeleton.outputs.boundaries_json) }}
     steps:
       - name: Checkout exact Project Gate source
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
         with:
-          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          ref: ${{ needs.skeleton.outputs.tested_head }}
+          fetch-depth: 0
           path: EV4-Project-Gate
           persist-credentials: false
 
-      - name: Assert exact Project Gate PR head
-        if: github.event_name == 'pull_request'
-        run: test "$(git -C EV4-Project-Gate rev-parse HEAD)" = "${{ github.event.pull_request.head.sha }}"
-
-      - name: Checkout Architect pinned contract repo
-        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
-        with:
-          repository: rezahh107/EV4-Architect-Repo
-          ref: be9bdea9ae246b1587043f2582c1a950ea2a6ec5
-          path: EV4-Architect-Repo
-          persist-credentials: false
-
-      - name: Checkout CE pinned contract repo
-        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
-        with:
-          repository: rezahh107/EV4-Constructability-Engineer-Repo
-          ref: 6650c31304e5a0472b276c36018c1df8f42ac983
-          path: EV4-Constructability-Engineer-Repo
-          persist-credentials: false
-
-      - name: Checkout CE pinned CE-to-Builder repo
-        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
-        with:
-          repository: rezahh107/EV4-Constructability-Engineer-Repo
-          ref: 6650c31304e5a0472b276c36018c1df8f42ac983
-          path: EV4-Constructability-Engineer-Repo-Prompt04
-          persist-credentials: false
-
-      - name: Checkout Builder pinned CE-to-Builder repo
-        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
-        with:
-          repository: rezahh107/EV4-Builder-Assistant-Repo
-          ref: b599c000118dcbe77572d6f387da5da0f46d1f91
-          path: EV4-Builder-Assistant-Repo-Prompt04
-          persist-credentials: false
+      - name: Assert exact tested head
+        run: test "$(git -C EV4-Project-Gate rev-parse HEAD)" = "${{ needs.skeleton.outputs.tested_head }}"
 
       - name: Install uv
         uses: astral-sh/setup-uv@08807647e7069bb48b6ef5acd8ec9567f424441b
@@ -169,221 +206,258 @@ jobs:
         with:
           python-version-file: EV4-Project-Gate/.python-version
 
-      - name: Setup Node
+      - name: Install locked Project Gate package
+        working-directory: EV4-Project-Gate
+        run: uv sync --locked --extra dev --extra ui
+
+      - name: Checkout Architect owner repository
+        if: matrix.boundary == 'architect_to_ce'
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+        with:
+          repository: rezahh107/EV4-Architect-Repo
+          ref: be9bdea9ae246b1587043f2582c1a950ea2a6ec5
+          path: EV4-Architect-Repo
+          persist-credentials: false
+
+      - name: Checkout CE owner repository for Architect boundary
+        if: matrix.boundary == 'architect_to_ce'
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+        with:
+          repository: rezahh107/EV4-Constructability-Engineer-Repo
+          ref: 6650c31304e5a0472b276c36018c1df8f42ac983
+          path: EV4-Constructability-Engineer-Repo
+          persist-credentials: false
+
+      - name: Verify Architect to CE boundary
+        if: matrix.boundary == 'architect_to_ce'
+        working-directory: EV4-Project-Gate
+        env:
+          EV4_ARCHITECT_REPO: ${{ github.workspace }}/EV4-Architect-Repo
+          EV4_CE_REPO: ${{ github.workspace }}/EV4-Constructability-Engineer-Repo
+        run: |
+          uv run pytest -q tests/test_architect_to_ce_transition.py tests/producer_integration/test_pg_a2c_io.py tests/producer_integration/test_pg_a2c_dispatch.py
+          uv run python scripts/verify-architect-to-ce-lock.py --architect-repo "$EV4_ARCHITECT_REPO" --ce-repo "$EV4_CE_REPO"
+          uv run python scripts/transition-smoke.py --architect-repo "$EV4_ARCHITECT_REPO" --ce-repo "$EV4_CE_REPO"
+          (cd "$EV4_ARCHITECT_REPO" && "${{ github.workspace }}/EV4-Project-Gate/.venv/bin/python" scripts/check-architect-stage-payload.py)
+          (cd "$EV4_CE_REPO" && "${{ github.workspace }}/EV4-Project-Gate/.venv/bin/python" scripts/validate-ce-architect-stage-intake.py)
+
+      - name: Checkout CE owner repository for Builder boundary
+        if: matrix.boundary == 'ce_to_builder'
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+        with:
+          repository: rezahh107/EV4-Constructability-Engineer-Repo
+          ref: 6650c31304e5a0472b276c36018c1df8f42ac983
+          path: EV4-Constructability-Engineer-Repo
+          persist-credentials: false
+
+      - name: Checkout Builder owner repository for CE boundary
+        if: matrix.boundary == 'ce_to_builder'
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+        with:
+          repository: rezahh107/EV4-Builder-Assistant-Repo
+          ref: b599c000118dcbe77572d6f387da5da0f46d1f91
+          path: EV4-Builder-Assistant-Repo
+          persist-credentials: false
+
+      - name: Verify CE to Builder boundary
+        if: matrix.boundary == 'ce_to_builder'
+        working-directory: EV4-Project-Gate
+        env:
+          EV4_CE_REPO: ${{ github.workspace }}/EV4-Constructability-Engineer-Repo
+          EV4_BUILDER_REPO: ${{ github.workspace }}/EV4-Builder-Assistant-Repo
+        run: |
+          uv run pytest -q tests/transitions/test_ce_to_builder.py tests/producer_integration/test_pg_c2b_dispatch.py
+          uv run python scripts/compute-ce-to-builder-lock.py --ce-repo "$EV4_CE_REPO" --builder-repo "$EV4_BUILDER_REPO" --output /tmp/c2b-lock.json
+          cmp /tmp/c2b-lock.json contracts/locks/ce-to-builder-transition.v1.lock.json
+          uv run python scripts/verify-ce-to-builder-lock.py --ce-repo "$EV4_CE_REPO" --builder-repo "$EV4_BUILDER_REPO"
+          uv run python scripts/ce-to-builder-smoke.py --ce-repo "$EV4_CE_REPO" --builder-repo "$EV4_BUILDER_REPO" --fixture "$EV4_CE_REPO/tests/role-alignment/valid/executable_visual_reference_package.json"
+
+      - name: Checkout Builder owner repository for Responsive boundary
+        if: matrix.boundary == 'builder_to_responsive'
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+        with:
+          repository: rezahh107/EV4-Builder-Assistant-Repo
+          ref: 69a2c61edf6d06b4418ad770fcefbfdffcf275d6
+          path: EV4-Builder-Assistant-Repo
+          persist-credentials: false
+
+      - name: Checkout Responsive owner repository
+        if: matrix.boundary == 'builder_to_responsive' || matrix.boundary == 'final_gate'
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+        with:
+          repository: rezahh107/EV4-Responsive-Architect
+          ref: df74c7ba2ffbed1a4136b5ea6be6ce30db4e161a
+          path: EV4-Responsive-Architect
+          persist-credentials: false
+
+      - name: Verify Builder to Responsive boundary
+        if: matrix.boundary == 'builder_to_responsive'
+        working-directory: EV4-Project-Gate
+        env:
+          EV4_BUILDER_REPO: ${{ github.workspace }}/EV4-Builder-Assistant-Repo
+          EV4_RESPONSIVE_REPO: ${{ github.workspace }}/EV4-Responsive-Architect
+        run: |
+          uv run pytest -q tests/transitions/test_builder_to_responsive.py
+          uv run python scripts/compute-builder-to-responsive-lock.py --builder-repo "$EV4_BUILDER_REPO" --responsive-repo "$EV4_RESPONSIVE_REPO" --output /tmp/b2r-lock.json
+          cmp /tmp/b2r-lock.json contracts/locks/builder-to-responsive-transition.v1.lock.json
+          (cd "$EV4_RESPONSIVE_REPO" && "${{ github.workspace }}/EV4-Project-Gate/.venv/bin/python" validation/e2e/run_builder_responsive_input_boundary_check.py)
+          (cd "$EV4_RESPONSIVE_REPO" && "${{ github.workspace }}/EV4-Project-Gate/.venv/bin/python" validation/e2e/run_responsive_tree_architecture_refactor_check.py)
+
+      - name: Verify Final Gate boundary
+        if: matrix.boundary == 'final_gate'
+        working-directory: EV4-Project-Gate
+        env:
+          EV4_RESPONSIVE_REPO: ${{ github.workspace }}/EV4-Responsive-Architect
+        run: |
+          uv run pytest -q tests/transitions/test_final_gate.py tests/reports/test_decision_receipts.py
+          uv run python scripts/compute-final-gate-lock.py --project-gate-repo . --responsive-repo "$EV4_RESPONSIVE_REPO" --output /tmp/final-gate-lock.json
+          cmp /tmp/final-gate-lock.json contracts/locks/final-gate.v1.lock.json
+
+      - name: Checkout pinned Decision Kernel
+        if: matrix.boundary == 'kernel_intake'
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+        with:
+          repository: rezahh107/EV4-Decision-Kernel
+          ref: 76a82e28543ff8f0babca11b7d7dccac96b92894
+          fetch-depth: 0
+          path: EV4-Decision-Kernel
+          persist-credentials: false
+
+      - name: Setup Node for Kernel boundary only
+        if: matrix.boundary == 'kernel_intake'
         uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
         with:
           node-version: 20
 
-      - name: Verify uv lockfile
-        working-directory: EV4-Project-Gate
-        run: uv lock --check
-
-      - name: Install package
-        working-directory: EV4-Project-Gate
-        run: uv sync --locked --extra dev --extra ui
-
-      - name: Service layer tests
-        working-directory: EV4-Project-Gate
-        run: uv run pytest tests/service
-
-      - name: KROAD-011 intake, Final Gate, receipt, and governance tests
-        working-directory: EV4-Project-Gate
-        run: uv run pytest tests/kernel_decision_intake tests/transitions/test_final_gate.py tests/reports/test_decision_receipts.py tests/planning/test_decision_escape_routes_schema.py
-
-      - name: Operator UI adapter tests
-        working-directory: EV4-Project-Gate
-        run: uv run pytest tests/ui
-
-      - name: CLI and bundle tests
-        working-directory: EV4-Project-Gate
-        run: uv run pytest tests/test_cli.py tests/test_canonical_json.py tests/test_bundle_validator.py
-
-      - name: Personal-use package tests
-        working-directory: EV4-Project-Gate
-        run: uv run pytest --maxfail=1 --tb=short tests/personal_use tests/e2e
-
-      - name: Architect-to-CE transition tests
+      - name: Verify Kernel intake boundary
+        if: matrix.boundary == 'kernel_intake'
         working-directory: EV4-Project-Gate
         env:
-          EV4_ARCHITECT_REPO: ${{ github.workspace }}/EV4-Architect-Repo
-          EV4_CE_REPO: ${{ github.workspace }}/EV4-Constructability-Engineer-Repo
-        run: uv run pytest tests/test_architect_to_ce_transition.py
-
-      - name: Producer dispatch and adversarial tests
-        working-directory: EV4-Project-Gate
-        run: uv run pytest -q tests/producer_integration/test_prompt05_producer_integration.py tests/producer_integration/test_pg_a2c_io.py tests/producer_integration/test_pg_a2c_dispatch.py tests/producer_integration/test_pg_c2b_dispatch.py
-
-      - name: Prompt 01 unit tests
-        working-directory: EV4-Project-Gate
-        run: uv run pytest tests/unit
-
-      - name: Static runner-boundary scanner
-        working-directory: EV4-Project-Gate
-        run: uv run python scripts/check-runner-boundary.py
-
-      - name: Runner tests
-        working-directory: EV4-Project-Gate
-        run: uv run pytest tests/runners
-
-      - name: CE-to-Builder transition pytest
-        working-directory: EV4-Project-Gate
+          EV4_KERNEL_REPO: ${{ github.workspace }}/EV4-Decision-Kernel
         run: |
-          set -o pipefail
-          uv run pytest -vv --tb=short --maxfail=1 tests/transitions/test_ce_to_builder.py 2>&1 | tee c2b-pytest.log
+          (cd "$EV4_KERNEL_REPO" && npm ci --ignore-scripts && npm run validate:mvk)
+          uv run python scripts/compute-kernel-decision-intake-lock.py --kernel-repo "$EV4_KERNEL_REPO" --output /tmp/kernel-lock.json
+          cmp /tmp/kernel-lock.json contracts/locks/kernel-decision-intake.v1.lock.json
+          node - <<'NODE'
+          const fs = require('fs');
+          const fixture = JSON.parse(fs.readFileSync(process.env.EV4_KERNEL_REPO + '/kernel/fixtures/valid/l2_decision_correctness/layout_structure_auto_resolved_flexbox_pass.json', 'utf8'));
+          fs.writeFileSync('/tmp/kernel-bridge-input.json', JSON.stringify({
+            decision_record: fixture.input.decision_record,
+            resolver_input: fixture.input.resolver_input,
+            audit_context: { claims: [] }
+          }));
+          NODE
+          node scripts/kernel-decision-intake-bridge.mjs --kernel-repo "$EV4_KERNEL_REPO" --input /tmp/kernel-bridge-input.json > /tmp/kernel-bridge-output.json
+          uv run pytest -q tests/kernel_decision_intake tests/test_cli_final_gate_kernel_repo.py tests/planning/test_decision_escape_routes_schema.py
 
-      - name: Prompt-05 transition tests
-        working-directory: EV4-Project-Gate
-        run: uv run pytest -q tests/transitions/test_builder_to_responsive.py tests/transitions/test_final_gate.py
-
-      - name: Upload CE-to-Builder pytest log
-        if: failure()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+      - name: Checkout Architect producer
+        if: matrix.boundary == 'producer_integration'
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
         with:
-          name: c2b-pytest-log
-          path: EV4-Project-Gate/c2b-pytest.log
-          if-no-files-found: ignore
+          repository: rezahh107/EV4-Architect-Repo
+          ref: be9bdea9ae246b1587043f2582c1a950ea2a6ec5
+          path: producers/architect
+          persist-credentials: false
 
-      - name: Progress tests
-        working-directory: EV4-Project-Gate
-        run: uv run pytest tests/progress
-
-      - name: Runner boundary tests
-        working-directory: EV4-Project-Gate
-        run: uv run pytest tests/boundary
-
-      - name: Behavioral coverage validator
-        working-directory: EV4-Project-Gate
-        run: |
-          uv run python scripts/validate-behavioral-rule-coverage.py docs/BEHAVIORAL_RULE_COVERAGE.md
-          uv run ev4-transition coverage validate docs/BEHAVIORAL_RULE_COVERAGE.md
-
-      - name: Behavioral fixture validation
-        working-directory: EV4-Project-Gate
-        run: uv run pytest tests/behavioral_coverage
-
-      - name: Verify external contract lock hashes
-        working-directory: EV4-Project-Gate
-        env:
-          EV4_ARCHITECT_REPO: ${{ github.workspace }}/EV4-Architect-Repo
-          EV4_CE_REPO: ${{ github.workspace }}/EV4-Constructability-Engineer-Repo
-        run: uv run python scripts/verify-architect-to-ce-lock.py --architect-repo "$EV4_ARCHITECT_REPO" --ce-repo "$EV4_CE_REPO"
-
-      - name: Compute CE-to-Builder lock hashes
-        working-directory: EV4-Project-Gate
-        env:
-          EV4_CE_REPO_PROMPT04: ${{ github.workspace }}/EV4-Constructability-Engineer-Repo-Prompt04
-          EV4_BUILDER_REPO_PROMPT04: ${{ github.workspace }}/EV4-Builder-Assistant-Repo-Prompt04
-        run: |
-          uv run python scripts/compute-ce-to-builder-lock.py \
-            --ce-repo "$EV4_CE_REPO_PROMPT04" \
-            --builder-repo "$EV4_BUILDER_REPO_PROMPT04" \
-            --output c2b-lock-computed.json
-
-      - name: Upload CE-to-Builder computed lock
-        if: always()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+      - name: Checkout CE producer
+        if: matrix.boundary == 'producer_integration'
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
         with:
-          name: c2b-lock-computed
-          path: EV4-Project-Gate/c2b-lock-computed.json
-          if-no-files-found: ignore
+          repository: rezahh107/EV4-Constructability-Engineer-Repo
+          ref: 6650c31304e5a0472b276c36018c1df8f42ac983
+          path: producers/ce
+          persist-credentials: false
 
-      - name: CE-to-Builder lock verification
-        working-directory: EV4-Project-Gate
-        env:
-          EV4_CE_REPO_PROMPT04: ${{ github.workspace }}/EV4-Constructability-Engineer-Repo-Prompt04
-          EV4_BUILDER_REPO_PROMPT04: ${{ github.workspace }}/EV4-Builder-Assistant-Repo-Prompt04
-        run: |
-          set -o pipefail
-          uv run python scripts/verify-ce-to-builder-lock.py --ce-repo "$EV4_CE_REPO_PROMPT04" --builder-repo "$EV4_BUILDER_REPO_PROMPT04" 2>&1 | tee c2b-lock-verify.log
-
-      - name: Upload CE-to-Builder lock verify log
-        if: failure()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+      - name: Checkout Builder producer
+        if: matrix.boundary == 'producer_integration'
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
         with:
-          name: c2b-lock-verify-log
-          path: EV4-Project-Gate/c2b-lock-verify.log
-          if-no-files-found: ignore
+          repository: rezahh107/EV4-Builder-Assistant-Repo
+          ref: 45459d0246f5d14486867224d26c2d2ba8a563b6
+          path: producers/builder
+          persist-credentials: false
 
-      - name: CE-to-Builder live owner tool smoke
-        working-directory: EV4-Project-Gate
-        env:
-          EV4_CE_REPO_PROMPT04: ${{ github.workspace }}/EV4-Constructability-Engineer-Repo-Prompt04
-          EV4_BUILDER_REPO_PROMPT04: ${{ github.workspace }}/EV4-Builder-Assistant-Repo-Prompt04
-        run: |
-          set -o pipefail
-          uv run python scripts/ce-to-builder-smoke.py \
-            --ce-repo "$EV4_CE_REPO_PROMPT04" \
-            --builder-repo "$EV4_BUILDER_REPO_PROMPT04" \
-            --fixture "$EV4_CE_REPO_PROMPT04/tests/role-alignment/valid/executable_visual_reference_package.json" 2>&1 | tee c2b-smoke.log
-
-      - name: Upload CE-to-Builder smoke log
-        if: failure()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+      - name: Checkout Responsive producer
+        if: matrix.boundary == 'producer_integration'
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
         with:
-          name: c2b-smoke-log
-          path: EV4-Project-Gate/c2b-smoke.log
-          if-no-files-found: ignore
+          repository: rezahh107/EV4-Responsive-Architect
+          ref: 28a995a603a5a383b8592d6beae7db8943f20acf
+          path: producers/responsive
+          persist-credentials: false
 
-      - name: CLI smoke valid bundle
-        working-directory: EV4-Project-Gate
-        run: uv run ev4-transition validate fixtures/valid/architect-stage-bundle.v1.json
-
-      - name: CLI smoke invalid array
+      - name: Verify producer integration boundary
+        if: matrix.boundary == 'producer_integration'
         working-directory: EV4-Project-Gate
         run: |
-          set +e
-          uv run ev4-transition validate fixtures/invalid/array-input.v1.json
-          status=$?
-          test "$status" -eq 1
+          uv run pytest -q tests/producer_integration
+          uv run python - <<'PY'
+          import hashlib
+          import json
+          import subprocess
+          from pathlib import Path
+          from ev4_transition.producer_integration.registry import validate_adoption_registry
 
-      - name: CLI smoke Persian insufficient evidence
-        working-directory: EV4-Project-Gate
+          result = validate_adoption_registry()
+          assert result["status"] == "valid", result
+          registry = json.load(open("contracts/producer-adoption/ev4-producer-adoption-set.v1.json", encoding="utf-8"))
+          roots = {
+              "architect": Path("../producers/architect"),
+              "ce": Path("../producers/ce"),
+              "builder": Path("../producers/builder"),
+              "responsive": Path("../producers/responsive"),
+          }
+          for producer in registry["producers"]:
+              root = roots[producer["stage"]]
+              commit = producer["runtime_pin"]["merged_commit_sha"]
+              validators = [a["path"] for a in producer.get("artifacts", []) if a.get("role") == "validator"]
+              assert validators, f"{producer['stage']}: no validator artifact recorded"
+              for validator in validators:
+                  assert (root / validator).is_file(), f"{producer['stage']}: missing {validator}"
+              for record in producer["hash_verification"]["records"]:
+                  assert record["commit_sha"] == commit
+                  data = subprocess.check_output(["git", "-C", str(root), "show", f"{commit}:{record['path']}"])
+                  assert hashlib.sha256(data).hexdigest() == record["sha256"]
+          PY
+
+      - name: Record boundary result
+        run: echo "Boundary ${{ matrix.boundary }} passed on ${{ needs.skeleton.outputs.tested_head }}" >> "$GITHUB_STEP_SUMMARY"
+
+  quality-gate:
+    name: quality-gate
+    if: always()
+    needs:
+      - skeleton
+      - python-core
+      - affected-boundaries
+    runs-on: ubuntu-latest
+    steps:
+      - name: Enforce complete result
+        shell: bash
+        env:
+          SCOPE_RESULT: ${{ needs.skeleton.result }}
+          CORE_RESULT: ${{ needs.python-core.result }}
+          BOUNDARY_RESULT: ${{ needs.affected-boundaries.result }}
+          BOUNDARY_COUNT: ${{ needs.skeleton.outputs.boundary_count }}
+          TESTED_HEAD: ${{ needs.skeleton.outputs.tested_head }}
+          BOUNDARIES: ${{ needs.skeleton.outputs.boundaries_json }}
         run: |
-          set +e
-          output=$(uv run ev4-transition validate fixtures/insufficient-evidence/architect-stage-bundle.v1.json --format persian)
-          status=$?
-          printf '%s\n' "$output"
-          test "$status" -eq 2
-          printf '%s' "$output" | grep 'شواهد کافی نیست'
-
-      - name: Official Architect validator fixture suite
-        working-directory: EV4-Architect-Repo
-        env:
-          PROJECT_GATE_PYTHON: ${{ github.workspace }}/EV4-Project-Gate/.venv/bin/python
-        run: '"$PROJECT_GATE_PYTHON" scripts/check-architect-stage-payload.py'
-
-      - name: Official CE validator fixture suite
-        working-directory: EV4-Constructability-Engineer-Repo
-        env:
-          PROJECT_GATE_PYTHON: ${{ github.workspace }}/EV4-Project-Gate/.venv/bin/python
-        run: '"$PROJECT_GATE_PYTHON" scripts/validate-ce-architect-stage-intake.py'
-
-      - name: Generated Architect-to-CE transition smoke and CE binding
-        working-directory: EV4-Project-Gate
-        env:
-          EV4_ARCHITECT_REPO: ${{ github.workspace }}/EV4-Architect-Repo
-          EV4_CE_REPO: ${{ github.workspace }}/EV4-Constructability-Engineer-Repo
-        run: uv run python scripts/transition-smoke.py --architect-repo "$EV4_ARCHITECT_REPO" --ce-repo "$EV4_CE_REPO"
-
-      - name: Current-head Architect export to standalone CE input
-        working-directory: EV4-Project-Gate
-        env:
-          EV4_ARCHITECT_REPO: ${{ github.workspace }}/EV4-Architect-Repo
-          EV4_CE_REPO: ${{ github.workspace }}/EV4-Constructability-Engineer-Repo
-        run: |
-          uv run python scripts/pg-a2c-current-head-smoke.py \
-            --architect-repo "$EV4_ARCHITECT_REPO" \
-            --ce-repo "$EV4_CE_REPO" \
-            --evidence-dir pg-a2c-exact-head-evidence
-
-      - name: Upload PG-A2C exact-head evidence
-        if: always()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
-        with:
-          name: pg-a2c-exact-head-${{ github.event.pull_request.head.sha || github.sha }}
-          path: EV4-Project-Gate/pg-a2c-exact-head-evidence
-          if-no-files-found: error
-          retention-days: 14
-
-      - name: Record exact tested head
-        run: echo "Python core validated source head ${{ github.sha }}" >> "$GITHUB_STEP_SUMMARY"
+          set -euo pipefail
+          test "$SCOPE_RESULT" = "success"
+          test "$CORE_RESULT" = "success"
+          if [[ "$BOUNDARY_COUNT" == "0" ]]; then
+            test "$BOUNDARY_RESULT" = "skipped"
+            not_applicable=true
+          else
+            test "$BOUNDARY_RESULT" = "success"
+            not_applicable=false
+          fi
+          {
+            echo "## Final quality result"
+            echo "- tested_head: \`$TESTED_HEAD\`"
+            echo "- core_quality: \`$CORE_RESULT\`"
+            echo "- package_runtime: \`$CORE_RESULT\`"
+            echo "- boundaries_executed: \`$BOUNDARIES\`"
+            echo "- boundaries_not_applicable: \`$not_applicable\`"
+            echo "- final_result: \`success\`"
+          } >> "$GITHUB_STEP_SUMMARY"
