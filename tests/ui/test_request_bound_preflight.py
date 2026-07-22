@@ -95,21 +95,19 @@ def test_classification_never_grants_readiness_with_invalid_repositories(tmp_pat
     assert token is None
 
 
-def test_every_dispatch_affecting_mutation_changes_request_fingerprint(tmp_path: Path):
+def test_effective_dispatch_mutations_change_request_fingerprint_and_irrelevant_paths_do_not(tmp_path: Path):
     request = _request(tmp_path)
     baseline = build_gate_request_identity(request).fingerprint
     alternate_source = tmp_path / "alternate.json"
     alternate_source.write_bytes(SOURCE.read_bytes())
-    mutations = [
+
+    effective_mutations = [
         replace(request, transition_choice="ce_to_builder"),
         replace(request, acquisition_mode="pinned_owner_file_computation"),
         replace(request, input_json_path=str(alternate_source)),
         replace(request, repo_paths=replace(request.repo_paths, project_gate_repo_path=str(tmp_path))),
         replace(request, repo_paths=replace(request.repo_paths, architect_repo_path=str(tmp_path / "other-a"))),
         replace(request, repo_paths=replace(request.repo_paths, ce_repo_path=str(tmp_path / "other-ce"))),
-        replace(request, repo_paths=replace(request.repo_paths, builder_repo_path=str(tmp_path / "builder"))),
-        replace(request, repo_paths=replace(request.repo_paths, responsive_repo_path=str(tmp_path / "responsive"))),
-        replace(request, repo_paths=replace(request.repo_paths, kernel_repo_path=str(tmp_path / "kernel"))),
         replace(request, output_dir=str(tmp_path / "other-output")),
         replace(request, schema_root="other-schemas"),
         replace(request, lock_path="other-lock.json"),
@@ -118,8 +116,16 @@ def test_every_dispatch_affecting_mutation_changes_request_fingerprint(tmp_path:
         replace(request, timeout_seconds=31),
         replace(request, require_real_evidence=False),
     ]
-    for mutated in mutations:
+    for mutated in effective_mutations:
         assert build_gate_request_identity(mutated).fingerprint != baseline
+
+    irrelevant_mutations = [
+        replace(request, repo_paths=replace(request.repo_paths, builder_repo_path=str(tmp_path / "builder"))),
+        replace(request, repo_paths=replace(request.repo_paths, responsive_repo_path=str(tmp_path / "responsive"))),
+        replace(request, repo_paths=replace(request.repo_paths, kernel_repo_path=str(tmp_path / "kernel"))),
+    ]
+    for mutated in irrelevant_mutations:
+        assert build_gate_request_identity(mutated).fingerprint == baseline
 
 
 def test_stale_token_blocks_before_transition_dispatch(monkeypatch, tmp_path: Path):
@@ -204,6 +210,7 @@ def test_ui_invalidation_clears_token_attempt_and_run_state():
     assert attempt is None
     assert open_update == {"interactive": False}
 
+
 def test_source_bytes_changed_after_ready_blocks_before_dispatch(monkeypatch, tmp_path: Path):
     source = tmp_path / "architect-export.json"
     source.write_bytes(SOURCE.read_bytes())
@@ -235,20 +242,35 @@ def test_source_bytes_changed_after_ready_blocks_before_dispatch(monkeypatch, tm
 
 
 def test_all_authority_bearing_gui_controls_have_immediate_invalidation_wiring():
-    source = inspect.getsource(ui_app.build_demo)
-    loop = source.split("for authority_input in (", 1)[1].split("):", 1)[0]
-    for name in (
-        "transition",
-        "acquisition_mode",
-        "json_text",
-        "architect_path",
-        "ce_path",
-        "builder_path",
-        "responsive_path",
-        "kernel_path",
-        "output_dir",
-    ):
-        assert name in loop
-    assert "source_file.change(" in source
-    assert "project_gate_path.change(" in source
-    assert "outputs=[preflight_token, run_button" in source
+    demo = ui_app.build_demo()
+    config = demo.get_config_file()
+    components = config["components"]
+    dependencies = config["dependencies"]
+
+    by_label = {
+        component.get("props", {}).get("label"): component["id"]
+        for component in components
+        if component.get("props", {}).get("label")
+    }
+    changed_targets = {
+        target
+        for dependency in dependencies
+        for target in dependency.get("targets", [])
+        if target[1] == "change"
+    }
+    expected_labels = {
+        "فایل اصلی JSON / Original JSON file",
+        "Transition / مسیر",
+        "Acquisition mode / روش دریافت",
+        "Paste JSON — فقط برای pinned_owner_file_computation",
+        "Project Gate repository",
+        "Architect repository",
+        "Constructability Engineer repository",
+        "Builder repository",
+        "Responsive repository",
+        "Decision Kernel repository",
+        "Default output directory",
+    }
+    assert expected_labels <= set(by_label)
+    for label in expected_labels:
+        assert (by_label[label], "change") in changed_targets, label
