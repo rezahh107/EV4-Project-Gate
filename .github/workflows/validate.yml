@@ -22,7 +22,7 @@ permissions:
 
 jobs:
   skeleton:
-    name: scope
+    name: skeleton
     runs-on: ubuntu-latest
     outputs:
       tested_head: ${{ steps.scope.outputs.tested_head }}
@@ -78,7 +78,7 @@ jobs:
           } >> "$GITHUB_STEP_SUMMARY"
 
   python-core:
-    name: core-quality
+    name: python-core
     needs: skeleton
     runs-on: ubuntu-latest
     timeout-minutes: 90
