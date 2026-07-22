@@ -238,8 +238,8 @@ def test_explicit_valid_output_directory_is_preserved(monkeypatch, tmp_path: Pat
     )
 
     assert result["status"] == "accepted"
-    assert Path(captured["kwargs"]["output_path"]).parent == explicit
-    assert Path(captured["kwargs"]["receipt_path"]).parent == explicit
+    assert Path(captured["kwargs"]["output_path"]).parent.parent == explicit
+    assert Path(captured["kwargs"]["receipt_path"]).parent.parent == explicit
 
 
 @pytest.mark.parametrize(
@@ -427,7 +427,7 @@ def test_invalid_explicit_publication_paths_return_structured_invalid(
     result = facade.execute_producer_handoff(**kwargs)
 
     assert result["status"] == "invalid"
-    assert result["diagnostics"][0]["code"] == "PG_INT_PATH_EXPANSION_FAILED"
+    assert result["diagnostics"][0]["code"] == "PG_INT_ADVANCED_PUBLICATION_PATH_UNSUPPORTED"
 
 
 @pytest.mark.parametrize(

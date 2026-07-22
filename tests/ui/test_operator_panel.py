@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from ev4_transition.service.report_publication import publish_result_payload
 from copy import deepcopy
 import json
 from pathlib import Path
@@ -9,56 +10,51 @@ from ev4_transition.ui.adapters import (
     CAPABILITY_STATUS_PATH,
     build_capability_rows,
     load_capability_payload,
-    render_download_artifacts,
     run_operator_check,
     build_gate_request,
 )
 from ev4_transition.ui.components import diagnostics_to_rows, ltr_token, status_summary_markdown
+from ev4_transition.ui.app import run_authoritative_preflight
+from ev4_transition.service import run_preflight
 
 
 ROOT = Path(__file__).resolve().parents[2]
 
 
 def test_malformed_json_returns_safe_ui_error(tmp_path: Path):
-    output = run_operator_check(
-        "Validate Stage Evidence Bundle",
-        pasted_json='{"schema_version": ',
-        output_dir=tmp_path,
+    result, token = run_authoritative_preflight(
+        "Validate Stage Evidence Bundle", "pinned_owner_file_computation",
+        '{"schema_version": ', None, str(ROOT), None, None, None, None, None, str(tmp_path),
     )
-
-    assert output.result["status"] == "invalid"
-    assert output.result["diagnostics"][0]["code"] == "PG.SERVICE.MALFORMED_JSON"
-    assert "JSON" in output.result["diagnostics"][0]["message"]
-    assert output.download_paths
+    assert result.status == "blocked"
+    assert token is None
+    assert any("PG.SERVICE.MALFORMED_JSON" in str(check.technical_detail) for check in result.checks)
 
 
 def test_non_object_json_returns_invalid_guard_without_engine_execution(tmp_path: Path):
-    output = run_operator_check(
-        "Validate Stage Evidence Bundle",
-        pasted_json="[]",
-        output_dir=tmp_path,
+    result, token = run_authoritative_preflight(
+        "Validate Stage Evidence Bundle", "pinned_owner_file_computation",
+        "[]", None, str(ROOT), None, None, None, None, None, str(tmp_path),
     )
-
-    assert output.result["status"] == "invalid"
-    assert output.result["result_type"] == "service_response"
-    assert output.result["diagnostics"][0]["code"] == "INPUT_NOT_OBJECT"
-    assert output.result["diagnostics"][0]["path"] == "$"
+    assert result.status == "blocked"
+    assert token is None
+    assert any(check.id == "json.source.not_object" for check in result.checks)
 
 
 def test_missing_project_gate_schemas_directory_fails_closed(tmp_path: Path):
     project_gate_without_schemas = tmp_path / "EV4-Project-Gate"
     project_gate_without_schemas.mkdir()
-
-    output = run_operator_check(
-        "Validate Stage Evidence Bundle",
-        pasted_json='{"schema_version": "stage-evidence-bundle.v1"}',
+    request = build_gate_request(
+        "Architect → CE",
+        pasted_json='{"schema_version":"stage-evidence-bundle.v1","stage":"architect"}',
         project_gate_repo_path=str(project_gate_without_schemas),
+        architect_repo_path=str(tmp_path / "missing-a"),
+        ce_repo_path=str(tmp_path / "missing-ce"),
         output_dir=tmp_path / "out",
     )
-
-    assert output.result["status"] == "insufficient_evidence"
-    assert output.result["diagnostics"][0]["code"] == "PG.SERVICE.LOCAL_FILE_ACCESS_FAILED"
-    assert output.result["diagnostics"][0]["severity"] == "insufficient_evidence"
+    result = run_preflight(request)
+    assert result.status == "blocked"
+    assert any(check.id.endswith("does_not_exist") for check in result.checks)
 
 
 def test_status_rendering_uses_icon_and_text():
@@ -137,13 +133,10 @@ def test_packaged_capability_truth_exposes_ui_service_routing():
 
 def test_unavailable_transition_is_marked_and_does_not_fake_execution(tmp_path: Path):
     for transition in ["CE → Builder", "Builder → Responsive", "Final Evidence Gate"]:
-        output = run_operator_check(transition, pasted_json='{"schema_version": "x"}', output_dir=tmp_path / transition.replace(" ", "_"))
-
-        assert output.result["status"] == "insufficient_evidence"
-        assert output.result["status"] != "accepted"
-        assert output.result["diagnostics"][0]["code"] == "PG.SERVICE.REPO_PATH_MISSING"
-        assert output.result["output"] is None
-        assert "checkout path is required" in output.result["diagnostics"][0]["message"]
+        request = build_gate_request(transition, pasted_json='{"schema_version":"x"}', output_dir=tmp_path / transition.replace(" ", "_"))
+        result = run_preflight(request)
+        assert result.status == "blocked"
+        assert any(check.status == "error" for check in result.checks)
 
 
 def test_report_and_result_rendering_does_not_mutate_original_result(tmp_path: Path):
@@ -163,11 +156,12 @@ def test_report_and_result_rendering_does_not_mutate_original_result(tmp_path: P
     }
     before = deepcopy(result)
 
-    paths = render_download_artifacts(result, tmp_path)
+    paths = publish_result_payload(result, tmp_path)[2]
 
     assert result == before
     assert {Path(path).name for path in paths} == {"result.json", "report.md", "report.html"}
-    loaded = json.loads((tmp_path / "result.json").read_text(encoding="utf-8"))
+    result_path = next(Path(path) for path in paths if Path(path).name == "result.json")
+    loaded = json.loads(result_path.read_text(encoding="utf-8"))
     assert loaded == before
 
 
@@ -188,7 +182,7 @@ def test_html_report_escapes_untrusted_json_payload(tmp_path: Path):
         "output": {"untrusted": payload},
     }
 
-    paths = render_download_artifacts(result, tmp_path)
+    paths = publish_result_payload(result, tmp_path)[2]
     html_path = next(Path(path) for path in paths if Path(path).name == "report.html")
     html = html_path.read_text(encoding="utf-8")
 
@@ -197,26 +191,21 @@ def test_html_report_escapes_untrusted_json_payload(tmp_path: Path):
     assert "<script>alert(1)</script>" not in html
 
 
-def test_partial_download_artifact_failure_removes_written_files(monkeypatch, caplog, tmp_path: Path):
-    import logging
-    import ev4_transition.ui.adapters as adapters
-
+def test_partial_download_artifact_failure_removes_written_files(monkeypatch, tmp_path: Path):
+    import ev4_transition.io.safe_publication as publication
+    real_link = publication.os.link
     calls = {"count": 0}
-    original_write_text = adapters.Path.write_text
-
-    def fail_second_write(self, *args, **kwargs):
+    def fail_second(source, destination, **kwargs):
         calls["count"] += 1
         if calls["count"] == 2:
-            raise OSError("second write failed")
-        return original_write_text(self, *args, **kwargs)
-
-    monkeypatch.setattr(adapters.Path, "write_text", fail_second_write)
-    with caplog.at_level(logging.ERROR, logger=adapters.__name__):
-        paths = render_download_artifacts({"status": "invalid", "diagnostics": []}, tmp_path)
-
+            raise OSError("second publication failed")
+        return real_link(source, destination, **kwargs)
+    monkeypatch.setattr(publication.os, "link", fail_second)
+    paths = publish_result_payload({"status": "invalid", "diagnostics": []}, tmp_path)[2]
     assert paths == []
-    assert list(tmp_path.iterdir()) == []
-    assert any("Failed to render download artifacts" in record.message for record in caplog.records)
+    attempts = list(tmp_path.glob("run-*"))
+    assert len(attempts) == 1
+    assert list(attempts[0].iterdir()) == []
 
 
 def test_markdown_report_neutralizes_triple_backtick_without_mutating_result_json(tmp_path: Path):
@@ -229,9 +218,10 @@ def test_markdown_report_neutralizes_triple_backtick_without_mutating_result_jso
         "output": {"untrusted": payload},
     }
 
-    paths = render_download_artifacts(result, tmp_path)
-    md = (tmp_path / "report.md").read_text(encoding="utf-8")
-    loaded_json = json.loads((tmp_path / "result.json").read_text(encoding="utf-8"))
+    paths = publish_result_payload(result, tmp_path)[2]
+    md = next(Path(path) for path in paths if Path(path).name == "report.md").read_text(encoding="utf-8")
+    result_path = next(Path(path) for path in paths if Path(path).name == "result.json")
+    loaded_json = json.loads(result_path.read_text(encoding="utf-8"))
 
     assert loaded_json == result
     assert "```breakout" not in md
@@ -271,23 +261,13 @@ def test_unhandled_ui_exception_is_logged_without_primary_traceback(monkeypatch,
     assert any(record.exc_info for record in caplog.records)
 
 
-def test_download_artifact_failure_logs_and_cleans_temporary_directory(monkeypatch, caplog, tmp_path: Path):
-    import logging
-    import ev4_transition.ui.adapters as adapters
-
-    temp_dir = tmp_path / "orphan_candidate"
-    monkeypatch.setattr(adapters.tempfile, "mkdtemp", lambda prefix: str(temp_dir))
-
-    def raise_os_error(self, *args, **kwargs):
-        raise OSError("disk full")
-
-    monkeypatch.setattr(adapters.Path, "write_text", raise_os_error)
-    with caplog.at_level(logging.ERROR, logger=adapters.__name__):
-        paths = render_download_artifacts({"status": "invalid", "diagnostics": []})
-
+def test_download_artifact_failure_returns_no_paths(monkeypatch, tmp_path: Path):
+    import ev4_transition.service.report_publication as reports
+    def fail_attempt(*args, **kwargs):
+        raise OSError("disk unavailable")
+    monkeypatch.setattr(reports, "prepare_attempt_paths", fail_attempt)
+    paths = publish_result_payload({"status": "invalid", "diagnostics": []}, tmp_path)[2]
     assert paths == []
-    assert not temp_dir.exists()
-    assert any("Failed to render download artifacts" in record.message for record in caplog.records)
 
 
 def test_finalize_failure_returns_safe_invalid_output(monkeypatch, caplog, tmp_path: Path):

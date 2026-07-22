@@ -166,7 +166,7 @@ def test_direct_a2c_dispatch_preserves_a2c_defaults(monkeypatch):
     assert captured["receipt_path"] == "project-gate-a2c-receipt.json"
 
 
-def test_cli_producer_emitted_c2b_uses_c2b_output_defaults(tmp_path, monkeypatch):
+def test_cli_producer_emitted_c2b_routes_through_shared_service(tmp_path, monkeypatch):
     captured = {}
     ce_repo = tmp_path / "ce"
     builder_repo = tmp_path / "builder"
@@ -175,16 +175,21 @@ def test_cli_producer_emitted_c2b_uses_c2b_output_defaults(tmp_path, monkeypatch
     source = tmp_path / "ce-project-gate.json"
     source.write_text("{}", encoding="utf-8")
 
-    _configure_direct_dispatch(monkeypatch, "ce-to-builder")
+    class Response:
+        def to_dict(self):
+            return {
+                "status": "accepted",
+                "transition_choice": "ce_to_builder",
+                "engine_result": {"status": "accepted", "diagnostics": [], "handoff_allowed": True},
+                "service_diagnostics": [],
+            }
 
-    from ev4_transition.producer_integration import c2b_dispatch
+    def fake_run_gate_request(request):
+        captured["request"] = request
+        return Response()
 
-    def capture_dispatch(*args, **kwargs):
-        captured.update(kwargs)
-        return {"status": "accepted", "diagnostics": [], "handoff_allowed": True}
-
-    monkeypatch.setattr(c2b_dispatch, "dispatch_ce_export", capture_dispatch)
-    monkeypatch.setattr(cli_module, "capture_json_snapshot", lambda _path: SimpleNamespace(value={}, path=source))
+    monkeypatch.setattr(cli_module, "run_preflight", lambda request: SimpleNamespace(status="ready", request_fingerprint="token"))
+    monkeypatch.setattr(cli_module, "run_gate_request", fake_run_gate_request)
     monkeypatch.setattr(cli_module, "_emit", lambda payload, fmt: None)
 
     exit_code = cli_module.main(
@@ -194,6 +199,8 @@ def test_cli_producer_emitted_c2b_uses_c2b_output_defaults(tmp_path, monkeypatch
             str(source),
             "--acquisition-mode",
             "producer_emitted_gate_artifact",
+            "--project-gate-repo",
+            str(Path(__file__).resolve().parents[2]),
             "--ce-repo",
             str(ce_repo),
             "--builder-repo",
@@ -201,9 +208,12 @@ def test_cli_producer_emitted_c2b_uses_c2b_output_defaults(tmp_path, monkeypatch
         ]
     )
     assert exit_code == 0
-    assert captured["output_path"] == "builder-input.json"
-    assert captured["receipt_path"] == "project-gate-c2b-receipt.json"
-    assert captured["lock_path"] == "contracts/locks/ce-to-builder-transition.v1.lock.json"
+    request = captured["request"]
+    assert request.transition_choice == "ce_to_builder"
+    assert request.acquisition_mode == "producer_emitted_gate_artifact"
+    assert request.input_json_path == str(source)
+    assert request.repo_paths.ce_repo_path == str(ce_repo)
+    assert request.repo_paths.builder_repo_path == str(builder_repo)
 
 
 def test_invalid_modes_and_targets_fail_closed():

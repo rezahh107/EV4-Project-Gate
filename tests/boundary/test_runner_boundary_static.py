@@ -36,3 +36,11 @@ def test_static_boundary_scanner_allows_runner_subprocess(tmp_path: Path) -> Non
     (runner / "ok.py").write_text("import subprocess\n", encoding="utf-8")
     findings = _scanner()["scan_runner_boundary"](root)
     assert findings == []
+
+
+def test_static_boundary_scanner_detects_tkinter_outside_runners(tmp_path: Path) -> None:
+    root = tmp_path / "src" / "ev4_transition"
+    root.mkdir(parents=True)
+    (root / "bad.py").write_text("import tkinter\n", encoding="utf-8")
+    findings = _scanner()["scan_runner_boundary"](root)
+    assert any(item.code == "PG.RUNNER_BOUNDARY.BANNED_IMPORT" for item in findings)

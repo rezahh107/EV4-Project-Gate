@@ -11,7 +11,7 @@
 | No color-only status | Status includes icon, Persian label, raw status, and semantic tone text |
 | Progressive disclosure | Gradio accordions for input, diagnostics, capabilities, JSON preview |
 | No fake progress | No progress bar, no timer, no optimistic execution text |
-| No hidden result mutation | `render_download_artifacts` deep-copies result before rendering |
+| No hidden result mutation | `service.report_publication.publish_report_bundle` renders from an immutable `ReportBundle`; UI only displays verified service paths |
 | Malformed JSON fail-closed | `run_operator_check` returns `MALFORMED_JSON` and does not call engine |
 | Unwired transitions fail-safe | `UI_TRANSITION_NOT_WIRED` with `insufficient_evidence` |
 | Capability inspector read-only | `load_capability_payload` reads `capability-status.v1.json`; tests compare file before/after |

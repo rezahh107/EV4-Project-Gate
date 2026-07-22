@@ -1,5 +1,6 @@
 import json
 from pathlib import Path
+from types import SimpleNamespace
 
 import ev4_transition.cli as cli
 
@@ -88,28 +89,21 @@ def test_final_gate_cli_forwards_exact_kernel_checkout(monkeypatch, tmp_path: Pa
     project_gate, responsive, kernel = _local_checkout_paths(tmp_path)
     observed = {}
 
-    def fake_final_gate_from_local_paths(
-        final_input,
-        schema_root,
-        lock_path,
-        project_gate_repo,
-        responsive_repo,
-        *,
-        kernel_repo=None,
-        **kwargs,
-    ):
-        observed.update(
-            final_input=final_input,
-            schema_root=schema_root,
-            lock_path=lock_path,
-            project_gate_repo=project_gate_repo,
-            responsive_repo=responsive_repo,
-            kernel_repo=kernel_repo,
-            kwargs=kwargs,
-        )
-        return {"status": "insufficient_evidence", "diagnostics": []}
+    class Response:
+        def to_dict(self):
+            return {
+                "status": "insufficient_evidence",
+                "transition_choice": "final_gate",
+                "engine_result": {"status": "insufficient_evidence", "diagnostics": []},
+                "service_diagnostics": [],
+            }
 
-    monkeypatch.setattr(cli, "final_gate_from_local_paths", fake_final_gate_from_local_paths)
+    def fake_run_gate_request(request):
+        observed["request"] = request
+        return Response()
+
+    monkeypatch.setattr(cli, "run_preflight", lambda request: SimpleNamespace(status="ready", request_fingerprint="token"))
+    monkeypatch.setattr(cli, "run_gate_request", fake_run_gate_request)
 
     return_code = cli.main([
         "transition",
@@ -125,6 +119,7 @@ def test_final_gate_cli_forwards_exact_kernel_checkout(monkeypatch, tmp_path: Pa
 
     _parsed_output(capsys)
     assert return_code == 2
-    assert observed["project_gate_repo"] == str(project_gate)
-    assert observed["responsive_repo"] == str(responsive)
-    assert observed["kernel_repo"] == str(kernel)
+    request = observed["request"]
+    assert request.repo_paths.project_gate_repo_path == str(project_gate)
+    assert request.repo_paths.responsive_repo_path == str(responsive)
+    assert request.repo_paths.kernel_repo_path == str(kernel)

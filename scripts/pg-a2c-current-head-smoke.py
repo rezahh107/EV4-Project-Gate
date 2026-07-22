@@ -102,11 +102,11 @@ def main(argv: list[str] | None = None) -> int:
     source_bundle_path = evidence / "architect-source-bundle.json"
     _write_json(source_bundle_path, final_bundle)
 
-    output = evidence / "ce-input.json"
-    receipt = evidence / "project-gate-a2c-receipt.json"
     first_ce = evidence / "ce-input.first.json"
     first_receipt = evidence / "project-gate-a2c-receipt.first.json"
-    for path in (output, receipt, first_ce, first_receipt):
+    second_ce = evidence / "ce-input.second.json"
+    second_receipt = evidence / "project-gate-a2c-receipt.second.json"
+    for path in (first_ce, first_receipt, second_ce, second_receipt):
         path.unlink(missing_ok=True)
 
     cli_command = [
@@ -122,16 +122,16 @@ def main(argv: list[str] | None = None) -> int:
         str(architect),
         "--ce-repo",
         str(ce),
-        "--output",
-        output.relative_to(project_gate).as_posix(),
-        "--receipt-output",
-        receipt.relative_to(project_gate).as_posix(),
+        "--output-dir",
+        evidence.relative_to(project_gate).as_posix(),
         "--format",
         "json",
     ]
     first = _run(cli_command, cwd=project_gate)
     _write_process(evidence / "project-gate-first-result.json", cli_command, first)
     first_result = _single_json_line(first.stdout)
+    output = Path(first_result["downstream_artifact"]["path"])
+    receipt = Path(first_result["receipt"]["path"])
     _assert_publication(
         first,
         first_result,
@@ -145,29 +145,36 @@ def main(argv: list[str] | None = None) -> int:
     shutil.copyfile(output, first_ce)
     shutil.copyfile(receipt, first_receipt)
     first_ce_bytes = first_ce.read_bytes()
-    first_receipt_bytes = first_receipt.read_bytes()
-    output.unlink()
-    receipt.unlink()
+    first_receipt_value = _read_json(first_receipt)
 
     second = _run(cli_command, cwd=project_gate)
     _write_process(evidence / "project-gate-second-result.json", cli_command, second)
     second_result = _single_json_line(second.stdout)
+    second_output = Path(second_result["downstream_artifact"]["path"])
+    second_receipt_path = Path(second_result["receipt"]["path"])
     _assert_publication(
         second,
         second_result,
-        output,
-        receipt,
+        second_output,
+        second_receipt_path,
         expected_exit=expected_project_gate_exit,
         expected_status=expected_project_gate_status,
         expected_handoff=source_handoff_allowed,
     )
-    if output.read_bytes() != first_ce_bytes:
+    shutil.copyfile(second_output, second_ce)
+    shutil.copyfile(second_receipt_path, second_receipt)
+    if second_ce.read_bytes() != first_ce_bytes:
         raise SystemExit("repeated execution changed CE input bytes")
-    if receipt.read_bytes() != first_receipt_bytes:
-        raise SystemExit("repeated execution changed receipt bytes")
+    second_receipt_value = _read_json(second_receipt)
+    if output.parent == second_output.parent:
+        raise SystemExit("repeated execution reused a collision-safe execution directory")
 
     ce_input = _read_json(output)
     receipt_value = _read_json(receipt)
+    _assert_receipt_binds_output(first_receipt_value, output, first_result)
+    _assert_receipt_binds_output(second_receipt_value, second_output, second_result)
+    if first_receipt_value.get("receipt_id") == second_receipt_value.get("receipt_id"):
+        raise SystemExit("collision-safe executions unexpectedly reused a receipt identity")
     if ce_input.get("schema_id") != "ev4-ce-architect-stage-intake@1.1.0":
         raise SystemExit("standalone output is not the active CE intake contract")
     if receipt_value.get("schema_version") != "project-gate-a2c-receipt.v1":
@@ -201,16 +208,10 @@ def main(argv: list[str] | None = None) -> int:
     if ce_validation.returncode != 0:
         raise SystemExit("standalone CE input failed official CE revalidation")
 
-    overwrite = _run(cli_command, cwd=project_gate)
-    _write_process(evidence / "overwrite-rejection.json", cli_command, overwrite)
-    overwrite_result = _single_json_line(overwrite.stdout)
-    if overwrite.returncode == 0 or overwrite_result.get("status") != "invalid":
-        raise SystemExit("existing outputs were not rejected fail-closed")
-    if not any(
-        item.get("code") == "PG_A2C_OUTPUT_EXISTS"
-        for item in overwrite_result.get("diagnostics", [])
-    ):
-        raise SystemExit("overwrite rejection diagnostic was not deterministic")
+    if not output.parent.name.startswith("run-") or output.parent.parent != evidence.resolve():
+        raise SystemExit("first publication escaped the selected output root")
+    if not second_output.parent.name.startswith("run-") or second_output.parent.parent != evidence.resolve():
+        raise SystemExit("second publication escaped the selected output root")
 
     summary = {
         "schema_version": "pg-a2c-exact-head-evidence.v1",
@@ -252,10 +253,12 @@ def main(argv: list[str] | None = None) -> int:
         },
         "determinism": {
             "ce_input_byte_identical": True,
-            "receipt_byte_identical": True,
+            "receipt_binding_verified_per_execution": True,
+            "receipt_identity_unique_per_execution": True,
         },
         "fail_closed": {
-            "overwrite_rejected": True,
+            "collision_safe_execution_directories": True,
+            "no_overwrite_tests": "covered_by_exact_head_test_suite",
             "stale_pin_tests": "covered_by_exact_head_test_suite",
             "tamper_tests": "covered_by_adversarial_test_suite",
         },
@@ -264,13 +267,27 @@ def main(argv: list[str] | None = None) -> int:
             "--acquisition-mode producer_emitted_gate_artifact "
             "--architect-repo ../EV4-Architect-Repo "
             "--ce-repo ../EV4-Constructability-Engineer-Repo "
-            "--output ce-input.json "
-            "--receipt-output project-gate-a2c-receipt.json --format json"
+            "--output-dir pg-a2c-exact-head-evidence --format json"
         ),
     }
     _write_json(evidence / "summary.json", summary)
     print(canonical_dumps(summary))
     return 0
+
+
+def _assert_receipt_binds_output(
+    receipt_value: dict[str, Any],
+    output: Path,
+    result: dict[str, Any],
+) -> None:
+    ce_input = receipt_value.get("ce_input") if isinstance(receipt_value.get("ce_input"), dict) else {}
+    expected_suffix = output.resolve().relative_to(Path.cwd().resolve()).as_posix()
+    if ce_input.get("path") != expected_suffix:
+        raise SystemExit("receipt does not reference its execution-specific CE output path")
+    if ce_input.get("canonical_sha256") != result["downstream_artifact"]["canonical_sha256"]:
+        raise SystemExit("receipt CE output hash does not match the published artifact")
+    if ce_input.get("publication_state") != "published_verified":
+        raise SystemExit("receipt did not preserve verified publication state")
 
 
 def _assert_publication(

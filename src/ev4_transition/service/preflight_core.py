@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from dataclasses import asdict, dataclass
+from dataclasses import asdict, dataclass, field
 import json
 from pathlib import Path
 from typing import Any, Literal
@@ -9,6 +9,7 @@ from urllib.parse import urlparse
 from .json_input import parse_json_input
 from .models import GateRequest, RepoPaths
 from .repo_paths import required_path_fields
+from .transition_contracts import lock_path_for_service, source_stage_for_service
 
 PreflightCheckStatus = Literal["ok", "warning", "error", "not_required", "unknown"]
 PreflightResultStatus = Literal["ready", "warnings", "blocked"]
@@ -35,6 +36,8 @@ class PreflightResult:
     transition_choice: str
     checks: list[PreflightCheck]
     summary_fa: str
+    request_fingerprint: str | None = None
+    source_identity: dict[str, Any] = field(default_factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -42,21 +45,18 @@ class PreflightResult:
             "transition_choice": self.transition_choice,
             "checks": [check.to_dict() for check in self.checks],
             "summary_fa": self.summary_fa,
+            "request_fingerprint": self.request_fingerprint,
+            "source_identity": dict(self.source_identity),
         }
 
 
-_LOCKS = {
-    "architect_to_ce": "contracts/locks/architect-to-ce-transition.v1.lock.json",
-    "ce_to_builder": "contracts/locks/ce-to-builder-transition.v1.lock.json",
-    "builder_to_responsive": "contracts/locks/builder-to-responsive-transition.v1.lock.json",
-    "final_gate": "contracts/locks/final-gate.v1.lock.json",
-}
 _REPO_FIELD = {
     "rezahh107/EV4-Project-Gate": "project_gate_repo_path",
     "rezahh107/EV4-Architect-Repo": "architect_repo_path",
     "rezahh107/EV4-Constructability-Engineer-Repo": "ce_repo_path",
     "rezahh107/EV4-Builder-Assistant-Repo": "builder_repo_path",
     "rezahh107/EV4-Responsive-Architect": "responsive_repo_path",
+    "rezahh107/EV4-Decision-Kernel": "kernel_repo_path",
 }
 _LABEL = {
     "project_gate_repo_path": "مسیر Project Gate repo",
@@ -64,8 +64,8 @@ _LABEL = {
     "ce_repo_path": "مسیر CE repo",
     "builder_repo_path": "مسیر Builder repo",
     "responsive_repo_path": "مسیر Responsive repo",
+    "kernel_repo_path": "مسیر Kernel repo",
 }
-_STAGE = {"architect_to_ce": "architect", "ce_to_builder": "ce", "builder_to_responsive": "builder", "final_gate": "responsive"}
 _FIELDS = tuple(_LABEL)
 _GITHUB_DESKTOP_FA = "در GitHub Desktop: repository را انتخاب کن، branch را روی main بگذار، Fetch origin و در صورت نیاز Pull origin را بزن، سپس Preflight را دوباره اجرا کن."
 
@@ -111,7 +111,10 @@ def _json_checks(request: GateRequest) -> list[PreflightCheck]:
     value = parsed.value
     if choice != "validate_bundle" and _looks_like_project_gate_result(value):
         return checks + [PreflightCheck("json.source.project_gate_result", "نوع فایل JSON", "error", "این فایل نتیجه اجرای قبلی UI است، نه Stage Evidence Bundle ورودی source.", "schema_version=ev4-project-gate-ui-result.v1 result_type=service_response", "برای transition انتخاب‌شده باید source bundle مرحله قبل را بدهی، نه result.json.", "wrong_input_type")]
-    expected = _STAGE.get(choice)
+    try:
+        expected = source_stage_for_service(choice)
+    except ValueError:
+        expected = None
     observed = value.get("stage")
     if expected and isinstance(observed, str) and observed != expected:
         return checks + [PreflightCheck("json.source.wrong_stage", "stage ورودی JSON", "error", f"برای این transition ورودی باید stage={expected} باشد.", f"expected_stage={expected}; observed_stage={observed}", _wrong_stage_action(choice, expected), "wrong_stage_for_transition")]
@@ -164,8 +167,9 @@ def _required_files_check(field: str, label: str, root: Path, files: tuple[str, 
 
 
 def _lock_manifest_checks(repo_paths: RepoPaths, choice: str) -> list[PreflightCheck]:
-    rel = _LOCKS.get(choice)
-    if not rel:
+    try:
+        rel = lock_path_for_service(choice)
+    except ValueError:
         return []
     path = _project_gate_root_for_lock(repo_paths, choice, rel) / rel
     if not path.is_file():
@@ -180,8 +184,9 @@ def _lock_manifest_checks(repo_paths: RepoPaths, choice: str) -> list[PreflightC
 
 
 def _required_files_by_field(repo_paths: RepoPaths, choice: str) -> dict[str, tuple[str, ...]]:
-    rel = _LOCKS.get(choice)
-    if not rel:
+    try:
+        rel = lock_path_for_service(choice)
+    except ValueError:
         return {}
     lock_path = _project_gate_root_for_lock(repo_paths, choice, rel) / rel
     lock, error = _read_lock_manifest(lock_path)

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from copy import deepcopy
+import json
 from html import escape
 from typing import Any
 
@@ -120,7 +121,7 @@ def render_markdown_report(result: dict[str, Any], *, title: str = "گزارش P
                 f"code: {markdown_code_ltr(diagnostic.get('code', 'UNKNOWN_DIAGNOSTIC'))} — "
                 f"severity: {markdown_code_ltr(diagnostic.get('severity', 'unknown'))} — "
                 f"path: {markdown_code_ltr(diagnostic.get('path', '$'))} — "
-                f"message: {escape(str(diagnostic.get('message', '')))}"
+                f"message: {_neutralize_markdown_fences(escape(str(diagnostic.get('message', ''))))}"
             )
     else:
         parts.append("### Diagnostics\n- diagnostic ثبت نشده است.")
@@ -130,25 +131,68 @@ def render_markdown_report(result: dict[str, Any], *, title: str = "گزارش P
             parts.append(f"- {markdown_code_ltr(key_path)}: {markdown_code_ltr(value)}")
     else:
         parts.append("- reference فنی قابل استخراجی ثبت نشده است.")
-    parts.append("</section>")
+    raw_diagnostics = _neutralize_markdown_fences(json.dumps(diagnostics, ensure_ascii=False, indent=2))
+    raw_result = _neutralize_markdown_fences(canonical_dumps(snapshot))
+    parts.extend([
+        "",
+        "## Preflight summary",
+        "Preflight authoritative و diagnostics این اجرا در نتیجه ثبت شده‌اند.",
+        "",
+        "## Raw diagnostics",
+        "```json",
+        raw_diagnostics,
+        "```",
+        "",
+        "## Raw JSON result",
+        "```json",
+        raw_result,
+        "```",
+        "</section>",
+    ])
     return "\n".join(parts) + "\n"
 
 
 def render_optional_html_report(result: dict[str, Any], *, title: str = "گزارش Project Gate", theme: str = "light") -> str:
-    body = render_markdown_report(result, title=title, theme=theme)
+    snapshot = deepcopy(result)
+    diagnostics = _diagnostics(snapshot)
+    diagnostic_items = "".join(
+        "<li>"
+        f'<bdi dir="ltr"><code>{escape(str(item.get("code", "UNKNOWN_DIAGNOSTIC")))}</code></bdi> — '
+        f'<bdi dir="ltr"><code>{escape(str(item.get("path", "$")))}</code></bdi>'
+        "</li>"
+        for item in diagnostics
+    ) or "<li>diagnostic ثبت نشده است.</li>"
+    raw_diagnostics = escape(json.dumps(diagnostics, ensure_ascii=False, indent=2))
+    raw_result = escape(canonical_dumps(snapshot))
     return "\n".join(
         [
             '<!doctype html>',
             '<html lang="fa" dir="rtl">',
             '<head><meta charset="utf-8"><title>' + escape(title) + "</title></head>",
             '<body>',
-            body,
+            f'<main class="ev4-report ev4-theme-{escape(theme)}" lang="fa" dir="rtl">',
+            f'<h1>{escape(title)}</h1>',
+            '<h2>راهنمای عملیاتی</h2>',
+            f'<p>{escape(_STATUS_EXPLANATIONS[presentation_for_status(str(snapshot.get("status", "invalid"))).status])}</p>',
+            '<h2>Preflight summary</h2>',
+            '<p>Preflight authoritative و diagnostics این اجرا در نتیجه ثبت شده‌اند.</p>',
+            '<h2>Diagnostic identifiers</h2>',
+            f'<ul>{diagnostic_items}</ul>',
+            '<h2>Raw diagnostics</h2>',
+            f'<pre dir="ltr"><code>{raw_diagnostics}</code></pre>',
+            '<h2>Raw JSON result</h2>',
+            f'<pre dir="ltr"><code>{raw_result}</code></pre>',
+            '</main>',
             '</body>',
             '</html>',
             '',
         ]
     )
 
+
+
+def _neutralize_markdown_fences(value: str) -> str:
+    return value.replace("```", "``\u200b`")
 
 def _diagnostics(result: dict[str, Any]) -> list[dict[str, Any]]:
     diagnostics = result.get("diagnostics", [])

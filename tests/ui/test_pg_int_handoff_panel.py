@@ -186,7 +186,7 @@ def test_ui_empty_output_uses_unique_directory_inside_real_publication_workspace
     assert output.name == output_name
     assert receipt.name == receipt_name
     assert output.parent == receipt.parent
-    assert output.parent.name.startswith(".ev4_pg_int_")
+    assert output.parent.name.startswith("run-")
     assert output.is_relative_to(tmp_path)
     assert receipt.is_relative_to(tmp_path)
     assert not any(

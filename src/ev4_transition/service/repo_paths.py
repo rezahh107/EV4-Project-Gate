@@ -4,20 +4,14 @@ from pathlib import Path
 from urllib.parse import urlparse
 
 from .models import RepoPaths, ServiceDiagnostic
-
-
-_REQUIRED_PATHS: dict[str, tuple[str, ...]] = {
-    "validate_bundle": (),
-    "inspect_capabilities": (),
-    "architect_to_ce": ("architect_repo_path", "ce_repo_path"),
-    "ce_to_builder": ("ce_repo_path", "builder_repo_path"),
-    "builder_to_responsive": ("builder_repo_path", "responsive_repo_path"),
-    "final_gate": ("project_gate_repo_path", "responsive_repo_path"),
-}
+from .transition_contracts import required_repo_fields
 
 
 def required_path_fields(transition_choice: str) -> tuple[str, ...]:
-    return _REQUIRED_PATHS.get(transition_choice, ())
+    try:
+        return required_repo_fields(transition_choice)
+    except ValueError:
+        return ()
 
 
 def validate_repo_paths(repo_paths: RepoPaths, transition_choice: str) -> list[ServiceDiagnostic]:
@@ -117,5 +111,6 @@ def _missing_message(field_name: str) -> str:
         "builder_repo_path": "Builder local checkout path is required for this transition.",
         "responsive_repo_path": "Responsive local checkout path is required for this transition.",
         "project_gate_repo_path": "Project Gate local checkout path is required for this gate.",
+        "kernel_repo_path": "Kernel local checkout path is required for Final Evidence Gate.",
     }
     return labels.get(field_name, "Required local repository checkout path is missing.")

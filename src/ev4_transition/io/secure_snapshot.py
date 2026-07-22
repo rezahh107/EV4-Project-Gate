@@ -113,6 +113,84 @@ def capture_json_snapshot(path: str | Path) -> JsonInputSnapshot:
     )
 
 
+def validate_json_snapshot(
+    snapshot: JsonInputSnapshot,
+    *,
+    expected_source_path: str | Path | None = None,
+) -> JsonInputSnapshot:
+    """Validate a pre-captured snapshot before it enters authoritative routing.
+
+    A caller-supplied snapshot is a capability, not an alternate trust path. Its
+    bytes, digest, parsed value, source path, and current file identity must all
+    agree with the same invariants enforced by :func:`capture_json_snapshot`.
+    """
+
+    if not isinstance(snapshot, JsonInputSnapshot):
+        raise SnapshotError(
+            "PG_A2C_INPUT_SNAPSHOT_INVALID",
+            "The supplied immutable snapshot has an unsupported type.",
+        )
+    if hashlib.sha256(snapshot.content).hexdigest() != snapshot.sha256_file_bytes:
+        raise SnapshotError(
+            "PG_A2C_INPUT_SNAPSHOT_HASH_MISMATCH",
+            "The supplied immutable snapshot digest does not match its bytes.",
+        )
+    try:
+        text = snapshot.content.decode("utf-8")
+    except UnicodeDecodeError as exc:
+        raise SnapshotError("PG_A2C_INPUT_NOT_UTF8", "The producer export is not valid UTF-8.") from exc
+    try:
+        parsed = json.loads(text, parse_constant=_reject_json_constant)
+    except (json.JSONDecodeError, ValueError) as exc:
+        details: dict[str, Any] = {"error_type": type(exc).__name__}
+        if isinstance(exc, json.JSONDecodeError):
+            details.update({"line": exc.lineno, "column": exc.colno})
+        raise SnapshotError("MALFORMED_JSON", "The producer export is not valid strict JSON.", **details) from exc
+    if not isinstance(parsed, dict):
+        raise SnapshotError("PG_EXPORT_SCHEMA_INVALID", "The producer export root must be a JSON object.")
+    if parsed != snapshot.value:
+        raise SnapshotError(
+            "PG_A2C_INPUT_SNAPSHOT_VALUE_MISMATCH",
+            "The supplied immutable snapshot parsed value does not match its bytes.",
+        )
+    if expected_source_path is not None:
+        try:
+            expected = Path(expected_source_path).resolve(strict=True)
+        except OSError as exc:
+            raise SnapshotError(
+                "PG_A2C_INPUT_READ_FAILED",
+                "The producer export source path could not be resolved.",
+                status="insufficient_evidence",
+                error_type=type(exc).__name__,
+            ) from exc
+        if expected != snapshot.path:
+            raise SnapshotError(
+                "PG_A2C_INPUT_SNAPSHOT_PATH_MISMATCH",
+                "The supplied immutable snapshot does not belong to the selected source path.",
+                expected_source_path=str(expected),
+                snapshot_path=str(snapshot.path),
+            )
+    verify_snapshot_unchanged(snapshot)
+    return snapshot
+
+
+def obtain_json_snapshot(
+    *,
+    source_path: str | Path | None = None,
+    snapshot: JsonInputSnapshot | None = None,
+) -> JsonInputSnapshot:
+    """Capture or validate one source through the same immutable authority."""
+
+    if snapshot is not None:
+        return validate_json_snapshot(snapshot, expected_source_path=source_path)
+    if source_path is None or not str(source_path).strip():
+        raise SnapshotError(
+            "PG.UI.PRODUCER_SOURCE_FILE_REQUIRED",
+            "A producer-emitted transition requires the original source file.",
+        )
+    return capture_json_snapshot(source_path)
+
+
 def verify_snapshot_unchanged(snapshot: JsonInputSnapshot) -> None:
     """Reject path replacement or byte mutation before publication."""
 

@@ -1,8 +1,7 @@
-"""Local Persian-first operator UI for EV4 Project Gate.
+"""Persian-first local operator UI for EV4 Project Gate.
 
-The UI package is intentionally a thin operator layer. It delegates validation and
-transition execution to existing Project Gate functions and does not implement
-specialist transition semantics.
+Importing this package is intentionally side-effect free. UI modules are passive
+adapters over :func:`ev4_transition.service.run_gate_request`.
 """
 
-__all__ = []
+__all__: list[str] = []

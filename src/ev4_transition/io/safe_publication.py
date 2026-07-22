@@ -28,6 +28,7 @@ class StagedJson:
     final_path: Path
     content: bytes
     sha256: str
+    verify_json: bool = True
 
 
 def resolve_publication_paths(
@@ -49,8 +50,21 @@ def resolve_publication_paths(
 
 
 def stage_canonical_json(final_path: str | Path, payload: Any) -> StagedJson:
-    destination = Path(final_path)
     content = (canonical_dumps(payload) + "\n").encode("utf-8")
+    return stage_exact_bytes(final_path, content, verify_json=True)
+
+
+def stage_exact_text(final_path: str | Path, content: str) -> StagedJson:
+    return stage_exact_bytes(final_path, content.encode("utf-8"), verify_json=False)
+
+
+def stage_exact_bytes(
+    final_path: str | Path,
+    content: bytes,
+    *,
+    verify_json: bool = False,
+) -> StagedJson:
+    destination = Path(final_path)
     handle = tempfile.NamedTemporaryFile(
         mode="wb",
         delete=False,
@@ -70,8 +84,8 @@ def stage_canonical_json(final_path: str | Path, payload: Any) -> StagedJson:
     finally:
         if not handle.closed:
             handle.close()
-    _verify_exact_json_bytes(temporary, content)
-    return StagedJson(temporary, destination, content, bytes_sha256(content))
+    _verify_exact_bytes(temporary, content, verify_json=verify_json)
+    return StagedJson(temporary, destination, content, bytes_sha256(content), verify_json)
 
 
 def publish_staged_json(staged: StagedJson) -> dict[str, Any]:
@@ -88,7 +102,7 @@ def publish_staged_json(staged: StagedJson) -> dict[str, Any]:
         raise PublicationError(code, "Atomic no-overwrite publication failed.", path=str(destination), error_type=type(exc).__name__, errno=exc.errno) from exc
     try:
         _fsync_directory(destination.parent)
-        _verify_exact_json_bytes(destination, staged.content)
+        _verify_exact_bytes(destination, staged.content, verify_json=staged.verify_json)
     except Exception as exc:
         raise PublicationError(
             "PG_A2C_POST_WRITE_VALIDATION_FAILED",
@@ -108,6 +122,88 @@ def publish_staged_json(staged: StagedJson) -> dict[str, Any]:
         "sha256_file_bytes": staged.sha256,
         "bytes": len(staged.content),
     }
+
+
+def publish_staged_group(staged_items: list[StagedJson]) -> list[dict[str, Any]]:
+    """Publish a report group with rollback and truthful all-or-nothing metadata."""
+
+    if not staged_items:
+        return []
+    destinations = [item.final_path for item in staged_items]
+    if len(set(destinations)) != len(destinations):
+        raise PublicationError(
+            "PG.REPORT.PUBLICATION_PATH_COLLISION",
+            "Report artifact destinations must be distinct.",
+        )
+    for destination in destinations:
+        _assert_destination_unused(destination)
+
+    published: list[Path] = []
+    try:
+        for staged in staged_items:
+            try:
+                os.link(staged.temporary_path, staged.final_path, follow_symlinks=False)
+            except FileExistsError as exc:
+                raise PublicationError(
+                    "PG.REPORT.OUTPUT_CREATED_CONCURRENTLY",
+                    "A report destination was created concurrently; overwrite is forbidden.",
+                    path=str(staged.final_path),
+                ) from exc
+            except OSError as exc:
+                raise PublicationError(
+                    "PG.REPORT.ATOMIC_PUBLICATION_UNAVAILABLE",
+                    "Atomic no-overwrite report publication failed.",
+                    path=str(staged.final_path),
+                    error_type=type(exc).__name__,
+                    errno=exc.errno,
+                ) from exc
+            published.append(staged.final_path)
+
+        for directory in {path.parent for path in published}:
+            _fsync_directory(directory)
+        for staged in staged_items:
+            _verify_exact_bytes(
+                staged.final_path,
+                staged.content,
+                verify_json=staged.verify_json,
+            )
+    except Exception as exc:
+        rollback_errors: list[str] = []
+        for path in reversed(published):
+            try:
+                path.unlink(missing_ok=True)
+            except OSError as rollback_exc:
+                rollback_errors.append(f"{path}:{type(rollback_exc).__name__}")
+        for directory in {path.parent for path in published}:
+            try:
+                _fsync_directory(directory)
+            except OSError:
+                pass
+        if isinstance(exc, PublicationError):
+            if rollback_errors:
+                exc.details["rollback_errors"] = rollback_errors
+            raise
+        raise PublicationError(
+            "PG.REPORT.POST_WRITE_VALIDATION_FAILED",
+            "The report group failed verification and was rolled back.",
+            error_type=type(exc).__name__,
+            rollback_errors=rollback_errors,
+        ) from exc
+    finally:
+        for staged in staged_items:
+            staged.temporary_path.unlink(missing_ok=True)
+
+    return [
+        {
+            "artifact_name": staged.final_path.name,
+            "path": str(staged.final_path),
+            "state": "published_verified",
+            "sha256_file_bytes": staged.sha256,
+            "bytes": len(staged.content),
+            "verification": "exact_bytes_verified",
+        }
+        for staged in staged_items
+    ]
 
 
 def discard_staged_json(staged: StagedJson | None) -> None:
@@ -166,10 +262,19 @@ def _assert_destination_unused(path: Path) -> None:
 
 
 def _verify_exact_json_bytes(path: Path, expected: bytes) -> None:
+    _verify_exact_bytes(path, expected, verify_json=True)
+
+
+def _verify_exact_bytes(path: Path, expected: bytes, *, verify_json: bool) -> None:
     observed = path.read_bytes()
     if observed != expected:
-        raise PublicationError("PG_A2C_PUBLISHED_BYTES_MISMATCH", "Artifact bytes differ from the staged canonical bytes.", path=str(path))
-    json.loads(observed.decode("utf-8"), parse_constant=_reject_json_constant)
+        raise PublicationError(
+            "PG_A2C_PUBLISHED_BYTES_MISMATCH",
+            "Artifact bytes differ from the staged bytes.",
+            path=str(path),
+        )
+    if verify_json:
+        json.loads(observed.decode("utf-8"), parse_constant=_reject_json_constant)
 
 
 def _reject_json_constant(value: str) -> Any:

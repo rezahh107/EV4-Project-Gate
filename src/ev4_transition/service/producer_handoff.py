@@ -5,20 +5,25 @@ from dataclasses import asdict, dataclass, field
 from pathlib import Path
 from typing import Any
 
+from ev4_transition.io.secure_snapshot import JsonInputSnapshot, SnapshotError, validate_json_snapshot
+
 from ev4_transition.producer_integration.facade import execute_producer_handoff, inspect_producer_handoff
+from ev4_transition.producer_integration.path_environment import PublicationPaths
 
 from .models import RepoPaths
 
 
 @dataclass(frozen=True)
 class ProducerHandoffRequest:
-    source_path: str
+    source_path: str | None = None
+    source_snapshot: JsonInputSnapshot | None = None
     repo_paths: RepoPaths = field(default_factory=RepoPaths)
     output_dir: str | None = None
     output_path: str | None = None
     receipt_path: str | None = None
     schema_root: str = "schemas"
     lock_path: str | None = None
+    publication_paths: PublicationPaths | None = None
 
 
 @dataclass(frozen=True)
@@ -38,12 +43,17 @@ class ProducerHandoffResponse:
 
 
 def inspect_producer_handoff_request(
-    source_path: str,
+    source_path: str | None = None,
     *,
+    source_snapshot: JsonInputSnapshot | None = None,
     project_gate_repo_path: str | None = ".",
 ) -> ProducerHandoffResponse:
+    try:
+        selected_source = _authoritative_source_path(source_path, source_snapshot)
+    except SnapshotError as exc:
+        return _response(_snapshot_failure(exc))
     result = inspect_producer_handoff(
-        source_path,
+        selected_source,
         project_gate_repo=project_gate_repo_path or ".",
     )
     return _response(result)
@@ -51,8 +61,12 @@ def inspect_producer_handoff_request(
 
 def run_producer_handoff_request(request: ProducerHandoffRequest) -> ProducerHandoffResponse:
     repos = request.repo_paths
+    try:
+        selected_source = _authoritative_source_path(request.source_path, request.source_snapshot)
+    except SnapshotError as exc:
+        return _response(_snapshot_failure(exc))
     result = execute_producer_handoff(
-        request.source_path,
+        selected_source,
         project_gate_repo=repos.project_gate_repo_path or ".",
         architect_repo=repos.architect_repo_path,
         ce_repo=repos.ce_repo_path,
@@ -62,8 +76,40 @@ def run_producer_handoff_request(request: ProducerHandoffRequest) -> ProducerHan
         receipt_path=request.receipt_path,
         schema_root=request.schema_root,
         lock_path=request.lock_path,
+        publication_paths=request.publication_paths,
     )
     return _response(result)
+
+
+def _authoritative_source_path(
+    source_path: str | None,
+    snapshot: JsonInputSnapshot | None,
+) -> str | None:
+    if snapshot is None:
+        return source_path
+    validated = validate_json_snapshot(snapshot, expected_source_path=source_path)
+    return str(validated.path)
+
+
+def _snapshot_failure(exc: SnapshotError) -> dict[str, Any]:
+    severity = "insufficient_evidence" if exc.status == "insufficient_evidence" else "error"
+    return {
+        "schema_version": "producer-emitted-transition-result.v1",
+        "status": exc.status,
+        "acquisition_mode": "producer_emitted_gate_artifact",
+        "resolved_transition": None,
+        "handoff_allowed": False,
+        "failure_class": "source_snapshot_failed",
+        "diagnostics": [
+            {
+                "code": exc.code,
+                "severity": severity,
+                "path": "$.input_snapshot",
+                "message": str(exc),
+                "details": dict(exc.details),
+            }
+        ],
+    }
 
 
 def _response(result: dict[str, Any]) -> ProducerHandoffResponse:

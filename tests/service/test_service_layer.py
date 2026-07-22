@@ -18,7 +18,8 @@ def _repo_paths(tmp_path: Path) -> RepoPaths:
     builder = tmp_path / "builder"
     responsive = tmp_path / "responsive"
     project_gate = tmp_path / "project-gate"
-    for path in (architect, ce, builder, responsive, project_gate):
+    kernel = tmp_path / "kernel"
+    for path in (architect, ce, builder, responsive, project_gate, kernel):
         path.mkdir()
     return RepoPaths(
         project_gate_repo_path=str(project_gate),
@@ -26,6 +27,7 @@ def _repo_paths(tmp_path: Path) -> RepoPaths:
         ce_repo_path=str(ce),
         builder_repo_path=str(builder),
         responsive_repo_path=str(responsive),
+        kernel_repo_path=str(kernel),
     )
 
 
@@ -238,6 +240,7 @@ def test_final_gate_service_path_calls_existing_gate_function(monkeypatch, tmp_p
     assert response.status == "insufficient_evidence"
     assert calls["project_gate_repo"] == paths.project_gate_repo_path
     assert calls["responsive_repo"] == paths.responsive_repo_path
+    assert calls["kwargs"]["kernel_repo"] == paths.kernel_repo_path
 
 
 def test_report_renderer_exceptions_do_not_crash_service(monkeypatch):

@@ -1,9 +1,9 @@
 from __future__ import annotations
 
+from ev4_transition.service.report_publication import publish_result_payload
 from pathlib import Path
 
 from ev4_transition.service.guidance import build_operator_guidance, classify_output_state, load_guidance_registry
-from ev4_transition.ui.adapters import render_download_artifacts
 from ev4_transition.ui.components import status_summary_markdown
 
 
@@ -94,7 +94,7 @@ def test_final_invalid_and_accepted_summaries_keep_gate_scope_not_readiness_clai
 
 def test_final_report_html_has_rtl_shell_ltr_code_blocks_and_ltr_diagnostic_identifiers(tmp_path: Path):
     result = _result("PG_A2C_ARCHITECT_SCHEMA_VALIDATION_FAILED")
-    paths = render_download_artifacts(result, tmp_path)
+    paths = publish_result_payload(result, tmp_path)[2]
     html = next(Path(path) for path in paths if Path(path).name == "report.html").read_text(encoding="utf-8")
 
     assert '<html lang="fa" dir="rtl">' in html
@@ -106,7 +106,7 @@ def test_final_report_html_has_rtl_shell_ltr_code_blocks_and_ltr_diagnostic_iden
 
 def test_final_report_markdown_includes_preflight_raw_diagnostics_and_raw_json(tmp_path: Path):
     result = _result("PG_A2C_EXTERNAL_HASH_MISMATCH", status="insufficient_evidence")
-    paths = render_download_artifacts(result, tmp_path)
+    paths = publish_result_payload(result, tmp_path)[2]
     markdown = next(Path(path) for path in paths if Path(path).name == "report.md").read_text(encoding="utf-8")
 
     assert "## Preflight summary" in markdown

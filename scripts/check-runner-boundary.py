@@ -7,7 +7,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Iterable
 
-BANNED_IMPORTS = {"subprocess", "importlib"}
+BANNED_IMPORTS = {"subprocess", "importlib", "tkinter"}
 BANNED_EXECUTABLE_STRINGS = {"python", "python3", "node", "npm", "npx"}
 RUNNER_PARTS = ("ev4_transition", "runners")
 

@@ -1,10 +1,12 @@
 from __future__ import annotations
 
+from ev4_transition.service.report_publication import publish_result_payload
 import json
 from pathlib import Path
 
 from ev4_transition.service.guidance import build_operator_guidance, classify_output_state, load_guidance_registry
-from ev4_transition.ui.adapters import render_download_artifacts, run_operator_check
+from ev4_transition.ui.adapters import build_gate_request
+from ev4_transition.service import run_preflight
 from ev4_transition.ui.components import status_summary_markdown
 
 
@@ -147,7 +149,7 @@ def test_status_summary_group_count_uses_html_code_not_literal_markdown_backtick
 
 def test_report_html_preserves_persian_rtl_and_raw_json_ltr(tmp_path: Path):
     result = _result("PG_A2C_ARCHITECT_SCHEMA_VALIDATION_FAILED", message="schema mismatch")
-    paths = render_download_artifacts(result, tmp_path)
+    paths = publish_result_payload(result, tmp_path)[2]
     html_path = next(Path(path) for path in paths if Path(path).name == "report.html")
     html = html_path.read_text(encoding="utf-8")
 
@@ -175,18 +177,16 @@ def test_ui_preflight_rejects_project_gate_result_json_as_transition_input(tmp_p
         "diagnostics": [],
         "output": None,
     }
-    output = run_operator_check(
+    request = build_gate_request(
         "Architect → CE",
         pasted_json=json.dumps(prior_result),
         architect_repo_path="/tmp/architect-not-used",
         ce_repo_path="/tmp/ce-not-used",
         output_dir=tmp_path,
     )
-
-    assert output.result["result_type"] == "ui_preflight_result"
-    assert output.result["diagnostics"][0]["code"] == "PG.UI.PREFLIGHT_RESULT_JSON_USED_AS_SOURCE"
-    assert output.result["output"] is None
-    assert "result.json" in output.status_markdown
+    result = run_preflight(request)
+    assert result.status == "blocked"
+    assert any(check.id == "json.source.project_gate_result" for check in result.checks)
 
 
 def test_ui_preflight_rejects_wrong_stage_for_selected_transition(tmp_path: Path):
@@ -196,14 +196,13 @@ def test_ui_preflight_rejects_wrong_stage_for_selected_transition(tmp_path: Path
         "payload_schema": {"id": "ev4-architect-stage-payload@1.0.0"},
         "payload": {"data": {}},
     }
-    output = run_operator_check(
+    request = build_gate_request(
         "CE → Builder",
         pasted_json=json.dumps(architect_bundle),
         ce_repo_path="/tmp/ce-not-used",
         builder_repo_path="/tmp/builder-not-used",
         output_dir=tmp_path,
     )
-
-    assert output.result["result_type"] == "ui_preflight_result"
-    assert output.result["diagnostics"][0]["code"] == "PG.UI.PREFLIGHT_WRONG_STAGE_FOR_TRANSITION"
-    assert "transition" in output.status_markdown
+    result = run_preflight(request)
+    assert result.status == "blocked"
+    assert any(check.id == "json.source.wrong_stage" for check in result.checks)
