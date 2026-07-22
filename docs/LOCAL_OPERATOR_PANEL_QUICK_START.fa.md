@@ -3,9 +3,11 @@
 ```yaml
 document_purpose: personal_local_use
 interface: EV4 Project Gate Local Operator Panel
-verified_against_commit: 4598f51fd8599e4ca77d4760431d646af4d7b93f
-last_reviewed: 2026-07-18
+verified_against_pr: 59
+last_reviewed: 2026-07-22
 primary_ui_file: src/ev4_transition/ui/app.py
+workflow: unified_authoritative_preflight_and_run
+windows_acceptance: pending_owner_check
 ```
 
 این فایل مسیر کوتاه استفاده روزمره از پنل است. برای توضیح جزءبه‌جزء همه بخش‌ها به [`LOCAL_OPERATOR_PANEL_USER_GUIDE.fa.md`](LOCAL_OPERATOR_PANEL_USER_GUIDE.fa.md) مراجعه کن.
@@ -51,27 +53,29 @@ fixtures/valid/architect-stage-bundle.v1.json
 
 برای جلوگیری از ابهام، هم‌زمان از Upload و Paste استفاده نکن. اگر کادر Paste خالی نباشد، متن Paste‌شده بر فایل uploadشده اولویت دارد.
 
-### 4. Preflight را اجرا کن
+### 4. در صورت نیاز Preflight preview را ببین
+
+دکمه اختیاری زیر فقط diagnostics اولیه را نمایش می‌دهد:
+
+```text
+فقط نمایش Authoritative Preflight
+```
+
+این preview هیچ fingerprint ماندگار یا مجوز اجرای بعدی ذخیره نمی‌کند. برای `Validate Stage Evidence Bundle` مسیر repositoryهای specialist لازم نیست.
+
+- `ready`: فقط preview آماده است؛ اجرای واقعی هنوز باید از دکمه اصلی و با fingerprint تازه انجام شود.
+- `warnings`: مجوز dispatch نمی‌دهد؛ هشدار را اصلاح کن.
+- `blocked`: مجوز dispatch نمی‌دهد؛ خطای اعلام‌شده را اصلاح کن.
+
+### 5. تراکنش اصلی را اجرا کن
 
 دکمه زیر را بزن:
 
 ```text
-بررسی مسیرها و ورودی‌ها
+بررسی و اجرای Authoritative Project Gate
 ```
 
-برای `Validate Stage Evidence Bundle` مسیر repositoryهای specialist لازم نیست.
-
-- `ready`: آماده اجرای اصلی است.
-- `warnings`: هشدارها را بخوان؛ ممکن است اجرای اصلی همچنان ممکن باشد.
-- `blocked`: ابتدا خطا را اصلاح کن و ادامه نده.
-
-### 5. بررسی اصلی را اجرا کن
-
-دکمه زیر را بزن:
-
-```text
-اجرای بررسی Project Gate
-```
+این یک اقدام، همان request فعلی را freeze می‌کند، Authoritative Preflight را اجرا می‌کند و فقط در صورت `ready` بودن و صدور fingerprint معتبر، backend را فراخوانی می‌کند. backend همان request را مستقلاً دوباره اعتبارسنجی می‌کند.
 
 سپس به‌ترتیب این بخش‌ها را بخوان:
 
@@ -174,13 +178,14 @@ report.html
 3. transition درست را انتخاب کن
 4. pinned_owner_file_computation را نگه دار
 5. فقط مسیرهای local لازم را وارد کن
-6. Preflight را اجرا کن
-7. blockedها را رفع کن
-8. Gate را اجرا کن
-9. status و Diagnostics را بخوان
-10. وجود downstream artifact رسمی را جداگانه تأیید کن
-11. گزارش‌ها را برای audit نگه دار
-12. فقط artifact رسمی را به مرحله بعد بده
+6. در صورت نیاز preview تشخیصی را ببین
+7. `blocked` یا `warnings` را رفع کن
+8. دکمه `بررسی و اجرای Authoritative Project Gate` را بزن
+9. تغییر ورودی مؤثر هنگام checking را به‌عنوان `stale` در نظر بگیر و دوباره اجرا کن
+10. status و Diagnostics را بخوان
+11. وجود downstream artifact رسمی را جداگانه تأیید کن
+12. گزارش‌ها را برای audit نگه دار
+13. فقط artifact رسمی را به مرحله بعد بده
 ```
 
 ---
