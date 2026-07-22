@@ -5,7 +5,6 @@ from dataclasses import replace
 from pathlib import Path
 from typing import Any
 
-from .behavioral_coverage import CoverageSourceError, inspect_coverage_source, validate_coverage_source
 from .bundle_validator import BundleValidator
 from .canonical_json import canonical_dumps, load_json_file
 from .presentation.status_mapping import exit_code_for_status
@@ -13,6 +12,7 @@ from .reports import render_plain_summary
 from .service import GateRequest, RepoPaths, cli_transition_names, run_gate_request, run_preflight, service_choice_for_cli
 
 _CAPABILITY_STATUS_PATH = Path(__file__).resolve().parent / "data" / "capability-status.v1.json"
+
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="ev4-transition")
@@ -43,15 +43,6 @@ def main(argv: list[str] | None = None) -> int:
         choices=["pinned_owner_file_computation", "producer_emitted_gate_artifact"],
         default="pinned_owner_file_computation",
     )
-
-    coverage_parser = sub.add_parser("coverage", help="Inspect or validate Behavioral Rule Coverage.")
-    coverage_sub = coverage_parser.add_subparsers(dest="coverage_command", required=True)
-    coverage_inspect = coverage_sub.add_parser("inspect", help="Inspect behavioral coverage without running a transition.")
-    coverage_inspect.add_argument("source", nargs="?", default="docs/BEHAVIORAL_RULE_COVERAGE.md")
-    coverage_inspect.add_argument("--schema", default="schemas/behavioral-coverage/behavioral-coverage.v1.schema.json")
-    coverage_validate = coverage_sub.add_parser("validate", help="Validate behavioral coverage thresholds.")
-    coverage_validate.add_argument("source", nargs="?", default="docs/BEHAVIORAL_RULE_COVERAGE.md")
-    coverage_validate.add_argument("--schema", default="schemas/behavioral-coverage/behavioral-coverage.v1.schema.json")
 
     inspect_parser = sub.add_parser("inspect", help="Inspect deterministic core metadata and layered capability truth.")
     inspect_parser.add_argument("--format", choices=["json", "persian"], default="json")
@@ -103,21 +94,22 @@ def main(argv: list[str] | None = None) -> int:
         _emit(payload, args.format)
         return _exit_for_status(str(payload.get("status", "invalid")))
 
-    if args.command == "coverage":
-        return _coverage_command(args)
-
     info = _load_capability_status()
     _emit(info, args.format)
     return 0
 
 
-
 def _cli_preflight_failure(preflight: Any) -> tuple[str, dict[str, Any]]:
     error_checks = [check for check in preflight.checks if check.status == "error"]
+
     def text(check: Any) -> str:
         return f"{getattr(check, 'id', '')} {getattr(check, 'technical_detail', '')}"
+
     combined = " ".join(text(check) for check in error_checks)
-    status = "insufficient_evidence" if any(marker in combined for marker in ("path.", "PG_INT_REPOSITORY_PATH", "PG_INT_GITHUB_URL_REJECTED", "PG_INT_OUTPUT_DIRECTORY_UNAVAILABLE")) else "invalid"
+    status = "insufficient_evidence" if any(
+        marker in combined
+        for marker in ("path.", "PG_INT_REPOSITORY_PATH", "PG_INT_GITHUB_URL_REJECTED", "PG_INT_OUTPUT_DIRECTORY_UNAVAILABLE")
+    ) else "invalid"
     selected = next((check for check in error_checks if "PG_INT_GITHUB_URL_REJECTED" in text(check) or (str(getattr(check, "id", "")).startswith("path.") and "github_url" in text(check))), None)
     code = "CLI_GITHUB_URL_REJECTED" if selected is not None else ""
     if selected is None:
@@ -165,7 +157,6 @@ def _cli_payload(response: dict[str, Any]) -> dict[str, Any]:
     }
 
 
-
 def _load_capability_status() -> dict[str, Any]:
     payload = load_json_file(_CAPABILITY_STATUS_PATH)
     capabilities = payload.get("capabilities")
@@ -182,29 +173,6 @@ def _load_capability_status() -> dict[str, Any]:
         if guarded_name not in payload.get("public_cli_transitions", []):
             raise ValueError(f"{guarded_name} guarded CLI exposure is not recorded")
     return payload
-
-
-def _coverage_command(args: argparse.Namespace) -> int:
-    try:
-        if args.coverage_command == "inspect":
-            report = inspect_coverage_source(args.source, args.schema)
-            print(canonical_dumps(report.to_dict()))
-            return 0
-        if args.coverage_command == "validate":
-            report = validate_coverage_source(args.source, args.schema)
-            print(canonical_dumps(report.to_dict()))
-            return 0 if report.status == "thresholds_met" else 1
-    except CoverageSourceError as exc:
-        payload = {
-            "schema_version": "behavioral-coverage-report.v1",
-            "source": getattr(args, "source", None),
-            "status": "source_unparseable",
-            "rule_count": 0,
-            "diagnostics": [{"code": "PG_BRC_SOURCE_UNPARSEABLE", "severity": "error", "message": str(exc), "path": "$"}],
-        }
-        print(canonical_dumps(payload))
-        return 2
-    raise AssertionError(f"unknown coverage command: {args.coverage_command}")
 
 
 def _exit_for_status(status: str) -> int:
