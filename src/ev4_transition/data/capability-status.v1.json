@@ -2,9 +2,9 @@
   "capabilities": {
     "architect_to_ce": {
       "cli_exposure": "implemented",
-      "evidence_scope": "synthetic_and_adversarial_fixtures_only",
       "orchestration_baseline": "implemented",
-      "real_non_synthetic_handoff": "insufficient_evidence"
+      "real_non_synthetic_handoff": "insufficient_evidence",
+      "verification_state": "synthetic_fixture_only"
     },
     "builder_to_responsive": {
       "cli_exposure": "guarded",
@@ -28,15 +28,16 @@
     },
     "producer_emitted_gate_artifact": {
       "common_contract": "implemented",
+      "downstream_producer_ci_enforcement": "implemented_immutable_sha_workflow",
       "producer_adoption": "implemented",
-      "project_gate_runtime_integration": "implemented_explicit_mode",
+      "project_gate_runtime_integration": "implemented_prompt_05_explicit_mode",
       "real_non_synthetic_handoff": "insufficient_evidence",
       "reusable_verifier": "implemented"
     },
     "user_interface": {
       "browser_accessibility_evidence": "insufficient_evidence",
-      "service_routing": "implemented_fail_closed",
-      "status": "implemented_operator_panel"
+      "service_routing": "implemented_prompt_06_fail_closed",
+      "status": "implemented_initial_operator_panel"
     }
   },
   "implemented": [
@@ -46,6 +47,7 @@
     "stage_bundle_validation",
     "transition_result_schema_foundation",
     "status_presentation_mapping",
+    "behavioral_coverage_validation",
     "architect-to-ce transition",
     "producer-emitted architect-to-ce dispatch",
     "official Architect and CE validator execution",
@@ -54,25 +56,26 @@
     "ce-to-builder orchestration baseline",
     "producer-emitted ce-to-builder dispatch with standalone Builder input and separate Project Gate receipt",
     "builder-to-responsive orchestration baseline",
-    "kernel decision intake internal orchestration baseline",
+    "KROAD-011 kernel decision intake internal orchestration baseline",
     "final evidence gate orchestration baseline",
-    "local operator UI",
-    "validated producer-export routing facade",
-    "unified local service API",
-    "local handoff CLI",
-    "stage-aware local handoff UI",
+    "local operator UI shell",
+    "PG-INT validated producer-export routing facade",
+    "PG-INT unified local service API",
+    "PG-INT ev4-handoff CLI entrypoint",
+    "PG-INT stage-aware local handoff UI",
     "minimal_cli",
     "producer adoption registry",
-    "explicit producer_emitted_gate_artifact intake"
+    "explicit producer_emitted_gate_artifact intake",
+    "Prompt 5 immutable-SHA producer CI workflow"
   ],
   "not_implemented": [
     "real EV4 artifact validation",
     "real non-synthetic Architect-to-CE handoff evidence",
     "real non-synthetic CE-to-Builder handoff evidence",
-    "downstream producer integration beyond pinned supported boundaries",
-    "runtime or browser evidence collection",
-    "re-audit automation",
-    "reopen automation"
+    "KROAD-012 downstream producer integration",
+    "KROAD-013 runtime or browser evidence collection",
+    "KROAD-014 re-audit automation",
+    "KROAD-015 reopen automation"
   ],
   "package": "ev4-project-gate",
   "pinned_owner_file_computation": {
