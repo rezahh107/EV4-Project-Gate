@@ -27,6 +27,36 @@ FORBIDDEN_DUPLICATE_AUTHORITY_REFERENCES = {
     "docs/IMPLEMENTATION_STATUS.yaml",
     "docs/EV4_SHARED_CONTRACTS_STATUS.md",
 }
+PROHIBITED_MUTABLE_KEYS = {
+    "current_main",
+    "current_main_sha",
+    "current_main_head",
+    "current_main_head_ci",
+    "current_pr_state",
+    "current_branch_state",
+    "current_workflow_run",
+    "current_workflow_run_id",
+    "observed_head_sha",
+    "exact_run_on_observed_head",
+    "exact_validated_main_head_sha",
+    "exact_validated_main_workflow_run_id",
+    "validated_main_sha",
+    "pr_head_sha",
+    "head_sha",
+    "workflow_run_id",
+    "workflow_runs",
+    "implementation_merge_commit",
+    "implementation_pull_request",
+    "implementation_state",
+    "pull_request",
+    "run_url",
+}
+PROHIBITED_MUTABLE_PREFIXES = (
+    "current_main",
+    "current_pr",
+    "current_branch",
+    "current_workflow",
+)
 
 
 def _reject_non_finite(value: str) -> None:
@@ -40,6 +70,22 @@ def _load_authority(path: Path) -> dict[str, Any]:
     return value
 
 
+def mutable_repository_state_paths(value: Any, path: str = "$") -> list[str]:
+    """Return JSON paths that embed mutable repository or CI observations."""
+
+    failures: list[str] = []
+    if isinstance(value, dict):
+        for key, child in sorted(value.items()):
+            child_path = f"{path}.{key}"
+            if key in PROHIBITED_MUTABLE_KEYS or key.startswith(PROHIBITED_MUTABLE_PREFIXES):
+                failures.append(child_path)
+            failures.extend(mutable_repository_state_paths(child, child_path))
+    elif isinstance(value, list):
+        for index, child in enumerate(value):
+            failures.extend(mutable_repository_state_paths(child, f"{path}[{index}]"))
+    return failures
+
+
 def check_repository(root: Path) -> list[str]:
     failures: list[str] = []
     authority_path = root / CAPABILITY_PATH
@@ -47,6 +93,9 @@ def check_repository(root: Path) -> list[str]:
         authority = _load_authority(authority_path)
     except (OSError, ValueError, json.JSONDecodeError) as exc:
         return [f"{CAPABILITY_PATH}: {exc}"]
+
+    for path in mutable_repository_state_paths(authority):
+        failures.append(f"{CAPABILITY_PATH}: mutable repository state is forbidden at {path}")
 
     capabilities = authority.get("capabilities")
     if not isinstance(capabilities, dict):
