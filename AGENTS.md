@@ -113,3 +113,26 @@ A PR must report:
 - whether merge, approval, deployment, settings changes, or additional PRs occurred.
 
 Do not claim validation or CI success without exact-head evidence. Do not merge unless explicitly authorized.
+
+## Temporary Shared UX/UI Policy
+
+For cross-repository verification involving UX/UI Rule references, read and apply only the verifier portion of:
+
+```text
+policies/EV4_TEMP_CROSS_REPO_UX_UI_STANDARDS_POLICY_r001.md
+```
+
+Pinned identity:
+
+```yaml
+policy_id: EV4-TEMP-CROSS-REPO-UX-UI-STANDARDS-POLICY-r001
+revision: r001
+sha256: fd023d9b815b6d525539d595700a1768245ae83cca401c71fb61ba22d4f76483
+git_blob_sha: b52182c54577189d1b7832199fb699ee67f7d7fb
+```
+
+Project Gate may verify policy identity, referenced Rule IDs, allowed statuses, required rationale or ownership fields, downstream test obligations, prohibited conformance claims, and repository-role boundaries only when an active owner contract actually carries those fields.
+
+Policy presence, Markdown validity, Rule-ID recognition, or evaluation-shape validity does not activate a new transition, extend an owner Schema, prove design quality, prove semantic correctness, prove runtime behavior, or establish WCAG, ISO, usability, or production conformance. Project Gate must not select, score, reinterpret, or repair UX/UI decisions.
+
+Do not create a competing Rule registry, local semantic validator, transition field, capability claim, or hard gate solely from this temporary policy. `HEURISTIC` and `PREFERRED_DEFAULT` rules are not automatic blocking results. This policy becomes historical only after an explicitly adopted, pinned Kernel replacement exists.
