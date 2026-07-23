@@ -1,0 +1,37 @@
+name: Temporary Pytest Diagnostics
+
+on:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  pytest-diagnostics:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+          show-progress: false
+      - name: Print concise pytest failures
+        shell: bash
+        run: |
+          python -m pip install --quiet uv==0.7.22
+          uv sync --locked --extra dev --extra ui --quiet
+          set +e
+          uv run pytest -q --tb=line --maxfail=25 > /tmp/pytest.log 2>&1
+          status=$?
+          set -e
+          if [[ "$status" -ne 0 ]]; then
+            python - <<'PY'
+          from pathlib import Path
+          lines = Path('/tmp/pytest.log').read_text(errors='replace').splitlines()
+          selected = [line for line in lines if ('FAILED ' in line or 'ERROR ' in line or line.startswith('E   ') or 'short test summary info' in line)]
+          print('PYTEST_FAILURES=' + ' || '.join(selected[-80:]))
+          PY
+            exit "$status"
+          fi
+          echo PYTEST_FAILURES=NONE
