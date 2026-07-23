@@ -65,7 +65,7 @@ CLAIM_COMPATIBILITY: dict[str, dict[str, Any]] = {
     "real_evidence_present": {"allowed_evidence_types": {"responsive_output", "execution_evidence", "viewport_evidence"}, "required_owner": None, "required_viewport": None},
 }
 
-_SYNTHETIC_KEYS = {"synthetic", "synthetic_only", "synthetic_fixture", "fixture_classification"}
+_BOOLEAN_SYNTHETIC_KEYS = {"synthetic", "synthetic_only", "synthetic_fixture"}
 _SYNTHETIC_VALUES = {"synthetic", "synthetic_fixture", "synthetic-fixture", "synthetic_validation_only", "fixture", "fixture_validation", "test_fixture"}
 _MARKER_FIELDS = {"created_by", "source", "ref", "reference", "run_id", "export_id", "bundle_id", "kind", "type"}
 
@@ -78,12 +78,14 @@ def synthetic_indicators(value: Any) -> list[str]:
             for key, child in node.items():
                 child_path = f"{path}.{key}"
                 key_lower = str(key).lower()
-                if key_lower in _SYNTHETIC_KEYS and child not in (False, None, "", 0):
+                if key_lower in _BOOLEAN_SYNTHETIC_KEYS and child not in (False, None, "", 0):
                     indicators.add(child_path)
                 if isinstance(child, str):
                     token = child.strip().lower().replace(" ", "_")
                     normalized_path = child.replace("\\", "/").lower()
                     if token in _SYNTHETIC_VALUES:
+                        indicators.add(child_path)
+                    if key_lower == "fixture_classification" and ("synthetic" in token or "fixture" in token):
                         indicators.add(child_path)
                     if key_lower in _MARKER_FIELDS and ("synthetic" in token or "synthetic" in normalized_path or "/fixtures/" in f"/{normalized_path.strip('/')}/" or normalized_path.startswith("fixtures/") or ".synthetic." in normalized_path):
                         indicators.add(child_path)
