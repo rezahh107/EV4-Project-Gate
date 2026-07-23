@@ -41,7 +41,10 @@ jobs:
             status=$?
             set -e
             echo "COMMAND_STATUS ${name}=${status}"
-            tail -n 50 "$log"
+            if [[ "$status" -ne 0 ]]; then
+              echo "COMMAND_FAILURE ${name}"
+              tail -n 80 "$log"
+            fi
           }
 
           run_cmd a2c_pytest uv run pytest -q tests/test_architect_to_ce_transition.py tests/producer_integration/test_pg_a2c_io.py tests/producer_integration/test_pg_a2c_dispatch.py
