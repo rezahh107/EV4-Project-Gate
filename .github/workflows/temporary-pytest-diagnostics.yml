@@ -19,8 +19,8 @@ jobs:
         run: |
           set -euo pipefail
           git init --quiet .
-          git remote add origin "https://github.com/${GITHUB_REPOSITORY}.git"
-          git -c http.https://github.com/.extraheader="AUTHORIZATION: bearer ${GH_TOKEN}" fetch --quiet --depth=1 origin "$TESTED_HEAD"
+          git remote add origin "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
+          git fetch --quiet --depth=1 origin "$TESTED_HEAD"
           git checkout --quiet --detach FETCH_HEAD
           python -m pip install --quiet uv==0.7.22
           uv sync --locked --extra dev --extra ui --quiet
