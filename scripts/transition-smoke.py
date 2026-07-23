@@ -12,6 +12,7 @@ from ev4_transition.canonical_json import bytes_sha256, canonical_dumps
 from ev4_transition.external_lock import ARCHITECT_COMMIT, ARCHITECT_REPO
 
 SOURCE_SCHEMA_ID = "ev4-architect-stage-payload@1.0.0"
+SYNTHETIC_AUTHORITY_CODE = "PG_A2C_SYNTHETIC_OPERATIONAL_HANDOFF_FORBIDDEN"
 
 
 def source_bundle(payload: dict[str, Any], *, bundle_id: str = "synthetic-architect-a2c-smoke", stage: str = "architect") -> dict[str, Any]:
@@ -46,7 +47,17 @@ def write_json(path: Path, value: Any) -> None:
     path.write_text(canonical_dumps(value) + "\n", encoding="utf-8")
 
 
-def assert_transition_case(bundle: dict[str, Any], expected_exit: int, expected_status: str, architect_repo: str, ce_repo: str, work_dir: Path, case_id: str) -> dict[str, Any]:
+def assert_transition_case(
+    bundle: dict[str, Any],
+    expected_exit: int,
+    expected_status: str,
+    architect_repo: str,
+    ce_repo: str,
+    work_dir: Path,
+    case_id: str,
+    *,
+    expected_code: str | None = None,
+) -> dict[str, Any]:
     bundle_path = work_dir / f"{case_id}.source-bundle.json"
     write_json(bundle_path, bundle)
     completed = run_cli(bundle_path, architect_repo, ce_repo)
@@ -60,13 +71,20 @@ def assert_transition_case(bundle: dict[str, Any], expected_exit: int, expected_
         raise AssertionError(f"{case_id}: expected status {expected_status}, got {result['status']}")
     if expected_status == "invalid" and result.get("output") is not None:
         raise AssertionError(f"{case_id}: invalid transition must not emit output")
+    if expected_code is not None:
+        codes = {item.get("code") for item in result.get("diagnostics", []) if isinstance(item, dict)}
+        if expected_code not in codes:
+            raise AssertionError(f"{case_id}: expected diagnostic {expected_code}, got {sorted(codes)}")
     return result
 
 
 def validate_generated_ce_intake(result: dict[str, Any], source_bundle_value: dict[str, Any], ce_repo: str, work_dir: Path) -> None:
+    output = result.get("output")
+    if not isinstance(output, dict):
+        raise AssertionError("synthetic smoke must still emit a structurally testable CE intake projection")
     intake_path = (work_dir / "generated-ce-intake.v1_1.json").resolve()
     source_path = (work_dir / "generated-source-bundle.v1.json").resolve()
-    write_json(intake_path, result["output"]["payload"]["data"])
+    write_json(intake_path, output["payload"]["data"])
     write_json(source_path, source_bundle_value)
     completed = subprocess.run([
         sys.executable,
@@ -97,8 +115,20 @@ def main() -> int:
     valid_payload = json.loads((Path(args.architect_repo) / "fixtures/architect-stage-payload/valid/minimal-complete.v1.json").read_text(encoding="utf-8"))
     insufficient_payload = json.loads((Path(args.architect_repo) / "fixtures/architect-stage-payload/insufficient-evidence/missing-real-stage-output.v1.json").read_text(encoding="utf-8"))
 
+    # The smoke intentionally uses an owner-provided synthetic fixture. It may prove
+    # deterministic transformation and CE schema compatibility, but it must never
+    # prove an operational handoff. The expected status is therefore fail-closed.
     valid_bundle = source_bundle(valid_payload)
-    valid_result = assert_transition_case(valid_bundle, 0, "valid", args.architect_repo, args.ce_repo, work_dir, "valid")
+    valid_result = assert_transition_case(
+        valid_bundle,
+        2,
+        "insufficient_evidence",
+        args.architect_repo,
+        args.ce_repo,
+        work_dir,
+        "valid-synthetic",
+        expected_code=SYNTHETIC_AUTHORITY_CODE,
+    )
     validate_generated_ce_intake(valid_result, valid_bundle, args.ce_repo, work_dir)
 
     invalid_bundle = source_bundle(valid_payload, stage="builder")
