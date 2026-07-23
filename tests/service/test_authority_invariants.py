@@ -9,9 +9,24 @@ import pytest
 import ev4_transition.service.dispatcher as dispatcher
 from ev4_transition.io.secure_snapshot import SnapshotError, capture_json_snapshot, validate_json_snapshot
 from ev4_transition.service import GateRequest, RepoPaths, repository_path_matrix, run_gate_request
+from ev4_transition.service.preflight_core import PreflightResult
 from ev4_transition.service.transition_contracts import contract_for_service
 
 ROOT = Path(__file__).resolve().parents[2]
+
+
+def _authorize_unit_dispatch(monkeypatch) -> None:
+    def ready(request: GateRequest) -> PreflightResult:
+        return PreflightResult(
+            "ready",
+            str(request.transition_choice),
+            [],
+            "ready",
+            "unit-test-fingerprint",
+            {},
+        )
+
+    monkeypatch.setattr(dispatcher, "run_preflight", ready)
 
 
 def test_repository_path_matrix_has_complete_final_gate_contract() -> None:
@@ -48,6 +63,7 @@ def test_snapshot_and_file_requests_use_same_producer_service_authority(monkeypa
             next_action_fa="inspect",
         )
 
+    _authorize_unit_dispatch(monkeypatch)
     monkeypatch.setattr(dispatcher, "run_producer_handoff_request", fake_run)
     base = dict(
         transition_choice="architect_to_ce",
