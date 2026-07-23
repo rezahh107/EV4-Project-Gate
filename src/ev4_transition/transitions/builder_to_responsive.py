@@ -423,9 +423,13 @@ def _find_forbidden_claims(value: Any) -> list[str]:
 
 def _contains_key_or_value(value: Any, needle: str) -> bool:
     if isinstance(value, dict):
-        return any(k == needle or _contains_key_or_value(v, needle) for k, v in value.items())
+        return any(
+            key == needle or _contains_key_or_value(child, needle)
+            for key, child in value.items()
+            if key != "forbidden_claims"
+        )
     if isinstance(value, list):
-        return any(_contains_key_or_value(v, needle) for v in value)
+        return any(_contains_key_or_value(child, needle) for child in value)
     return value == needle
 
 
