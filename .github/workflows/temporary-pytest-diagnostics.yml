@@ -11,7 +11,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
-      - name: Print focused pytest failures
+      - name: Isolate Architect to CE boundary failure
         shell: bash
         env:
           TESTED_HEAD: ${{ github.event.pull_request.head.sha }}
@@ -24,12 +24,29 @@ jobs:
           git checkout --quiet --detach FETCH_HEAD
           python -m pip install --quiet uv==0.7.22
           uv sync --locked --extra dev --extra ui --quiet
-          set +e
-          uv run pytest -q --tb=short --maxfail=20 > "$RUNNER_TEMP/pytest.log" 2>&1
-          pytest_status=$?
-          set -e
-          echo "PYTEST_STATUS=$pytest_status"
-          echo "PYTEST_FAILURE_TAIL_START"
-          tail -n 120 "$RUNNER_TEMP/pytest.log"
-          echo "PYTEST_FAILURE_TAIL_END"
+
+          architect="$RUNNER_TEMP/EV4-Architect-Repo"
+          ce="$RUNNER_TEMP/EV4-Constructability-Engineer-Repo"
+          git clone --quiet "https://x-access-token:${GH_TOKEN}@github.com/rezahh107/EV4-Architect-Repo.git" "$architect"
+          git -C "$architect" checkout --quiet be9bdea9ae246b1587043f2582c1a950ea2a6ec5
+          git clone --quiet "https://x-access-token:${GH_TOKEN}@github.com/rezahh107/EV4-Constructability-Engineer-Repo.git" "$ce"
+          git -C "$ce" checkout --quiet 6650c31304e5a0472b276c36018c1df8f42ac983
+
+          run_cmd() {
+            name="$1"
+            shift
+            log="$RUNNER_TEMP/${name}.log"
+            set +e
+            "$@" > "$log" 2>&1
+            status=$?
+            set -e
+            echo "COMMAND_STATUS ${name}=${status}"
+            tail -n 50 "$log"
+          }
+
+          run_cmd a2c_pytest uv run pytest -q tests/test_architect_to_ce_transition.py tests/producer_integration/test_pg_a2c_io.py tests/producer_integration/test_pg_a2c_dispatch.py
+          run_cmd a2c_lock uv run python scripts/verify-architect-to-ce-lock.py --architect-repo "$architect" --ce-repo "$ce"
+          run_cmd a2c_smoke uv run python scripts/transition-smoke.py --architect-repo "$architect" --ce-repo "$ce"
+          run_cmd architect_validator bash -lc "cd '$architect' && '$(pwd)/.venv/bin/python' scripts/check-architect-stage-payload.py"
+          run_cmd ce_validator bash -lc "cd '$ce' && '$(pwd)/.venv/bin/python' scripts/validate-ce-architect-stage-intake.py"
           exit 0
