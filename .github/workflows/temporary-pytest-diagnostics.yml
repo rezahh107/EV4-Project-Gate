@@ -11,7 +11,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
-      - name: Print focused Final Gate diagnostics
+      - name: Print focused pytest failures
         shell: bash
         env:
           TESTED_HEAD: ${{ github.event.pull_request.head.sha }}
@@ -24,16 +24,12 @@ jobs:
           git checkout --quiet --detach FETCH_HEAD
           python -m pip install --quiet uv==0.7.22
           uv sync --locked --extra dev --extra ui --quiet
-          uv run python - <<'PY'
-          import json
-          import tempfile
-          from pathlib import Path
-          from tests.transitions.test_final_gate import _run
-
-          result, _value, calls, _responsive, _source, _final_lock, _kernel_lock, _config = _run(Path(tempfile.mkdtemp()))
-          kernel_result = result.get('kernel_decision_intake_result')
-          print('FINAL_STATUS=' + str(result.get('status')))
-          print('FINAL_KERNEL_CALLS=' + str(len(calls)))
-          print('FINAL_KERNEL_STATUS=' + str(kernel_result.get('status') if isinstance(kernel_result, dict) else None))
-          print('FINAL_KERNEL_DIAGNOSTICS=' + json.dumps(kernel_result.get('diagnostics', []) if isinstance(kernel_result, dict) else [], sort_keys=True))
-          PY
+          set +e
+          uv run pytest -q --tb=short --maxfail=20 > "$RUNNER_TEMP/pytest.log" 2>&1
+          pytest_status=$?
+          set -e
+          echo "PYTEST_STATUS=$pytest_status"
+          echo "PYTEST_FAILURE_TAIL_START"
+          tail -n 120 "$RUNNER_TEMP/pytest.log"
+          echo "PYTEST_FAILURE_TAIL_END"
+          exit 0
