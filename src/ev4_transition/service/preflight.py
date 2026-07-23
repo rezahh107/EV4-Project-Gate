@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import ast
 from dataclasses import replace
 from typing import Any
 
@@ -84,12 +85,16 @@ def preflight_authorization_diagnostic(
 
 
 def _diagnostic_from_blocked_preflight(result: PreflightResult) -> ServiceDiagnostic:
-    check = next(
+    identity_check = next(
         (item for item in result.checks if item.status == "error" and item.id == "request.identity.blocked"),
         None,
     )
-    if check is None:
-        check = next((item for item in result.checks if item.status == "error"), None)
+    identity_code = _extract_preflight_code(identity_check) if identity_check is not None else None
+    identity_is_snapshot_authority = bool(identity_code and identity_code.startswith(("PG_A2C_INPUT_", "PG_C2B_INPUT_")))
+    check = identity_check if identity_is_snapshot_authority else next(
+        (item for item in result.checks if item.status == "error" and item.id != "request.identity.blocked"),
+        identity_check,
+    )
     code = "PG.SERVICE.PREFLIGHT_NOT_READY"
     path = "$.preflight"
     message = "Authoritative preflight is not ready for the current request."
@@ -113,6 +118,9 @@ def _diagnostic_from_blocked_preflight(result: PreflightResult) -> ServiceDiagno
         "preflight_status": result.status,
         "request_fingerprint": result.request_fingerprint,
     }
+    identity_details = _extract_identity_details(identity_check)
+    if identity_details:
+        details.update(identity_details)
     if check is not None:
         details.update(
             {
@@ -124,7 +132,9 @@ def _diagnostic_from_blocked_preflight(result: PreflightResult) -> ServiceDiagno
     return ServiceDiagnostic(code, severity, message, path, details)
 
 
-def _extract_preflight_code(check: PreflightCheck) -> str | None:
+def _extract_preflight_code(check: PreflightCheck | None) -> str | None:
+    if check is None:
+        return None
     if check.id == "json.source.invalid_or_missing" and isinstance(check.technical_detail, str) and check.technical_detail.startswith("PG.SERVICE."):
         return check.technical_detail
     if check.id == "json.source.not_object":
@@ -145,6 +155,20 @@ def _extract_preflight_code(check: PreflightCheck) -> str | None:
         if candidate.startswith("PG"):
             return candidate
     return None
+
+
+def _extract_identity_details(check: PreflightCheck | None) -> dict[str, Any]:
+    if check is None or not isinstance(check.technical_detail, str):
+        return {}
+    marker = "; details="
+    if marker not in check.technical_detail:
+        return {}
+    raw = check.technical_detail.split(marker, 1)[1]
+    try:
+        parsed = ast.literal_eval(raw)
+    except (SyntaxError, ValueError):
+        return {}
+    return dict(parsed) if isinstance(parsed, dict) else {}
 
 
 def _blocked_identity_result(
