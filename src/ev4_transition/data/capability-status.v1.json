@@ -14,6 +14,7 @@
       "pinned_detached_execution_worktree": "implemented",
       "real_non_synthetic_handoff": "insufficient_evidence",
       "runtime_output_exact_binding": "implemented",
+      "verified_artifact_snapshot": "implemented",
       "viewport_file_pair_authority": "forbidden",
       "viewport_runtime_result_interface": "implemented_fail_closed",
       "viewport_runtime_emitter": "missing_in_pinned_builder_owner"
@@ -65,6 +66,8 @@
     "viewport runtime result verification interface",
     "pinned detached execution worktree",
     "exact runtime tool, working-directory, output-reference, and output-hash binding",
+    "durable immutable exact-byte verified artifact snapshot",
+    "exact-byte snapshot staging and post-write verification",
     "file-only viewport evidence rejection",
     "grouped A2C publication transaction",
     "KROAD-011 kernel decision intake internal orchestration baseline",
