@@ -24,7 +24,7 @@ from ev4_transition.io.safe_publication import (
     PublicationError,
     StagedJson,
     discard_staged_json,
-    publish_staged_json,
+    publish_staged_group,
     resolve_publication_paths,
     stage_canonical_json,
 )
@@ -57,10 +57,13 @@ def dispatch_architect_export(
     output_path: str | Path,
     receipt_path: str | Path,
 ) -> dict[str, Any]:
-    """Execute the existing A2C authority and publish only authorized handoffs."""
+    """Execute A2C authority and atomically publish an authorized pair."""
 
     identities = {
-        "project_gate": inspect_checkout(project_gate_repo, expected_repository=PG_REPO),
+        "project_gate": inspect_checkout(
+            project_gate_repo,
+            expected_repository=PG_REPO,
+        ),
         "architect": inspect_checkout(
             architect_repo,
             expected_repository=ARCHITECT_REPO,
@@ -218,8 +221,8 @@ def dispatch_architect_export(
         and validation_passed
     )
 
-    # This is the sole publication gate. No path resolution, staging, JSON
-    # creation, receipt generation, or publication occurs before it passes.
+    # Sole publication gate. No output path resolution, staging, receipt
+    # construction, or filesystem publication occurs before this predicate.
     if not publication_allowed:
         result = _base_result(
             intake_result,
@@ -264,7 +267,10 @@ def dispatch_architect_export(
             ce_outcome=ce_outcome,
             events=events,
         )
-        result["publication_allowed"] = False
+        result["publication"] = {
+            "ce_input": {"state": "not_published"},
+            "receipt": {"state": "not_generated"},
+        }
         return result
 
     lock = load_lock(lock_path)
@@ -285,16 +291,21 @@ def dispatch_architect_export(
 
     staged_output: StagedJson | None = None
     staged_receipt: StagedJson | None = None
-    output_publication: dict[str, Any] | None = None
     try:
         staged_output = stage_canonical_json(output, ce_input)
         staged_receipt = stage_canonical_json(receipt, receipt_payload)
         verify_snapshot_unchanged(snapshot)
-        output_publication = publish_staged_json(staged_output)
+        publication_records = publish_staged_group(
+            [staged_output, staged_receipt]
+        )
+        output_publication, receipt_publication = _map_group_records(
+            publication_records,
+            output=output,
+            receipt=receipt,
+        )
         staged_output = None
-        receipt_publication = publish_staged_json(staged_receipt)
         staged_receipt = None
-    except (PublicationError, SnapshotError) as exc:
+    except (PublicationError, SnapshotError, OSError, ValueError) as exc:
         cleanup_diagnostics: list[dict[str, Any]] = []
         for staged in (staged_output, staged_receipt):
             try:
@@ -313,13 +324,50 @@ def dispatch_architect_export(
             ce_outcome=ce_outcome,
             events=events,
         )
-        result["publication_allowed"] = False
-        result["publication"] = {
-            "ce_input": output_publication
-            or {"path": str(output), "state": "not_published"},
-            "receipt": {"path": str(receipt), "state": "not_published"},
-        }
-        result["handoff_allowed"] = False
+        persisted_paths = set(
+            str(item)
+            for item in getattr(exc, "details", {}).get("persisted_paths", [])
+        )
+        output_persisted = str(output) in persisted_paths or output.exists()
+        receipt_persisted = str(receipt) in persisted_paths or receipt.exists()
+        result.update(
+            {
+                "publication_allowed": False,
+                "handoff_allowed": False,
+                "downstream_artifact": {
+                    "status": (
+                        "rollback_failed_persisted"
+                        if output_persisted
+                        else "not_published"
+                    )
+                },
+                "receipt": {
+                    "status": (
+                        "rollback_failed_persisted"
+                        if receipt_persisted
+                        else "not_generated"
+                    )
+                },
+                "publication": {
+                    "ce_input": {
+                        "path": str(output),
+                        "state": (
+                            "rollback_failed_persisted"
+                            if output_persisted
+                            else "not_published"
+                        ),
+                    },
+                    "receipt": {
+                        "path": str(receipt),
+                        "state": (
+                            "rollback_failed_persisted"
+                            if receipt_persisted
+                            else "not_generated"
+                        ),
+                    },
+                },
+            }
+        )
         return result
 
     result = _base_result(
@@ -358,6 +406,29 @@ def dispatch_architect_export(
         }
     )
     return result
+
+
+def _map_group_records(
+    records: list[dict[str, Any]],
+    *,
+    output: Path,
+    receipt: Path,
+) -> tuple[dict[str, Any], dict[str, Any]]:
+    by_path = {
+        str(Path(str(item.get("path"))).resolve()): item
+        for item in records
+        if item.get("state") == "published_verified" and item.get("path")
+    }
+    output_record = by_path.get(str(output.resolve()))
+    receipt_record = by_path.get(str(receipt.resolve()))
+    if output_record is None or receipt_record is None or len(records) != 2:
+        raise PublicationError(
+            "PG_A2C_GROUP_PUBLICATION_RECORD_INVALID",
+            "Grouped publication did not return one verified record for each A2C artifact.",
+            expected_paths=[str(output), str(receipt)],
+            actual_paths=sorted(by_path),
+        )
+    return output_record, receipt_record
 
 
 def _build_receipt(
@@ -520,7 +591,13 @@ def _publication_diag(exc: Exception) -> dict[str, Any]:
     code = getattr(exc, "code", "PG_A2C_PUBLICATION_FAILED")
     status = getattr(exc, "status", "invalid")
     severity = "insufficient_evidence" if status == "insufficient_evidence" else "error"
-    return _diag(code, severity, "$", str(exc), **getattr(exc, "details", {}))
+    return _diag(
+        code,
+        severity,
+        "$",
+        str(exc),
+        **getattr(exc, "details", {}),
+    )
 
 
 def _diag(
