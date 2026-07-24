@@ -52,7 +52,7 @@ def run_gate_request(request: GateRequest) -> GateResponse:
         response = _response(choice, "invalid", None, [allocation_failure])
         return _finalize_response(response, attempt)
     if authorization_failure is not None:
-        response = _response(choice, "invalid", None, [authorization_failure])
+        response = _response(choice, _status_from_diags([authorization_failure]), None, [authorization_failure])
         return _finalize_response(response, attempt)
 
     if request.acquisition_mode == "producer_emitted_gate_artifact":
@@ -79,7 +79,6 @@ def run_gate_request(request: GateRequest) -> GateResponse:
     return _finalize_response(response, attempt)
 
 
-
 def _bind_runtime_snapshot(request: GateRequest) -> GateRequest:
     """Capture producer source once for runtime, token comparison, and final revalidation."""
 
@@ -93,6 +92,7 @@ def _bind_runtime_snapshot(request: GateRequest) -> GateRequest:
     except (SnapshotError, OSError, ValueError, TypeError):
         return request
     return replace(request, input_snapshot=snapshot)
+
 
 def _prepare_attempt(
     request: GateRequest,

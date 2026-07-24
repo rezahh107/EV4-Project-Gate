@@ -57,6 +57,16 @@ def source_bundle(payload: dict, *, bundle_id: str = "synthetic-architect-a2c-00
 
 
 def official_hooks(events: list[str] | None = None) -> TransitionValidatorHooks:
+    """Run pinned owner validators in explicit fixture-validation context."""
+
+    return TransitionValidatorHooks(
+        architect=lambda payload: run_architect_validator(ARCH, payload),
+        ce=lambda payload, bundle: run_ce_validator(CE, payload, bundle, operational=False),
+        events=events,
+    )
+
+
+def operational_hooks(events: list[str] | None = None) -> TransitionValidatorHooks:
     return TransitionValidatorHooks(
         architect=lambda payload: run_architect_validator(ARCH, payload),
         ce=lambda payload, bundle: run_ce_validator(CE, payload, bundle),
@@ -87,6 +97,13 @@ def test_valid_transition_outputs_complete_ce_v1_1_bundle():
     assert target["validation_contract"]["rules"] == [f"CE-I{i:02d}" for i in range(1, 22)]
     assert "project_gate_transition_implemented" not in target["ce_processing_prerequisites"]
     assert "ce_review_units" not in canonical_dumps(target)
+
+
+def test_operational_hooks_reject_synthetic_handoff_authority():
+    result = run_transition(source_bundle(architect_payload()), operational_hooks())
+    assert result["status"] == "insufficient_evidence"
+    assert result["output"] is not None
+    assert any(item["code"] == "PG_A2C_SYNTHETIC_OPERATIONAL_HANDOFF_FORBIDDEN" for item in result["diagnostics"])
 
 
 def test_complete_mapping_trace_and_derivation_rules():

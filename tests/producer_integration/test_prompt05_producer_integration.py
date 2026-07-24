@@ -91,6 +91,7 @@ def _configure_direct_dispatch(monkeypatch, resolved_transition: str):
             "handoff_allowed": False,
         },
     )
+    monkeypatch.setattr(intake_module, "_operational_truth_failure", lambda *args, **kwargs: None)
 
 
 def test_direct_c2b_dispatch_uses_c2b_defaults_when_paths_omitted(monkeypatch):

@@ -11,7 +11,13 @@
       "official_responsive_validator_integration": "implemented",
       "orchestration_baseline": "implemented",
       "owner_contract_lock": "computed_from_pinned_owner_file_bytes",
-      "real_non_synthetic_handoff": "insufficient_evidence"
+      "pinned_detached_execution_worktree": "implemented",
+      "real_non_synthetic_handoff": "insufficient_evidence",
+      "runtime_output_exact_binding": "implemented",
+      "verified_artifact_snapshot": "implemented",
+      "viewport_file_pair_authority": "forbidden",
+      "viewport_runtime_result_interface": "implemented_fail_closed",
+      "viewport_runtime_emitter": "missing_in_pinned_builder_owner"
     },
     "ce_to_builder": {
       "cli_exposure": "guarded",
@@ -24,7 +30,8 @@
       "official_responsive_validator_integration": "implemented",
       "orchestration_baseline": "implemented",
       "prior_lock_chain": "pinned_to_immutable_project_gate_commit",
-      "real_non_synthetic_evidence": "insufficient_evidence"
+      "real_non_synthetic_evidence": "insufficient_evidence",
+      "viewport_runtime_authority": "insufficient_evidence_until_observed_official_execution"
     },
     "producer_emitted_gate_artifact": {
       "common_contract": "implemented",
@@ -56,6 +63,13 @@
     "ce-to-builder orchestration baseline",
     "producer-emitted ce-to-builder dispatch with standalone Builder input and separate Project Gate receipt",
     "builder-to-responsive orchestration baseline",
+    "viewport runtime result verification interface",
+    "pinned detached execution worktree",
+    "exact runtime tool, working-directory, output-reference, and output-hash binding",
+    "durable immutable exact-byte verified artifact snapshot",
+    "exact-byte snapshot staging and post-write verification",
+    "file-only viewport evidence rejection",
+    "grouped A2C publication transaction",
     "KROAD-011 kernel decision intake internal orchestration baseline",
     "final evidence gate orchestration baseline",
     "local operator UI shell",
@@ -72,6 +86,7 @@
     "real EV4 artifact validation",
     "real non-synthetic Architect-to-CE handoff evidence",
     "real non-synthetic CE-to-Builder handoff evidence",
+    "official Builder viewport runtime emitter and export contract",
     "KROAD-012 downstream producer integration",
     "KROAD-013 runtime or browser evidence collection",
     "KROAD-014 re-audit automation",

@@ -9,6 +9,7 @@ from .join_preflight import validate_join_evidence_packet
 TRANSITIONS = _runtime.TRANSITIONS
 load_transition_targets = _runtime.load_transition_targets
 intake_producer_export = _runtime.intake_producer_export
+_operational_truth_failure = _runtime._operational_truth_failure
 
 
 def transition_producer_export(
@@ -22,6 +23,7 @@ def transition_producer_export(
 
     _runtime.intake_producer_export = intake_producer_export
     _runtime.validate_join_evidence_packet = validate_join_evidence_packet
+    _runtime._operational_truth_failure = _operational_truth_failure
     return _runtime.transition_producer_export(
         transition_name,
         artifact,

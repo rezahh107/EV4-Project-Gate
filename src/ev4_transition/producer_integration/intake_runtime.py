@@ -9,6 +9,7 @@ from ev4_transition.io.secure_snapshot import JsonInputSnapshot
 from ev4_transition.producer_gate_export import ProducerGateExportValidator
 
 from .join_preflight import validate_join_evidence_packet
+from .operational_export import OperationalProducerGateExportValidator
 from .registry import validate_adoption_registry
 
 TRANSITIONS = {
@@ -54,9 +55,10 @@ def intake_producer_export(
     targets_path: str | Path = "contracts/transition-targets/ev4-transition-targets.v1.json",
     repository_root: str | Path = ".",
 ) -> dict[str, Any]:
+    """Validate the immutable Producer envelope and routing without authorizing dispatch."""
+
     original = canonical_dumps(artifact) if isinstance(artifact, (dict, list)) else None
-    diags: list[dict[str, Any]] = []
-    status = "accepted"
+    diagnostics: list[dict[str, Any]] = []
     if not isinstance(artifact, dict):
         return _result(
             "invalid",
@@ -74,9 +76,9 @@ def intake_producer_export(
         )
 
     item = copy.deepcopy(artifact)
-    acq = item.get("acquisition_mode") if isinstance(item.get("acquisition_mode"), dict) else None
-    if acq is None or "mode" not in acq:
-        diags.append(
+    acquisition = item.get("acquisition_mode") if isinstance(item.get("acquisition_mode"), dict) else None
+    if acquisition is None or "mode" not in acquisition:
+        diagnostics.append(
             _diag(
                 "PG-P05-ACQUISITION-MODE-MISSING",
                 "error",
@@ -85,8 +87,8 @@ def intake_producer_export(
                 "Producer",
             )
         )
-    elif acq.get("mode") != "producer_emitted_gate_artifact":
-        diags.append(
+    elif acquisition.get("mode") != "producer_emitted_gate_artifact":
+        diagnostics.append(
             _diag(
                 "PG-P05-ACQUISITION-MODE-MISMATCH",
                 "error",
@@ -95,8 +97,8 @@ def intake_producer_export(
                 "Producer",
             )
         )
-    if isinstance(acq, dict) and acq.get("silent_fallback_allowed") is not False:
-        diags.append(
+    if isinstance(acquisition, dict) and acquisition.get("silent_fallback_allowed") is not False:
+        diagnostics.append(
             _diag(
                 "PG-P05-SILENT-FALLBACK-FORBIDDEN",
                 "error",
@@ -105,11 +107,11 @@ def intake_producer_export(
                 "Project Gate",
             )
         )
-    if isinstance(acq, dict) and acq.get("evidence_sources") not in (
+    if isinstance(acquisition, dict) and acquisition.get("evidence_sources") not in (
         None,
         ["producer_emitted_gate_artifact"],
     ):
-        diags.append(
+        diagnostics.append(
             _diag(
                 "PG-P05-EVIDENCE-MIXING-FORBIDDEN",
                 "error",
@@ -119,18 +121,14 @@ def intake_producer_export(
             )
         )
 
-    common = ProducerGateExportValidator(repository_root).validate(item)
-    for diagnostic in common.get("diagnostics", []):
-        diags.append(
-            {
-                **diagnostic,
-                "repair_owner": diagnostic.get("repair_owner", "Producer"),
-            }
-        )
+    # Intake is intentionally contract/routing-only. Runtime authorization is
+    # revalidated immediately before a supported dispatch with actual owner roots.
+    common = ProducerGateExportValidator(repository_root, operational=False).validate(item)
+    diagnostics.extend(_with_repair_owner(common.get("diagnostics", []), default_owner="Producer"))
 
-    reg_result = validate_adoption_registry(registry_path)
-    if reg_result["status"] != "valid":
-        diags.extend(reg_result["diagnostics"])
+    registry_result = validate_adoption_registry(registry_path)
+    if registry_result["status"] != "valid":
+        diagnostics.extend(registry_result["diagnostics"])
     try:
         registry = load_json_file(registry_path)
     except Exception:
@@ -140,15 +138,12 @@ def intake_producer_export(
 
     producer = item.get("producer") if isinstance(item.get("producer"), dict) else {}
     match = None
-    for candidate in (
-        registry.get("producers", [])
-        if isinstance(registry.get("producers"), list)
-        else []
-    ):
+    producers = registry.get("producers", []) if isinstance(registry.get("producers"), list) else []
+    for candidate in producers:
         if isinstance(candidate, dict) and candidate.get("stage") == producer.get("stage"):
             match = candidate
     if not match:
-        diags.append(
+        diagnostics.append(
             _diag(
                 "PG-P05-PRODUCER-REGISTRY-INVALID",
                 "error",
@@ -159,7 +154,7 @@ def intake_producer_export(
         )
     else:
         if producer.get("repository") != match.get("repository"):
-            diags.append(
+            diagnostics.append(
                 _diag(
                     "PG-P05-PRODUCER-REGISTRY-INVALID",
                     "error",
@@ -170,7 +165,7 @@ def intake_producer_export(
             )
         runtime_pin = match.get("runtime_pin") if isinstance(match.get("runtime_pin"), dict) else {}
         if producer.get("commit_sha") != runtime_pin.get("merged_commit_sha"):
-            diags.append(
+            diagnostics.append(
                 _diag(
                     "PG-P05-PRODUCER-REGISTRY-INVALID",
                     "error",
@@ -180,15 +175,10 @@ def intake_producer_export(
                 )
             )
 
-    target = (
-        (item.get("handoff") or {}).get("target")
-        if isinstance(item.get("handoff"), dict)
-        else None
-    )
-    targets = load_transition_targets(targets_path)
-    resolved = targets.get(target)
+    target = (item.get("handoff") or {}).get("target") if isinstance(item.get("handoff"), dict) else None
+    resolved = load_transition_targets(targets_path).get(target)
     if resolved is None:
-        diags.append(
+        diagnostics.append(
             _diag(
                 "PG-P05-HANDOFF-TARGET-INVALID",
                 "error",
@@ -198,7 +188,7 @@ def intake_producer_export(
             )
         )
     if transition_name and resolved and transition_name != resolved:
-        diags.append(
+        diagnostics.append(
             _diag(
                 "PG-P05-HANDOFF-TARGET-INVALID",
                 "error",
@@ -210,7 +200,7 @@ def intake_producer_export(
             )
         )
     if original is not None and canonical_dumps(artifact) != original:
-        diags.append(
+        diagnostics.append(
             _diag(
                 "PG-P05-PRODUCER-ARTIFACT-MUTATED",
                 "error",
@@ -220,18 +210,12 @@ def intake_producer_export(
             )
         )
 
-    if any(diagnostic["severity"] == "error" for diagnostic in diags):
-        status = "invalid"
-    elif any(
-        diagnostic["severity"] == "insufficient_evidence"
-        for diagnostic in diags
-    ):
-        status = "insufficient_evidence"
+    status = _status_from_diagnostics(diagnostics)
     return _result(
         status,
         producer,
         resolved,
-        sorted(diags, key=lambda item: (item["path"], item["code"])),
+        sorted(diagnostics, key=lambda item: (item["path"], item["code"])),
     )
 
 
@@ -253,9 +237,8 @@ def transition_producer_export(
 ) -> dict[str, Any]:
     """Dispatch from current runtime evidence, without a persistent authorization packet.
 
-    ``join_packet_path`` remains as an explicit legacy compatibility hook. It has
-    no default and therefore cannot authorize normal execution. When a caller
-    explicitly supplies a packet, the old fail-closed check is still honored.
+    ``join_packet_path`` remains an explicit legacy compatibility hook. It has no
+    default and therefore cannot authorize normal execution.
     """
 
     legacy_preflight: dict[str, Any] | None = None
@@ -285,7 +268,7 @@ def transition_producer_export(
 
     resolved = result.get("resolved_transition")
     if resolved == "architect-to-ce":
-        missing = []
+        missing: list[str] = []
         if snapshot is None:
             missing.append("immutable source snapshot")
         if architect_repo is None:
@@ -299,6 +282,14 @@ def transition_producer_export(
                 "Producer-emitted A2C dispatch requires immutable source bytes and exact owner checkouts.",
                 missing,
             )
+        operational_failure = _operational_truth_failure(
+            result,
+            artifact,
+            project_gate_root=project_gate_repo,
+            artifact_root=architect_repo,
+        )
+        if operational_failure is not None:
+            return operational_failure
 
         from .a2c_dispatch import dispatch_architect_export
 
@@ -331,6 +322,14 @@ def transition_producer_export(
                 "Producer-emitted C2B dispatch requires immutable source bytes and exact CE and Builder checkouts.",
                 missing,
             )
+        operational_failure = _operational_truth_failure(
+            result,
+            artifact,
+            project_gate_root=project_gate_repo,
+            artifact_root=ce_repo,
+        )
+        if operational_failure is not None:
+            return operational_failure
 
         from .c2b_dispatch import dispatch_ce_export
 
@@ -355,6 +354,36 @@ def transition_producer_export(
     }
     result["downstream_artifact"] = {"status": "not_fabricated"}
     return result
+
+
+def _operational_truth_failure(
+    result: dict[str, Any],
+    artifact: Any,
+    *,
+    project_gate_root: str | Path,
+    artifact_root: str | Path,
+) -> dict[str, Any] | None:
+    validation = OperationalProducerGateExportValidator(
+        project_gate_root,
+        artifact_root,
+    ).validate(artifact)
+    if validation.get("status") == "valid":
+        return None
+    failed = copy.deepcopy(result)
+    failed["status"] = "invalid"
+    failed["common_validation"] = "failed"
+    failed["handoff_allowed"] = False
+    failed["diagnostics"] = _with_repair_owner(
+        validation.get("diagnostics", []),
+        default_owner="Project Gate",
+    )
+    failed["producer_validation"] = {
+        "status": "failed",
+        "official_validator_status": "not_run",
+        "evidence_classification": "runtime_derived",
+    }
+    failed["downstream_artifact"] = {"status": "not_published"}
+    return failed
 
 
 def _defaults_for_dispatched_transition(transition_name: str) -> dict[str, str]:
@@ -384,6 +413,14 @@ def _runtime_evidence_required(
     }
     result["downstream_artifact"] = {"status": "not_published"}
     return result
+
+
+def _status_from_diagnostics(diagnostics: list[dict[str, Any]]) -> str:
+    if any(item.get("severity") == "error" for item in diagnostics):
+        return "invalid"
+    if any(item.get("severity") == "insufficient_evidence" for item in diagnostics):
+        return "insufficient_evidence"
+    return "accepted"
 
 
 def _result(
@@ -422,7 +459,11 @@ def _diag(
     }
 
 
-def _with_repair_owner(diagnostics: Any) -> list[dict[str, Any]]:
+def _with_repair_owner(
+    diagnostics: Any,
+    *,
+    default_owner: str = "Project Gate",
+) -> list[dict[str, Any]]:
     result: list[dict[str, Any]] = []
     if not isinstance(diagnostics, list):
         return result
@@ -431,7 +472,7 @@ def _with_repair_owner(diagnostics: Any) -> list[dict[str, Any]]:
             result.append(
                 {
                     **item,
-                    "repair_owner": item.get("repair_owner", "Project Gate"),
+                    "repair_owner": item.get("repair_owner", default_owner),
                 }
             )
     return sorted(

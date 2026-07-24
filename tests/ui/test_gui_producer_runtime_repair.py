@@ -56,8 +56,8 @@ def test_gui_builds_complete_producer_request(tmp_path: Path):
 
 
 def test_shared_service_dispatches_producer_request(monkeypatch, tmp_path: Path):
-    source = tmp_path / "producer.json"
-    source.write_text('{"schema_version":"producer-gate-export.v1"}', encoding="utf-8")
+    root = Path(__file__).resolve().parents[2]
+    source = root / "fixtures/producer-emitted/valid/architect-export.v1.json"
     captured = {}
 
     def fake_run(request):
@@ -80,7 +80,8 @@ def test_shared_service_dispatches_producer_request(monkeypatch, tmp_path: Path)
             transition_choice="architect_to_ce",
             acquisition_mode="producer_emitted_gate_artifact",
             input_json_path=str(source),
-            repo_paths=RepoPaths(project_gate_repo_path=str(tmp_path), architect_repo_path=str(tmp_path), ce_repo_path=str(tmp_path)),
+            repo_paths=RepoPaths(project_gate_repo_path=str(root), architect_repo_path=str(tmp_path), ce_repo_path=str(tmp_path)),
+            output_dir=str(tmp_path / "outputs"),
         )
     )
 

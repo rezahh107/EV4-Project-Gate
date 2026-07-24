@@ -10,6 +10,7 @@ import ev4_transition.service.reports as service_reports
 from ev4_transition.service import GateRequest, RepoPaths, build_report_bundle, run_gate_request
 from ev4_transition.service import dispatcher
 from ev4_transition.service.capabilities import _CAPABILITY_STATUS_PATH, get_capabilities
+from ev4_transition.service.preflight_core import PreflightResult
 
 
 def _repo_paths(tmp_path: Path) -> RepoPaths:
@@ -33,6 +34,22 @@ def _repo_paths(tmp_path: Path) -> RepoPaths:
 
 def _engine_result(status: str = "accepted") -> dict:
     return {"status": status, "diagnostics": [], "output": {"ok": True}}
+
+
+def _authorize_unit_dispatch(monkeypatch) -> None:
+    """Keep dispatcher unit tests focused after public Preflight became fail-closed."""
+
+    def ready(request: GateRequest) -> PreflightResult:
+        return PreflightResult(
+            "ready",
+            str(request.transition_choice),
+            [],
+            "ready",
+            "unit-test-fingerprint",
+            {},
+        )
+
+    monkeypatch.setattr(dispatcher, "run_preflight", ready)
 
 
 def test_malformed_json_returns_invalid_without_crash():
@@ -184,6 +201,7 @@ def test_architect_to_ce_service_path_calls_existing_engine_boundary(monkeypatch
         calls.update(payload=payload, architect_repo=architect_repo, ce_repo=ce_repo, validator_hooks=validator_hooks)
         return _engine_result("insufficient_evidence")
 
+    _authorize_unit_dispatch(monkeypatch)
     monkeypatch.setattr(dispatcher, "architect_to_ce_from_local_paths", fake)
     response = run_gate_request(GateRequest(transition_choice="architect_to_ce", input_data={"stage": "architect"}, repo_paths=paths))
 
@@ -201,6 +219,7 @@ def test_ce_to_builder_service_path_calls_existing_transition_function(monkeypat
         calls.update(payload=payload, ce_repo=ce_repo, builder_repo=builder_repo, kwargs=kwargs)
         return _engine_result("insufficient_evidence")
 
+    _authorize_unit_dispatch(monkeypatch)
     monkeypatch.setattr(dispatcher, "ce_to_builder_from_local_paths", fake)
     response = run_gate_request(GateRequest(transition_choice="ce_to_builder", input_data={"schema": "ce"}, repo_paths=paths))
 
@@ -218,6 +237,7 @@ def test_builder_to_responsive_service_path_calls_existing_transition_function(m
         calls.update(payload=payload, builder_repo=builder_repo, responsive_repo=responsive_repo, kwargs=kwargs)
         return _engine_result("repair_needed")
 
+    _authorize_unit_dispatch(monkeypatch)
     monkeypatch.setattr(dispatcher, "builder_to_responsive_from_local_paths", fake)
     response = run_gate_request(GateRequest(transition_choice="builder_to_responsive", input_data={"responsive_input": {}}, repo_paths=paths))
 
@@ -234,6 +254,7 @@ def test_final_gate_service_path_calls_existing_gate_function(monkeypatch, tmp_p
         calls.update(payload=payload, project_gate_repo=project_gate_repo, responsive_repo=responsive_repo, kwargs=kwargs)
         return _engine_result("insufficient_evidence")
 
+    _authorize_unit_dispatch(monkeypatch)
     monkeypatch.setattr(dispatcher, "final_gate_from_local_paths", fake)
     response = run_gate_request(GateRequest(transition_choice="final_gate", input_data={"responsive_output": {}}, repo_paths=paths))
 

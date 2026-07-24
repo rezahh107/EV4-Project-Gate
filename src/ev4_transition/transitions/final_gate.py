@@ -10,13 +10,14 @@ from jsonschema import Draft202012Validator
 from ev4_transition.canonical_json import bytes_sha256, canonical_sha256, load_json_file
 from ev4_transition.contract_source import ContractSource, LocalCheckoutContractSource
 from ev4_transition.diagnostics import Diagnostic, diagnostic, project_gate_status_from_diagnostics, sort_diagnostics
+from ev4_transition.evidence_truth import EvidenceResolution, resolve_evidence, synthetic_indicators
 from ev4_transition.final_gate_authority import _authoritative_final_gate_result
 from ev4_transition.kernel_decision_dependencies import KERNEL_REPOSITORY
 from ev4_transition.kernel_decision_intake import KernelAuditExecution, KernelDecisionIntakeConfig, run_kernel_decision_intake
 from ev4_transition.runners.responsive_tools import execute_responsive_output_validator
 
 GATE_ID = "ev4-final-evidence-gate@1.0.0"
-GATE_VERSION = "1.0.0"
+GATE_VERSION = "1.1.0"
 LOCK_SCHEMA_VERSION = "final-gate-lock.v1"
 PG_REPO = "rezahh107/EV4-Project-Gate"
 PG_COMMIT = "4cc6a90188eafb2232aaf100efa4af5f0ed5d997"
@@ -86,7 +87,7 @@ def verify_final_gate_lock(lock: dict[str, Any], source: ContractSource) -> list
             continue
         role = item.get("role")
         if not isinstance(role, str):
-            diagnostics.append(diagnostic("PG.FINAL.LOCK_ROLE_UNEXPECTED", "error", "Lock entry role must be a string.", f"{path}.role", observed_type=type(role).__name__))
+            diagnostics.append(diagnostic("PG.FINAL.LOCK_ROLE_UNEXPECTED", "error", "Final gate lock role must be a string.", f"{path}.role", observed_type=type(role).__name__))
             continue
         expected = EXPECTED_FINAL_GATE_DEPENDENCIES.get(role)
         if expected is None:
@@ -96,7 +97,12 @@ def verify_final_gate_lock(lock: dict[str, Any], source: ContractSource) -> list
             diagnostics.append(diagnostic("PG.FINAL.LOCK_ROLE_DUPLICATE", "error", "Final gate lock contains a duplicate role.", f"{path}.role", role=role))
             continue
         seen.add(role)
-        for field, expected_value, code in [("repository", expected.repository, "PG.FINAL.LOCK_REPOSITORY_MISMATCH"), ("accepted_commit", expected.accepted_commit, "PG.FINAL.LOCK_COMMIT_MISMATCH"), ("path", expected.path, "PG.FINAL.LOCK_PATH_MISMATCH"), ("contract_or_schema_id", expected.contract_or_schema_id, "PG.FINAL.LOCK_IDENTITY_MISMATCH")]:
+        for field, expected_value, code in [
+            ("repository", expected.repository, "PG.FINAL.LOCK_REPOSITORY_MISMATCH"),
+            ("accepted_commit", expected.accepted_commit, "PG.FINAL.LOCK_COMMIT_MISMATCH"),
+            ("path", expected.path, "PG.FINAL.LOCK_PATH_MISMATCH"),
+            ("contract_or_schema_id", expected.contract_or_schema_id, "PG.FINAL.LOCK_IDENTITY_MISMATCH"),
+        ]:
             if item.get(field) != expected_value:
                 diagnostics.append(diagnostic(code, "error", "Final gate lock entry does not match expected dependency.", f"{path}.{field}", expected=expected_value, actual=item.get(field), role=role))
         try:
@@ -120,35 +126,42 @@ def final_gate_from_local_paths(final_input: Any, schema_root: str | Path, lock_
     kernel_root = Path(kernel_repo) if kernel_repo is not None else None
     kernel_lock_path = project_gate_root / KERNEL_INTAKE_LOCK_PATH
     kernel_lock = load_json_file(kernel_lock_path) if kernel_lock_path.is_file() else None
-    config = FinalGateConfig(
-        schema_root=Path(schema_root),
-        lock=load_json_file(lock_path),
-        project_gate_repo_root=project_gate_root,
-        responsive_repo_root=responsive_root,
-        timeout_seconds=timeout_seconds,
-        require_real_evidence=require_real_evidence,
-        kernel_intake_lock=kernel_lock,
-        kernel_repo_root=kernel_root,
-    )
+    config = FinalGateConfig(Path(schema_root), load_json_file(lock_path), project_gate_root, responsive_root, timeout_seconds, require_real_evidence, kernel_lock, kernel_root)
     roots = {PG_REPO: project_gate_root, RESPONSIVE_REPO: responsive_root}
     if kernel_root is not None:
         roots[KERNEL_REPOSITORY] = kernel_root
-    source = LocalCheckoutContractSource(roots)
-    return run_final_gate(final_input, source, config)
+    return run_final_gate(final_input, LocalCheckoutContractSource(roots), config)
 
 
 def run_final_gate(final_input: Any, contract_source: ContractSource, config: FinalGateConfig, progress_sink: list[dict[str, Any]] | None = None) -> dict[str, Any]:
     diagnostics: list[Diagnostic] = []
-    accepted_requires = {"prior_lock_chain_verified": False, "responsive_output_present": False, "responsive_output_schema_verified": False, "responsive_output_validator_passed": False, "real_evidence_present": False, "no_forbidden_final_claim": False, "kernel_decision_intake_accepted": False, "decision_lineage_projection_valid": False, "result_schema_valid": True}
+    accepted_requires = {
+        "prior_lock_chain_verified": False,
+        "responsive_output_present": False,
+        "responsive_output_schema_verified": False,
+        "responsive_output_validator_passed": False,
+        "evidence_sources_resolved": False,
+        "evidence_hashes_verified": False,
+        "claim_bindings_valid": False,
+        "required_viewports_verified": False,
+        "real_evidence_present": False,
+        "blocking_unknowns_absent": False,
+        "no_forbidden_final_claim": False,
+        "kernel_decision_intake_accepted": False,
+        "decision_lineage_projection_valid": False,
+        "result_schema_valid": True,
+    }
     kernel_intake_result: dict[str, Any] | None = None
+    resolutions: dict[str, EvidenceResolution] = {}
     if not isinstance(final_input, dict):
         diagnostics.append(diagnostic("PG.FINAL.INPUT_NOT_OBJECT", "error", "Final gate input must be an object.", "$", observed_type=type(final_input).__name__))
-        return _result(final_input, None, kernel_intake_result, diagnostics, accepted_requires, config)
+        return _result(final_input, None, kernel_intake_result, diagnostics, accepted_requires, config, resolutions)
     output = final_input.get("responsive_output") if isinstance(final_input.get("responsive_output"), dict) else final_input
     if not isinstance(output, dict):
         diagnostics.append(diagnostic("PG.FINAL.RESPONSIVE_OUTPUT_MISSING", "insufficient_evidence", "Responsive output evidence is missing.", "$.responsive_output"))
-        return _result(final_input, None, kernel_intake_result, diagnostics, accepted_requires, config)
+        return _result(final_input, None, kernel_intake_result, diagnostics, accepted_requires, config, resolutions)
     accepted_requires["responsive_output_present"] = True
+
     lock_diagnostics = verify_final_gate_lock(config.lock, contract_source)
     diagnostics.extend(lock_diagnostics)
     accepted_requires["prior_lock_chain_verified"] = not any(item.severity in {"error", "insufficient_evidence"} for item in lock_diagnostics)
@@ -168,12 +181,11 @@ def run_final_gate(final_input: Any, contract_source: ContractSource, config: Fi
     elif not isinstance(config.kernel_intake_lock, dict):
         diagnostics.append(diagnostic("PG.FINAL.KERNEL_INTAKE_LOCK_UNAVAILABLE", "insufficient_evidence", "Committed KROAD-011 semantic lock is unavailable to Final Gate.", "$.kernel_decision_intake"))
     else:
-        executor = _kernel_audit_executor(config)
         kernel_intake_result = run_kernel_decision_intake(
             raw_intake,
             contract_source,
             KernelDecisionIntakeConfig(config.schema_root, config.kernel_intake_lock, config.kernel_repo_root, config.project_gate_repo_root, config.timeout_seconds),
-            audit_executor=executor,
+            audit_executor=_kernel_audit_executor(config),
         )
         diagnostics.extend(_kernel_intake_status_diagnostics(kernel_intake_result))
         if supplied_projection is not None and not _projection_matches(supplied_projection, kernel_intake_result):
@@ -183,19 +195,109 @@ def run_final_gate(final_input: Any, contract_source: ContractSource, config: Fi
     lineage_diagnostics = _validate_output_decision_lineage_projection(final_input, output)
     diagnostics.extend(lineage_diagnostics)
     accepted_requires["decision_lineage_projection_valid"] = not lineage_diagnostics
-    synthetic_only = _synthetic_only(final_input)
-    if synthetic_only:
-        diagnostics.append(diagnostic("PG.FINAL.SYNTHETIC_ONLY_EVIDENCE", "insufficient_evidence", "Synthetic fixtures cannot satisfy final real-evidence requirements.", "$"))
-    accepted_requires["real_evidence_present"] = _real_evidence_present(final_input) and not synthetic_only
-    if config.require_real_evidence and not accepted_requires["real_evidence_present"]:
-        diagnostics.append(diagnostic("PG.FINAL.REAL_EVIDENCE_MISSING", "insufficient_evidence", "Final gate requires real non-synthetic Responsive evidence.", "$.evidence"))
+
     schema = _load_responsive_output_schema(contract_source, diagnostics)
     if schema is not None:
         accepted_requires["responsive_output_schema_verified"] = True
         for error in sorted(Draft202012Validator(schema).iter_errors(output), key=lambda item: (list(item.path), item.message)):
             diagnostics.append(diagnostic("PG.FINAL.RESPONSIVE_SCHEMA_VALIDATION_FAILED", "error", error.message, _json_path(list(error.path))))
-    accepted_requires["responsive_output_validator_passed"] = _run_responsive_output_validator(config, output, diagnostics, progress_sink)
-    return _result(final_input, output, kernel_intake_result, diagnostics, accepted_requires, config)
+
+    bindings = final_input.get("evidence_bindings") if isinstance(final_input.get("evidence_bindings"), dict) else {}
+    subject = final_input.get("evidence_subject") if isinstance(final_input.get("evidence_subject"), dict) else {}
+    if not bindings:
+        diagnostics.append(diagnostic("PG.FINAL.EVIDENCE_BINDINGS_REQUIRED", "insufficient_evidence", "Final Gate requires source-bound evidence; caller labels such as real_evidence are non-authoritative.", "$.evidence_bindings"))
+    elif config.responsive_repo_root is None:
+        diagnostics.append(diagnostic("PG.FINAL.RESPONSIVE_REPO_REQUIRED", "insufficient_evidence", "Responsive checkout is required to resolve source evidence.", "$.evidence_bindings"))
+    else:
+        specs = _binding_specs(output, subject)
+        for slot, spec in specs.items():
+            binding = bindings.get(slot)
+            if not isinstance(binding, dict):
+                diagnostics.append(diagnostic("PG.FINAL.EVIDENCE_BINDING_MISSING", "insufficient_evidence", "Required Final Gate evidence binding is missing.", f"$.evidence_bindings.{slot}", slot=slot))
+                continue
+            callback = _responsive_validator_callback(config, progress_sink) if slot == "responsive_output" else None
+            resolution = resolve_evidence(
+                artifact_ref=binding.get("artifact_ref"),
+                declared_sha256=binding.get("artifact_sha256"),
+                repository_root=config.responsive_repo_root,
+                hash_scope="file_bytes",
+                owner_repository=RESPONSIVE_REPO,
+                owner_commit=RESPONSIVE_COMMIT,
+                owner_validator=RESPONSIVE_OUTPUT_VALIDATOR if slot == "responsive_output" else None,
+                owner_validator_callback=callback,
+                claim_id=spec["claim_class"],
+                evidence_type=spec["evidence_type"],
+                subject_ref=binding.get("subject_ref"),
+                expected_subject_ref=spec["subject_ref"],
+                viewport=spec.get("viewport"),
+            )
+            resolutions[slot] = resolution
+            diagnostics.extend(_resolution_diagnostics(slot, resolution))
+            if slot == "responsive_output" and resolution.value is not None:
+                try:
+                    if canonical_sha256(resolution.value) != canonical_sha256(output):
+                        diagnostics.append(diagnostic("PG.FINAL.RESPONSIVE_OUTPUT_SOURCE_DRIFT", "error", "Resolved Responsive output bytes do not match the embedded output.", "$.evidence_bindings.responsive_output"))
+                except Exception:
+                    diagnostics.append(diagnostic("PG.FINAL.RESPONSIVE_OUTPUT_SOURCE_INVALID", "error", "Resolved Responsive output cannot be compared canonically.", "$.evidence_bindings.responsive_output"))
+            elif slot in {"desktop", "tablet", "mobile"} and resolution.value is not None:
+                diagnostics.extend(_viewport_binding_diagnostics(slot, spec, resolution.value))
+
+        required = set(specs)
+        all_present = required <= set(resolutions)
+        accepted_requires["evidence_sources_resolved"] = all_present and all(item.source_path for item in resolutions.values())
+        accepted_requires["evidence_hashes_verified"] = all_present and all(item.hash_verified for item in resolutions.values())
+        accepted_requires["claim_bindings_valid"] = all_present and not any(item.severity == "error" and (item.code.startswith("PG.EVIDENCE.CLAIM_") or item.code.startswith("PG.FINAL.RESPONSIVE_OUTPUT_SOURCE") or item.code.startswith("PG.FINAL.VIEWPORT_")) for item in diagnostics)
+        accepted_requires["required_viewports_verified"] = all(name in resolutions and resolutions[name].classification == "real_verified" for name in ("desktop", "tablet", "mobile"))
+        accepted_requires["responsive_output_validator_passed"] = resolutions.get("responsive_output") is not None and resolutions["responsive_output"].owner_validation_status == "accepted"
+        real_verified = all_present and all(item.classification == "real_verified" for item in resolutions.values())
+        accepted_requires["real_evidence_present"] = real_verified
+        if config.require_real_evidence and not real_verified:
+            diagnostics.append(diagnostic("PG.FINAL.REAL_EVIDENCE_MISSING", "insufficient_evidence", "Final gate requires resolved, hash-verified, owner-validated, non-synthetic evidence.", "$.evidence_bindings"))
+
+    if synthetic_indicators(final_input):
+        accepted_requires["real_evidence_present"] = False
+        diagnostics.append(diagnostic("PG.FINAL.SYNTHETIC_ONLY_EVIDENCE", "insufficient_evidence", "Synthetic fixtures cannot satisfy final real-evidence requirements.", "$", indicators=synthetic_indicators(final_input)))
+    accepted_requires["blocking_unknowns_absent"] = isinstance(output.get("unresolved_unknowns"), list) and not output.get("unresolved_unknowns")
+    if not accepted_requires["blocking_unknowns_absent"]:
+        diagnostics.append(diagnostic("PG.FINAL.BLOCKING_UNKNOWNS_PRESENT", "insufficient_evidence", "Final Gate requires blocking unknowns to be absent.", "$.responsive_output.unresolved_unknowns"))
+    return _result(final_input, output, kernel_intake_result, diagnostics, accepted_requires, config, resolutions)
+
+
+def _binding_specs(output: dict[str, Any], subject: dict[str, Any]) -> dict[str, dict[str, Any]]:
+    packet_ref = output.get("source_packet_ref")
+    viewport_refs = subject.get("viewport_refs") if isinstance(subject.get("viewport_refs"), dict) else {}
+    specs: dict[str, dict[str, Any]] = {
+        "responsive_output": {"subject_ref": packet_ref, "claim_class": "responsive_validation_verified", "evidence_type": "responsive_output"},
+    }
+    for name in ("desktop", "tablet", "mobile"):
+        specs[name] = {"subject_ref": viewport_refs.get(name), "claim_class": "real_evidence_present", "evidence_type": "viewport_evidence", "viewport": name}
+    return specs
+
+
+def _responsive_validator_callback(config: FinalGateConfig, progress_sink: list[dict[str, Any]] | None) -> Callable[[Path, Any], tuple[str, list[dict[str, Any]]]]:
+    def run(_: Path, value: Any) -> tuple[str, list[dict[str, Any]]]:
+        if not isinstance(value, dict) or config.responsive_repo_root is None:
+            return "rejected", [{"code": "PG.FINAL.RESPONSIVE_SOURCE_INVALID", "severity": "error", "message": "Resolved Responsive output must be an object.", "path": "$.evidence_bindings.responsive_output"}]
+        outcome = execute_responsive_output_validator(repo_root=config.responsive_repo_root, owner_repo=RESPONSIVE_REPO, owner_commit=RESPONSIVE_COMMIT, validator_path=RESPONSIVE_OUTPUT_VALIDATOR, responsive_output=value, timeout_seconds=config.timeout_seconds, progress_sink=progress_sink)
+        return ("accepted" if outcome.status == "accepted" else "rejected", [item.to_dict() for item in outcome.diagnostics])
+    return run
+
+
+def _viewport_binding_diagnostics(slot: str, spec: dict[str, Any], value: Any) -> list[Diagnostic]:
+    if not isinstance(value, dict):
+        return [diagnostic("PG.FINAL.VIEWPORT_EVIDENCE_INVALID", "error", "Viewport evidence must be a JSON object.", f"$.evidence_bindings.{slot}")]
+    if value.get("evidence_ref") != spec.get("subject_ref") or value.get("viewport") != slot or value.get("status") != "confirmed":
+        return [diagnostic("PG.FINAL.VIEWPORT_EVIDENCE_MISMATCH", "error", "Viewport evidence must bind the exact ref, viewport, and confirmed status.", f"$.evidence_bindings.{slot}")]
+    return []
+
+
+def _resolution_diagnostics(slot: str, resolution: EvidenceResolution) -> list[Diagnostic]:
+    result: list[Diagnostic] = []
+    for item in resolution.diagnostics:
+        details = dict(item.get("details") or {})
+        details["slot"] = slot
+        result.append(diagnostic(item["code"], item["severity"], item["message"], f"$.evidence_bindings.{slot}", **details))
+    return result
 
 
 def _projection_matches(supplied: Any, recomputed: dict[str, Any]) -> bool:
@@ -220,12 +322,7 @@ def _kernel_intake_status_diagnostics(value: dict[str, Any]) -> list[Diagnostic]
     status = value.get("status")
     if status == "accepted":
         return []
-    if status == "repair_needed":
-        severity = "warning"
-    elif status == "insufficient_evidence":
-        severity = "insufficient_evidence"
-    else:
-        severity = "error"
+    severity = "warning" if status == "repair_needed" else ("insufficient_evidence" if status == "insufficient_evidence" else "error")
     return [diagnostic("PG.FINAL.KERNEL_INTAKE_NOT_ACCEPTED", severity, "Internally executed KROAD-011 intake did not return accepted.", "$.kernel_decision_intake", actual=status)]
 
 
@@ -266,28 +363,25 @@ def _load_responsive_output_schema(source: ContractSource, diagnostics: list[Dia
     return schema if isinstance(schema, dict) else None
 
 
-def _run_responsive_output_validator(config: FinalGateConfig, output: dict[str, Any], diagnostics: list[Diagnostic], progress_sink: list[dict[str, Any]] | None) -> bool:
-    if config.responsive_repo_root is None:
-        diagnostics.append(diagnostic("PG.FINAL.RESPONSIVE_VALIDATOR_MISSING", "insufficient_evidence", "Responsive checkout is required to run the official output validator.", "$.responsive_validator"))
-        return False
-    validator = Path(config.responsive_repo_root) / RESPONSIVE_OUTPUT_VALIDATOR
-    if not validator.exists():
-        diagnostics.append(diagnostic("PG.FINAL.RESPONSIVE_VALIDATOR_MISSING", "insufficient_evidence", "Official Responsive output validator is absent.", "$.responsive_validator", validator_path=RESPONSIVE_OUTPUT_VALIDATOR))
-        return False
-    outcome = execute_responsive_output_validator(repo_root=config.responsive_repo_root, owner_repo=RESPONSIVE_REPO, owner_commit=RESPONSIVE_COMMIT, validator_path=RESPONSIVE_OUTPUT_VALIDATOR, responsive_output=output, timeout_seconds=config.timeout_seconds, progress_sink=progress_sink)
-    diagnostics.extend(outcome.diagnostics)
-    if outcome.status != "accepted":
-        diagnostics.append(diagnostic("PG.FINAL.RESPONSIVE_VALIDATOR_FAILED", "insufficient_evidence", "Official Responsive output validator did not pass.", "$.responsive_validator", runner_status=outcome.status, failure_code=outcome.execution_record.failure_code))
-        return False
-    return True
-
-
-def _result(original: Any, output: dict[str, Any] | None, kernel_intake: dict[str, Any] | None, diagnostics: list[Diagnostic], accepted_requires: dict[str, bool], config: FinalGateConfig) -> dict[str, Any]:
+def _result(original: Any, output: dict[str, Any] | None, kernel_intake: dict[str, Any] | None, diagnostics: list[Diagnostic], accepted_requires: dict[str, bool], config: FinalGateConfig, resolutions: dict[str, EvidenceResolution]) -> dict[str, Any]:
     ordered, accepted = sort_diagnostics(diagnostics), dict(accepted_requires)
     if not ordered and not all(accepted.values()):
         ordered = [diagnostic("PG.FINAL.ACCEPTED_REQUIRES_MISSING", "insufficient_evidence", "Accepted final status requires every accepted_requires item to be true.", "$.accepted_requires", missing=sorted(key for key, value in accepted.items() if not value))]
     status = project_gate_status_from_diagnostics(ordered)
-    candidate = {"schema_version": "final-gate-result.v1", "result_type": "final_evidence_gate", "gate_id": GATE_ID, "gate_version": GATE_VERSION, "status": status, "diagnostics": [item.to_dict() for item in ordered], "accepted_requires": accepted, "hashes": {"source_input_hash": {"algorithm": "sha256", "canonicalization": "ev4-canonical-json.v1", "scope": "source_input", "value": _safe_hash(original)}}, "kernel_decision_intake_result": kernel_intake, "output": output if status == "accepted" else None}
+    candidate = {
+        "schema_version": "final-gate-result.v1",
+        "result_type": "final_evidence_gate",
+        "gate_id": GATE_ID,
+        "gate_version": GATE_VERSION,
+        "status": status,
+        "diagnostics": [item.to_dict() for item in ordered],
+        "accepted_requires": accepted,
+        "evidence_resolutions": {name: item.to_dict() for name, item in sorted(resolutions.items())},
+        "decision_lineage_authority": "informational_projection_only",
+        "hashes": {"source_input_hash": {"algorithm": "sha256", "canonicalization": "ev4-canonical-json.v1", "scope": "source_input", "value": _safe_hash(original)}},
+        "kernel_decision_intake_result": kernel_intake,
+        "output": output if status == "accepted" else None,
+    }
     schema_path = config.schema_root / "final-gate-result/final-gate-result.v1.schema.json"
     try:
         schema = load_json_file(schema_path)
@@ -315,6 +409,8 @@ def _find_forbidden_claims(value: Any) -> list[str]:
             return
         if isinstance(node, dict):
             for key, child in node.items():
+                if key == "forbidden_claims":
+                    continue
                 if key in FORBIDDEN_FINAL_CLAIMS:
                     found.add(key)
                 walk(child, f"{path}.{key}")
@@ -333,18 +429,6 @@ def _contains_key_or_value(value: Any, needle: str) -> bool:
     if isinstance(value, list):
         return any(_contains_key_or_value(child, needle) for child in value)
     return value == needle
-
-
-def _synthetic_only(value: Any) -> bool:
-    return _contains_key_or_value(value, "synthetic_only") or _contains_key_or_value(value, "synthetic_fixture")
-
-
-def _real_evidence_present(value: Any) -> bool:
-    if isinstance(value, dict):
-        return value.get("evidence_status") == "real" or value.get("real_evidence") is True or any(_real_evidence_present(child) for child in value.values())
-    if isinstance(value, list):
-        return any(_real_evidence_present(child) for child in value)
-    return False
 
 
 def _safe_hash(value: Any) -> str:

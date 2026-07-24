@@ -12,20 +12,34 @@ from ev4_transition.architect_to_ce import (
 )
 from ev4_transition.bundle_validator import ResultValidationError
 from ev4_transition.canonical_json import CANONICAL_JSON_VERSION, canonical_sha256
-from ev4_transition.external_lock import ARCHITECT_COMMIT, ARCHITECT_REPO, CE_COMMIT, CE_REPO, load_lock, lock_file_hash
+from ev4_transition.external_lock import (
+    ARCHITECT_COMMIT,
+    ARCHITECT_REPO,
+    CE_COMMIT,
+    CE_REPO,
+    load_lock,
+    lock_file_hash,
+)
 from ev4_transition.io.safe_publication import (
     PublicationError,
     StagedJson,
     discard_staged_json,
-    publish_staged_json,
+    publish_staged_group,
     resolve_publication_paths,
     stage_canonical_json,
 )
-from ev4_transition.io.secure_snapshot import JsonInputSnapshot, SnapshotError, verify_snapshot_unchanged
+from ev4_transition.io.secure_snapshot import (
+    JsonInputSnapshot,
+    SnapshotError,
+    verify_snapshot_unchanged,
+)
 from ev4_transition.presentation.status_mapping import normalize_status
 from ev4_transition.runners.records import ToolExecutionOutcome
 from ev4_transition.runners.repository_identity import inspect_checkout
-from ev4_transition.validator_runner import execute_architect_validator, execute_ce_validator
+from ev4_transition.validator_runner import (
+    execute_architect_validator,
+    execute_ce_validator,
+)
 
 RECEIPT_SCHEMA_ID = "project-gate-a2c-receipt.v1"
 
@@ -43,12 +57,23 @@ def dispatch_architect_export(
     output_path: str | Path,
     receipt_path: str | Path,
 ) -> dict[str, Any]:
-    """Execute the existing A2C authority and publish standalone operator artifacts."""
+    """Execute A2C authority and atomically publish an authorized pair."""
 
     identities = {
-        "project_gate": inspect_checkout(project_gate_repo, expected_repository=PG_REPO),
-        "architect": inspect_checkout(architect_repo, expected_repository=ARCHITECT_REPO, expected_commit=ARCHITECT_COMMIT),
-        "ce": inspect_checkout(ce_repo, expected_repository=CE_REPO, expected_commit=CE_COMMIT),
+        "project_gate": inspect_checkout(
+            project_gate_repo,
+            expected_repository=PG_REPO,
+        ),
+        "architect": inspect_checkout(
+            architect_repo,
+            expected_repository=ARCHITECT_REPO,
+            expected_commit=ARCHITECT_COMMIT,
+        ),
+        "ce": inspect_checkout(
+            ce_repo,
+            expected_repository=CE_REPO,
+            expected_commit=CE_COMMIT,
+        ),
     }
     identity_diagnostics = [
         diagnostic
@@ -57,15 +82,31 @@ def dispatch_architect_export(
         if isinstance(diagnostic, dict)
     ]
     if identity_diagnostics:
-        status = "invalid" if any(item.get("severity") == "error" for item in identity_diagnostics) else "insufficient_evidence"
-        return _base_result(intake_result, status, identity_diagnostics, identities=identities)
+        status = (
+            "invalid"
+            if any(item.get("severity") == "error" for item in identity_diagnostics)
+            else "insufficient_evidence"
+        )
+        return _base_result(
+            intake_result,
+            status,
+            identity_diagnostics,
+            identities=identities,
+        )
 
     final_bundle = artifact.get("final_stage_bundle")
     if not isinstance(final_bundle, dict):
         return _base_result(
             intake_result,
             "invalid",
-            [_diag("PG_A2C_FINAL_STAGE_BUNDLE_MISSING", "error", "$.final_stage_bundle", "The validated Producer Gate Export does not contain an Architect Stage Evidence Bundle.")],
+            [
+                _diag(
+                    "PG_A2C_FINAL_STAGE_BUNDLE_MISSING",
+                    "error",
+                    "$.final_stage_bundle",
+                    "The validated Producer Gate Export does not contain an Architect Stage Evidence Bundle.",
+                )
+            ],
             identities=identities,
         )
 
@@ -97,7 +138,15 @@ def dispatch_architect_export(
         return _base_result(
             intake_result,
             "invalid",
-            [_diag("TRANSITION_RESULT_SCHEMA_VALIDATION_FAILED", "error", "$", "The complete A2C transition result failed its Project Gate schema.", error=str(exc))],
+            [
+                _diag(
+                    "TRANSITION_RESULT_SCHEMA_VALIDATION_FAILED",
+                    "error",
+                    "$",
+                    "The complete A2C transition result failed its Project Gate schema.",
+                    error=str(exc),
+                )
+            ],
             identities=identities,
             architect_outcome=architect_outcome,
             ce_outcome=ce_outcome,
@@ -119,9 +168,63 @@ def dispatch_architect_export(
         )
 
     target_bundle = transition_result.get("output")
-    ce_input = (target_bundle.get("payload") or {}).get("data") if isinstance(target_bundle, dict) else None
-    if not isinstance(ce_input, dict):
-        return _base_result(
+    ce_input = (
+        (target_bundle.get("payload") or {}).get("data")
+        if isinstance(target_bundle, dict)
+        else None
+    )
+
+    transition_authorized = transition_status == "accepted"
+    evidence_ready = (
+        isinstance(ce_input, dict)
+        and ce_input.get("intake_status") == "complete"
+    )
+    validation_passed = (
+        architect_outcome is not None
+        and ce_outcome is not None
+        and normalize_status(architect_outcome.status) == "accepted"
+        and normalize_status(ce_outcome.status) == "accepted"
+    )
+    if transition_authorized and not evidence_ready:
+        transition_status = "insufficient_evidence"
+        transition_authorized = False
+        diagnostics.append(
+            _diag(
+                "PG_A2C_EVIDENCE_NOT_READY",
+                "insufficient_evidence",
+                "$.transition_result.output",
+                "The transition did not produce a complete CE intake artifact.",
+            )
+        )
+    if transition_authorized and not validation_passed:
+        transition_status = "insufficient_evidence"
+        transition_authorized = False
+        diagnostics.append(
+            _diag(
+                "PG_A2C_VALIDATION_NOT_ACCEPTED",
+                "insufficient_evidence",
+                "$.owner_validators",
+                "Operational publication requires accepted Architect and CE validators.",
+            )
+        )
+
+    handoff_allowed = (
+        transition_authorized
+        and source_handoff_allowed
+        and evidence_ready
+        and validation_passed
+    )
+    publication_allowed = (
+        transition_authorized
+        and handoff_allowed
+        and evidence_ready
+        and validation_passed
+    )
+
+    # Sole publication gate. No output path resolution, staging, receipt
+    # construction, or filesystem publication occurs before this predicate.
+    if not publication_allowed:
+        result = _base_result(
             intake_result,
             transition_status,
             diagnostics,
@@ -131,7 +234,21 @@ def dispatch_architect_export(
             ce_outcome=ce_outcome,
             events=events,
         )
+        result.update(
+            {
+                "publication_allowed": False,
+                "handoff_allowed": False,
+                "downstream_artifact": {"status": "not_published"},
+                "receipt": {"status": "not_generated"},
+                "publication": {
+                    "ce_input": {"state": "not_published"},
+                    "receipt": {"state": "not_generated"},
+                },
+            }
+        )
+        return result
 
+    assert isinstance(ce_input, dict)
     try:
         output, receipt = resolve_publication_paths(
             source_path=snapshot.path,
@@ -140,7 +257,7 @@ def dispatch_architect_export(
         )
     except PublicationError as exc:
         diagnostics.append(_publication_diag(exc))
-        return _base_result(
+        result = _base_result(
             intake_result,
             "invalid",
             diagnostics,
@@ -150,8 +267,12 @@ def dispatch_architect_export(
             ce_outcome=ce_outcome,
             events=events,
         )
+        result["publication"] = {
+            "ce_input": {"state": "not_published"},
+            "receipt": {"state": "not_generated"},
+        }
+        return result
 
-    handoff_allowed = transition_status == "accepted" and source_handoff_allowed and ce_input.get("intake_status") == "complete"
     lock = load_lock(lock_path)
     receipt_payload = _build_receipt(
         artifact=artifact,
@@ -170,16 +291,21 @@ def dispatch_architect_export(
 
     staged_output: StagedJson | None = None
     staged_receipt: StagedJson | None = None
-    output_publication: dict[str, Any] | None = None
     try:
         staged_output = stage_canonical_json(output, ce_input)
         staged_receipt = stage_canonical_json(receipt, receipt_payload)
         verify_snapshot_unchanged(snapshot)
-        output_publication = publish_staged_json(staged_output)
+        publication_records = publish_staged_group(
+            [staged_output, staged_receipt]
+        )
+        output_publication, receipt_publication = _map_group_records(
+            publication_records,
+            output=output,
+            receipt=receipt,
+        )
         staged_output = None
-        receipt_publication = publish_staged_json(staged_receipt)
         staged_receipt = None
-    except (PublicationError, SnapshotError) as exc:
+    except (PublicationError, SnapshotError, OSError, ValueError) as exc:
         cleanup_diagnostics: list[dict[str, Any]] = []
         for staged in (staged_output, staged_receipt):
             try:
@@ -198,11 +324,50 @@ def dispatch_architect_export(
             ce_outcome=ce_outcome,
             events=events,
         )
-        result["publication"] = {
-            "ce_input": output_publication or {"path": str(output), "state": "not_published"},
-            "receipt": {"path": str(receipt), "state": "not_published"},
-        }
-        result["handoff_allowed"] = False
+        persisted_paths = set(
+            str(item)
+            for item in getattr(exc, "details", {}).get("persisted_paths", [])
+        )
+        output_persisted = str(output) in persisted_paths or output.exists()
+        receipt_persisted = str(receipt) in persisted_paths or receipt.exists()
+        result.update(
+            {
+                "publication_allowed": False,
+                "handoff_allowed": False,
+                "downstream_artifact": {
+                    "status": (
+                        "rollback_failed_persisted"
+                        if output_persisted
+                        else "not_published"
+                    )
+                },
+                "receipt": {
+                    "status": (
+                        "rollback_failed_persisted"
+                        if receipt_persisted
+                        else "not_generated"
+                    )
+                },
+                "publication": {
+                    "ce_input": {
+                        "path": str(output),
+                        "state": (
+                            "rollback_failed_persisted"
+                            if output_persisted
+                            else "not_published"
+                        ),
+                    },
+                    "receipt": {
+                        "path": str(receipt),
+                        "state": (
+                            "rollback_failed_persisted"
+                            if receipt_persisted
+                            else "not_generated"
+                        ),
+                    },
+                },
+            }
+        )
         return result
 
     result = _base_result(
@@ -217,7 +382,8 @@ def dispatch_architect_export(
     )
     result.update(
         {
-            "handoff_allowed": handoff_allowed,
+            "publication_allowed": True,
+            "handoff_allowed": True,
             "downstream_artifact": {
                 "status": "published_verified",
                 "schema_id": ce_input.get("schema_id"),
@@ -233,10 +399,36 @@ def dispatch_architect_export(
                 "canonical_sha256": canonical_sha256(receipt_payload),
                 "sha256_file_bytes": receipt_publication["sha256_file_bytes"],
             },
-            "publication": {"ce_input": output_publication, "receipt": receipt_publication},
+            "publication": {
+                "ce_input": output_publication,
+                "receipt": receipt_publication,
+            },
         }
     )
     return result
+
+
+def _map_group_records(
+    records: list[dict[str, Any]],
+    *,
+    output: Path,
+    receipt: Path,
+) -> tuple[dict[str, Any], dict[str, Any]]:
+    by_path = {
+        str(Path(str(item.get("path"))).resolve()): item
+        for item in records
+        if item.get("state") == "published_verified" and item.get("path")
+    }
+    output_record = by_path.get(str(output.resolve()))
+    receipt_record = by_path.get(str(receipt.resolve()))
+    if output_record is None or receipt_record is None or len(records) != 2:
+        raise PublicationError(
+            "PG_A2C_GROUP_PUBLICATION_RECORD_INVALID",
+            "Grouped publication did not return one verified record for each A2C artifact.",
+            expected_paths=[str(output), str(receipt)],
+            actual_paths=sorted(by_path),
+        )
+    return output_record, receipt_record
 
 
 def _build_receipt(
@@ -266,14 +458,19 @@ def _build_receipt(
             "path": snapshot.path.name,
             "sha256_file_bytes": snapshot.sha256_file_bytes,
             "export_id": artifact.get("export_id"),
-            "producer_repository": (artifact.get("producer") or {}).get("repository"),
+            "producer_repository": (artifact.get("producer") or {}).get(
+                "repository"
+            ),
             "producer_commit": (artifact.get("producer") or {}).get("commit_sha"),
         },
         "source_bundle": {
             "bundle_id": final_bundle.get("bundle_id"),
             "canonical_sha256": canonical_sha256(final_bundle),
         },
-        "owner_checkouts": {name: _stable_identity(value) for name, value in sorted(identities.items())},
+        "owner_checkouts": {
+            name: _stable_identity(value)
+            for name, value in sorted(identities.items())
+        },
         "owner_validators": {
             "architect": _outcome_record(architect_outcome),
             "ce": _outcome_record(ce_outcome),
@@ -291,7 +488,10 @@ def _build_receipt(
             "canonical_sha256": canonical_sha256(ce_input),
             "publication_state": "published_verified",
         },
-        "diagnostics": sorted(diagnostics, key=lambda item: (item.get("path", "$"), item.get("code", ""))),
+        "diagnostics": sorted(
+            diagnostics,
+            key=lambda item: (item.get("path", "$"), item.get("code", "")),
+        ),
         "evidence_classification": "cross_repository_integration",
         "synthetic": bool(final_bundle.get("synthetic")),
         "acquisition_mode": "producer_emitted_gate_artifact",
@@ -347,22 +547,43 @@ def _base_result(
 ) -> dict[str, Any]:
     result = dict(intake_result)
     result["status"] = status
-    result["diagnostics"] = sorted(diagnostics, key=lambda item: (item.get("path", "$"), item.get("code", "")))
+    result["diagnostics"] = sorted(
+        diagnostics,
+        key=lambda item: (item.get("path", "$"), item.get("code", "")),
+    )
     result["repository_identities"] = identities or {}
     result["producer_validation"] = {
-        "status": "passed" if architect_outcome and normalize_status(architect_outcome.status) == "accepted" else "not_accepted",
-        "official_validator_status": normalize_status(architect_outcome.status) if architect_outcome else "not_run",
-        "execution_record": architect_outcome.execution_record.to_dict() if architect_outcome else None,
+        "status": (
+            "passed"
+            if architect_outcome
+            and normalize_status(architect_outcome.status) == "accepted"
+            else "not_accepted"
+        ),
+        "official_validator_status": (
+            normalize_status(architect_outcome.status)
+            if architect_outcome
+            else "not_run"
+        ),
+        "execution_record": (
+            architect_outcome.execution_record.to_dict()
+            if architect_outcome
+            else None
+        ),
     }
     result["consumer_validation"] = {
-        "status": normalize_status(ce_outcome.status) if ce_outcome else "not_run",
-        "execution_record": ce_outcome.execution_record.to_dict() if ce_outcome else None,
+        "status": (
+            normalize_status(ce_outcome.status) if ce_outcome else "not_run"
+        ),
+        "execution_record": (
+            ce_outcome.execution_record.to_dict() if ce_outcome else None
+        ),
     }
     result["transition_events"] = list(events or [])
     result["transition_result"] = transition_result
+    result["publication_allowed"] = False
     result["handoff_allowed"] = False
     result.setdefault("downstream_artifact", {"status": "not_published"})
-    result.setdefault("receipt", {"status": "not_published"})
+    result.setdefault("receipt", {"status": "not_generated"})
     return result
 
 
@@ -370,8 +591,27 @@ def _publication_diag(exc: Exception) -> dict[str, Any]:
     code = getattr(exc, "code", "PG_A2C_PUBLICATION_FAILED")
     status = getattr(exc, "status", "invalid")
     severity = "insufficient_evidence" if status == "insufficient_evidence" else "error"
-    return _diag(code, severity, "$", str(exc), **getattr(exc, "details", {}))
+    return _diag(
+        code,
+        severity,
+        "$",
+        str(exc),
+        **getattr(exc, "details", {}),
+    )
 
 
-def _diag(code: str, severity: str, path: str, message: str, **details: Any) -> dict[str, Any]:
-    return {"code": code, "severity": severity, "path": path, "message": message, "details": details, "repair_owner": "Project Gate"}
+def _diag(
+    code: str,
+    severity: str,
+    path: str,
+    message: str,
+    **details: Any,
+) -> dict[str, Any]:
+    return {
+        "code": code,
+        "severity": severity,
+        "path": path,
+        "message": message,
+        "details": details,
+        "repair_owner": "Project Gate",
+    }
