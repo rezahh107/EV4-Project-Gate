@@ -33,25 +33,68 @@ Architect → Project Gate → CE → Project Gate → Builder
 
 Each specialist repository owns its schemas, validators, adapters, fixtures, and domain behavior. Project Gate owns deterministic orchestration, result envelopes, diagnostics, contract locks, publication safety, receipts, CLI/UI presentation, and selective CI boundary execution.
 
-## Durable viewport runtime evidence
+## Builder → Responsive runtime truth
 
-The Builder → Responsive runtime boundary uses a detached worktree at an exact pinned Builder commit. The official operational path must:
+Three different implementation states must not be conflated:
 
 ```text
-execute the exact official producer tool
-→ read the emitted artifact exactly once
-→ bind repository, commit, tool, working directory, output ref, hash, subject and viewport
-→ create an immutable exact-byte VerifiedArtifactSnapshot only after every predicate passes
-→ derive receipt identity from snapshot metadata
-→ remove and prune the temporary worktree
-→ return durable bytes without returning a stale temporary path
+implemented runtime primitives
+≠ production Builder → Responsive runtime integration
+≠ available official Builder viewport emitter
 ```
 
-Publication consumes `snapshot.exact_bytes` directly and verifies destination byte equality, SHA-256, and byte length. Parsed JSON is never reserialized to reconstruct the verified artifact.
+Project Gate implements and regression-tests the following reusable primitives:
 
-The snapshot and exact-byte publication infrastructure are implemented. The pinned Builder owner still does not provide the required official viewport capture/export emitter, so real non-synthetic Builder → Responsive and Final Gate readiness remain `insufficient_evidence`.
+- detached worktree execution at an exact pinned owner commit;
+- exact repository, commit, tool, working-directory, output-reference and output-hash binding;
+- one-read emitted-artifact handling;
+- immutable `VerifiedArtifactSnapshot` creation after all verification predicates pass;
+- metadata-only runtime receipt derivation;
+- cleanup-failure revocation;
+- exact-byte staging, post-write byte/hash/length verification and grouped rollback.
 
-See `docs/EVIDENCE_TRUTH_SPINE.md` for the exact runtime authority and cleanup rules.
+The intended operational lifecycle is:
+
+```text
+execute_pinned_viewport_capture
+→ execute the exact official producer tool
+→ read the emitted artifact exactly once
+→ verify exact runtime bindings
+→ create VerifiedArtifactSnapshot
+→ derive metadata-only receipt
+→ clean the temporary worktree
+→ pass the observed verified result into B2R evidence resolution
+→ publish snapshot.exact_bytes and receipt through grouped publication
+→ carry applicable verified runtime evidence into Final Gate
+```
+
+This lifecycle is not yet wired into the production `transition_builder_to_responsive` path. That transition currently resolves viewport evidence without supplying an observed `runtime_run` and exact expected runtime tool, so file-only viewport evidence remains non-authoritative. Applicable Final Gate evidence resolution likewise does not yet consume the observed verified runtime result, snapshot and receipt.
+
+The pinned Builder owner also does not provide the required official viewport capture/export emitter. Adding that emitter alone would not complete the root handoff; Project Gate integration and Final Gate propagation would still be required.
+
+Consequently:
+
+```yaml
+runtime_primitives: implemented
+production_b2r_runtime_integration: not_implemented
+official_builder_viewport_emitter: missing_in_pinned_builder_owner
+real_non_synthetic_handoff: insufficient_evidence
+root_operational_handoff_complete: false
+```
+
+Remaining work, in order:
+
+1. implement the official Builder viewport capture/export emitter;
+2. pin its exact Builder commit, tool path and contract;
+3. wire Project Gate to call `execute_pinned_viewport_capture` in the production B2R flow;
+4. pass the exact observed runtime result through evidence resolution;
+5. consume and publish the verified snapshot and receipt;
+6. verify applicable Final Gate integration;
+7. run exact-Head CI and obtain a fresh independent PR Inspector review.
+
+None of these implementation states proves responsive correctness, frontend correctness, accessibility completion, export validity, release readiness or production readiness.
+
+See `docs/EVIDENCE_TRUTH_SPINE.md` for the implemented primitive contracts and fail-closed runtime rules.
 
 ## Setup
 
@@ -114,7 +157,7 @@ Optional entry point:
 uv run ev4-project-gate-ui
 ```
 
-The UI is Persian-first and local. It does not prove production readiness, browser correctness, responsive completion, accessibility completion, export validity, or real end-to-end compatibility unless the required owner evidence and validators execute successfully.
+The UI is Persian-first and local. It does not prove production readiness, browser correctness, responsive completion, accessibility completion, export validity, or real end-to-end compatibility unless the required owner evidence, observed official runtime execution, integration paths and validators execute successfully.
 
 ## Validation
 
