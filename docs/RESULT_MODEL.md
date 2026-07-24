@@ -1,6 +1,6 @@
 # EV4 Project Gate Result Model
 
-Status: Closure audit after `PROMPT-06`. Result carriers, runner execution records, Builder→Responsive/Final Gate result schemas, Persian report rendering, and atomic output writing are documented without changing deterministic transition decisions.
+Status: active result-model documentation aligned with the current transition carriers, official runner records, durable verified-artifact snapshot, runtime evidence receipt, report rendering, and publication behavior.
 
 ## Scope
 
@@ -66,7 +66,7 @@ invalid:
   diagnostics: at least one error
 ```
 
-Transition-specific result schemas add stricter `accepted_requires` and evidence interpretation rules. They must fail closed when evidence, validator execution, schema identity, or lock/hash verification is missing or contradictory.
+Transition-specific result schemas add stricter `accepted_requires` and evidence interpretation rules. They must fail closed when evidence, validator execution, schema identity, exact runtime binding, snapshot identity, or lock/hash verification is missing or contradictory.
 
 ## Diagnostic ordering
 
@@ -100,6 +100,8 @@ unicode_normalization: not_applied
 ```
 
 For `accepted`, each hash property has a property-specific scope: `source_bundle_hash.scope` must be `source_bundle`, and `canonical_payload_hash.scope` must be `payload`.
+
+Canonical JSON hashing applies to Project Gate result objects. It must not be confused with exact-byte identity for an externally emitted runtime artifact. A verified runtime artifact preserves its original byte sequence and is never reconstructed from parsed JSON.
 
 Progress/runtime state must not be appended after final result schema validation and must not be included in canonical result hashes.
 
@@ -136,12 +138,141 @@ command_or_entrypoint: command list or entrypoint name used by the runner; must 
 input_ref: input artifact reference
 input_hash: SHA-256 of canonical input/artifact bytes
 output_ref: output artifact reference, if produced
-output_hash: SHA-256 of output artifact bytes, if produced
+output_hash: SHA-256 of exact output artifact bytes, if produced
 execution_record_hash: SHA-256 over canonical execution record without this field
 validator_after_adapter_ref: validator evidence reference required after adapter output is produced
 ```
 
-Failure mapping is deterministic and fail-closed:
+For the official viewport operational path, `ExecutionRecord.output_ref`, the runtime run `artifact_ref`, and the verification `verified_artifact_ref` must be identical. `ExecutionRecord.output_hash`, the runtime run artifact hash, the verification actual hash, and the snapshot hash must all derive from the same byte sequence read once from the exact producer output.
+
+Raw stdout/stderr are not stored in execution records. Only their hashes are retained.
+
+## Viewport runtime verification result
+
+`ViewportRunVerification` is the Project Gate runtime verification carrier. A positive result may contain:
+
+```yaml
+classification: real_verified
+positive_proof_verified: true
+verified_repository: exact owner/repo
+verified_commit: exact pinned commit
+verified_tool_ref: exact repository-relative producer tool
+verified_working_directory_ref: exact repository-relative cwd
+verified_artifact_ref: canonical repository-relative output ref
+ephemeral_artifact_path: null after official operational cleanup
+artifact_snapshot: VerifiedArtifactSnapshot
+execution_record_digest: canonical digest
+verified_subject_ref: exact requested subject
+verified_viewport: exact requested viewport
+verified_run_id: exact producer run id
+value: parsed JSON value for semantic use only
+derived_receipt: metadata-only runtime receipt
+```
+
+The pure verifier may expose an ephemeral artifact path while a test worktree is alive. The official operational path clears that path after cleanup. No deleted temporary path is represented as durable state.
+
+## Verified artifact snapshot
+
+`VerifiedArtifactSnapshot` is a frozen, slotted internal value:
+
+```yaml
+artifact_ref: canonical repository-relative reference
+exact_bytes: immutable bytes excluded from repr
+sha256: SHA-256 of exact_bytes
+byte_length: exact byte count
+```
+
+The official operational path reads the emitted artifact exactly once. Runtime hash, execution-record output hash, JSON parsing, semantic validation, snapshot identity, receipt metadata, and publication payload all originate from that one byte sequence.
+
+The snapshot is created only after all repository, commit, tool, working-directory, output-reference, output-hash, subject, viewport, process, capture, producer-validation, schema, and synthetic-conflict predicates pass.
+
+A failed or insufficient-evidence result contains no snapshot.
+
+Raw snapshot bytes must not appear in:
+
+```text
+repr output
+diagnostics
+logs
+receipts
+service responses
+UI state
+JSON serialization
+```
+
+JSON-safe consumers use snapshot metadata only.
+
+## Runtime evidence receipt
+
+The active viewport runtime receipt schema identifier is:
+
+```text
+ev4_runtime_evidence_receipt_v2
+```
+
+`build_runtime_evidence_receipt(verification=...)` accepts only a successful exact-bound verification with a valid snapshot. Artifact identity is derived from:
+
+```text
+snapshot.artifact_ref
+snapshot.sha256
+snapshot.byte_length
+```
+
+The receipt contains metadata only. It never contains raw bytes, temporary paths, caller-authored paths, or reconstructed JSON.
+
+A stored artifact and adjacent receipt remain non-authoritative when replayed without an observed official execution:
+
+```yaml
+classification: insufficient_evidence
+positive_proof_verified: false
+reason: official_runtime_execution_not_observed
+```
+
+## Cleanup revocation
+
+Worktree cleanup is authority-bearing. Any cleanup failure revokes an otherwise successful result:
+
+```yaml
+classification: insufficient_evidence
+positive_proof_verified: false
+reason: pinned_worktree_cleanup_failed
+artifact_snapshot: null
+ephemeral_artifact_path: null
+execution_record_digest: null
+verified_subject_ref: null
+verified_viewport: null
+verified_run_id: null
+derived_receipt: null
+```
+
+Retained in-memory bytes cannot override incomplete cleanup.
+
+## Exact-byte staging and publication
+
+`stage_verified_artifact_snapshot()` validates snapshot integrity and stages `snapshot.exact_bytes` directly.
+
+Forbidden reconstruction sources include:
+
+```text
+json.dumps
+canonical JSON serialization
+parsed verification.value
+a path inside the removed worktree
+```
+
+`verify_published_artifact_snapshot()` rereads the destination and requires:
+
+```yaml
+exact_byte_equality: true
+sha256_equality: true
+byte_length_equality: true
+```
+
+Grouped publication continues through `publish_staged_group()` with no-overwrite, hard-link publication, directory fsync, exact-byte reread, complete rollback, staged-file cleanup, and truthful persisted-state diagnostics.
+
+## Deterministic failure mapping
+
+Common runner failures remain fail-closed:
 
 ```yaml
 validator_timeout:
@@ -179,7 +310,7 @@ adapter_command_path_mismatch:
   diagnostic: PG.ADAPTER.COMMAND_PATH_MISMATCH
 ```
 
-Raw stdout/stderr are not stored in execution records. Only `stdout_hash` and `stderr_hash` are retained.
+Viewport-specific mismatches for repository, commit, tool, working directory, output ref/hash, subject, viewport, schema, synthetic conflict, capture, or validation remain fail-closed and cannot create a snapshot.
 
 ## Report rendering record
 
@@ -197,6 +328,7 @@ forbidden:
   - add diagnostics after final validation
   - repair missing evidence
   - normalize specialist output
+  - reconstruct verified runtime artifact bytes
   - include progress events in canonical final result hash
 ```
 
@@ -213,6 +345,7 @@ Progress event sanitization rejects:
 - raw environment variables
 - raw stdout
 - raw stderr
+- raw verified artifact bytes
 - private absolute paths unless explicitly allowed
 ```
 
@@ -220,4 +353,6 @@ By default, paths in progress events are converted to repo-relative paths when a
 
 ## Evidence rule
 
-No result may be presented as `accepted` unless the required evidence for that result scope is explicit. Missing, empty, swapped, synthetic-only, unresolved, or unverified evidence must remain `insufficient_evidence` or `invalid` according to the diagnostic set.
+No result may be presented as `accepted` unless the required evidence for that result scope is explicit. Missing, empty, swapped, synthetic-only, unresolved, replay-only, cleanup-incomplete, or unverified evidence must remain `insufficient_evidence` or `invalid` according to the diagnostic set.
+
+The implemented snapshot infrastructure does not itself prove a real Builder → Responsive handoff. Until the pinned Builder owner provides an official viewport capture/export emitter and Project Gate observes that execution, real runtime capability remains `insufficient_evidence`.

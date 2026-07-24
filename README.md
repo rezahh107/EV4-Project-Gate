@@ -33,6 +33,26 @@ Architect → Project Gate → CE → Project Gate → Builder
 
 Each specialist repository owns its schemas, validators, adapters, fixtures, and domain behavior. Project Gate owns deterministic orchestration, result envelopes, diagnostics, contract locks, publication safety, receipts, CLI/UI presentation, and selective CI boundary execution.
 
+## Durable viewport runtime evidence
+
+The Builder → Responsive runtime boundary uses a detached worktree at an exact pinned Builder commit. The official operational path must:
+
+```text
+execute the exact official producer tool
+→ read the emitted artifact exactly once
+→ bind repository, commit, tool, working directory, output ref, hash, subject and viewport
+→ create an immutable exact-byte VerifiedArtifactSnapshot only after every predicate passes
+→ derive receipt identity from snapshot metadata
+→ remove and prune the temporary worktree
+→ return durable bytes without returning a stale temporary path
+```
+
+Publication consumes `snapshot.exact_bytes` directly and verifies destination byte equality, SHA-256, and byte length. Parsed JSON is never reserialized to reconstruct the verified artifact.
+
+The snapshot and exact-byte publication infrastructure are implemented. The pinned Builder owner still does not provide the required official viewport capture/export emitter, so real non-synthetic Builder → Responsive and Final Gate readiness remain `insufficient_evidence`.
+
+See `docs/EVIDENCE_TRUTH_SPINE.md` for the exact runtime authority and cleanup rules.
+
 ## Setup
 
 Python `>=3.11` is supported. `uv.lock` is committed for reproducible setup.
