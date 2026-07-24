@@ -44,32 +44,74 @@ scope → core-quality → affected-boundaries → quality-gate
 
 `.github/workflows/validate.yml` runs the full internal suite, wheel build and clean install once per exact Head. `scripts/classify-validation-scope.py` selects external boundaries and fails safe to all for shared, unknown, Workflow, dependency, schema or contract infrastructure changes. Node exists only in the actual Decision Kernel boundary.
 
-## Durable runtime artifact lifecycle
+## Viewport runtime architecture
 
-Viewport runtime evidence has a stricter lifetime than ordinary parsed transition data:
+The architecture has three distinct layers:
+
+```text
+runtime verification/publication primitives
+≠ production B2R orchestration integration
+≠ Builder-owned official viewport emitter
+```
+
+### Implemented primitives
+
+Project Gate currently implements and regression-tests:
 
 ```text
 materialize detached worktree at exact owner commit
-→ execute exact official producer tool
+→ execute an exact official producer tool when one is supplied
 → read emitted artifact bytes exactly once
-→ derive runtime hash and execution-record output hash from those bytes
+→ derive runtime hash and ExecutionRecord output hash from those bytes
+→ verify repository, commit, tool, cwd, output ref/hash, subject and viewport
 → parse and validate the same bytes
 → create immutable VerifiedArtifactSnapshot after all predicates pass
-→ derive receipt metadata from the snapshot
+→ derive metadata-only receipt identity
 → remove and prune the worktree
-→ return snapshot with no temporary path
+→ retain no durable temporary path
+→ stage snapshot.exact_bytes
+→ verify post-write bytes, SHA-256 and length
+→ rollback grouped publication on failure
 ```
 
-The snapshot contains canonical artifact ref, exact immutable bytes, SHA-256, and byte length. Raw bytes are excluded from repr, diagnostics, receipts, service responses, and UI state. Publication stages `snapshot.exact_bytes` directly and post-write verification requires exact byte, hash, and length equality.
+The snapshot contains canonical artifact ref, exact immutable bytes, SHA-256, and byte length. Raw bytes are excluded from repr, diagnostics, receipts, service responses, and UI state. Cleanup remains authority-bearing: a cleanup failure revokes positive proof, snapshot and receipt.
 
-Cleanup remains authority-bearing. A cleanup failure revokes the snapshot and receipt and returns `insufficient_evidence`.
+### Production integration gap
 
-The infrastructure is implemented, but the pinned Builder owner does not yet expose the required official viewport emitter. Project Gate therefore must not claim a real Builder → Responsive or Final Gate handoff.
+The production `transition_builder_to_responsive` flow does not currently invoke `execute_pinned_viewport_capture`. Its viewport evidence resolution does not receive an observed `runtime_run` or exact expected runtime tool, so the runtime-execution policy correctly remains fail-closed.
+
+Applicable Final Gate viewport resolution also does not currently receive and consume the observed verified runtime result, snapshot and receipt. Therefore the existence of the primitives does not mean the production B2R or Final Gate runtime path is integrated.
+
+### Owner dependency
+
+The pinned `EV4-Builder-Assistant-Repo` commit also lacks the required official viewport capture/export emitter and formal associated contract. This is a separate dependency from Project Gate integration.
+
+Adding the emitter alone is insufficient. Completion requires:
+
+1. implement the official Builder emitter;
+2. pin its exact commit, tool path and contract;
+3. wire production B2R to call `execute_pinned_viewport_capture`;
+4. pass the exact observed result through evidence resolution;
+5. consume and publish the verified snapshot and receipt;
+6. verify applicable Final Gate integration;
+7. run exact-Head CI and obtain a fresh independent PR Inspector review.
+
+Until both owner and integration work are complete:
+
+```yaml
+runtime_primitives: implemented
+production_b2r_runtime_integration: not_implemented
+official_builder_viewport_emitter: missing_in_pinned_builder_owner
+real_non_synthetic_handoff: insufficient_evidence
+root_operational_handoff_complete: false
+```
+
+No part of this architecture proves responsive correctness, frontend correctness, accessibility completion, export validity, release readiness or production readiness.
 
 ## Authority surfaces
 
 - capability truth: `src/ev4_transition/data/capability-status.v1.json`;
-- runtime evidence rules: `docs/EVIDENCE_TRUTH_SPINE.md`;
+- runtime primitive rules: `docs/EVIDENCE_TRUTH_SPINE.md`;
 - active role boundary: `docs/ROLE_BOUNDARY_MAP.md`;
 - active contracts: `docs/CONTRACT_INVENTORY.md` and `contracts/`;
 - compatibility: `docs/COMPATIBILITY_MAP.md`;
