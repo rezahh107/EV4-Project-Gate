@@ -10,13 +10,15 @@ ordinary owner checkout (may be dirty)
 → materialize detached clean worktree at the pinned commit
 → execute the official tool inside that worktree
 → internally create ExecutionRecord and ViewportEvidenceRun
+→ read the emitted artifact bytes exactly once
 → verify repository, commit, tool, working directory, output reference and bytes
-→ classify evidence
-→ derive an audit receipt from verified values
+→ create an immutable exact-byte snapshot after every predicate passes
+→ derive an audit receipt from snapshot metadata
 → remove and prune the temporary worktree
+→ return durable bytes without returning a stale temporary path
 ```
 
-This mechanism provides reproducible execution bytes. It is not cryptographic attestation, an authorization service, a hostile-process control, or an external trust system.
+This mechanism provides reproducible execution bytes. It is not cryptographic attestation, an authorization service, a hostile-process control, an external trust system, or a persistent artifact store.
 
 ## Evidence policy
 
@@ -76,6 +78,7 @@ official_operational_path:
     - ExecutionRecord
     - ViewportEvidenceRun
     - exact-bound verification
+    - immutable artifact snapshot
     - derived receipt
 ```
 
@@ -127,10 +130,11 @@ execution_record.output_ref
 ```
 
 ```text
-SHA256(verified artifact bytes)
+SHA256(observed artifact bytes)
 == run.artifact_sha256
 == execution_record.output_hash
 == verification.actual_sha256
+== verification.artifact_snapshot.sha256
 ```
 
 Path equality and hash equality are both mandatory. Identical bytes at two paths do not satisfy the binding.
@@ -139,18 +143,56 @@ Path equality and hash equality are both mandatory. Identical bytes at two paths
 
 The record must be an adapter execution with exit code `0`, no failure code, an exact tool entrypoint, a completed capture and an explicitly accepted producer validation result. Run ID, subject and viewport must match the request, runtime result and artifact content. Synthetic conflicts remain fail-closed.
 
-## Verified result and receipt
+## Durable exact-byte snapshot
 
-`ViewportRunVerification` exposes verified values only after their checks pass:
+`VerifiedArtifactSnapshot` is a frozen in-memory value containing:
 
-- verified repository and commit;
-- verified tool and working-directory references;
-- verified artifact reference and path;
-- actual SHA-256;
-- verified execution-record digest;
-- verified run ID, subject and viewport.
+```yaml
+artifact_ref: canonical repository-relative reference
+exact_bytes: immutable bytes, excluded from repr
+sha256: SHA-256 of exact_bytes
+byte_length: exact byte count
+```
 
-`build_runtime_evidence_receipt(verification=...)` accepts only a successful exact-bound verification. Receipt fields come exclusively from verified values. The deterministic receipt uses schema `ev4_runtime_evidence_receipt_v2` and remains an audit/debug publication record, not positive-proof input.
+The artifact is read once on the official operational path. Hashing, UTF-8 JSON parsing, the snapshot, receipt metadata and publication payload all originate from that same byte sequence. Parsed JSON remains separately available as `ViewportRunVerification.value`; it is never reserialized to reconstruct the verified artifact.
+
+The snapshot is created only after all positive-proof predicates pass. Synthetic, invalid or insufficient-evidence results contain no snapshot.
+
+While the pure verifier runs inside a live worktree it may expose `ephemeral_artifact_path`. After `execute_pinned_viewport_capture()` returns, the worktree has been removed and the operational result always exposes:
+
+```yaml
+artifact_snapshot: present only for real_verified
+ephemeral_artifact_path: null
+```
+
+No deleted temporary path is represented as durable state.
+
+## Cleanup failure revocation
+
+Worktree cleanup remains authority-bearing. Any cleanup failure revokes the otherwise successful result:
+
+```yaml
+classification: insufficient_evidence
+positive_proof_verified: false
+reason: pinned_worktree_cleanup_failed
+artifact_snapshot: null
+ephemeral_artifact_path: null
+derived_receipt: null
+```
+
+Retained in-memory bytes do not override incomplete cleanup.
+
+## Receipt boundary
+
+`build_runtime_evidence_receipt(verification=...)` accepts only a successful exact-bound verification with a valid snapshot. Artifact identity comes from snapshot metadata:
+
+```text
+artifact_ref
+artifact_sha256
+artifact_byte_length
+```
+
+The receipt never contains raw artifact bytes, temporary paths, caller paths, or reconstructed JSON. Schema `ev4_runtime_evidence_receipt_v2` remains a deterministic audit/debug record, not positive-proof input.
 
 A stored artifact and adjacent receipt, even when every field and digest matches, remain:
 
@@ -159,6 +201,26 @@ classification: insufficient_evidence
 positive_proof_verified: false
 reason: official_runtime_execution_not_observed
 ```
+
+## Exact-byte publication
+
+`stage_verified_artifact_snapshot()` validates snapshot integrity and stages `snapshot.exact_bytes` directly. It does not call `json.dumps`, canonical serialization, or a deleted worktree path.
+
+The existing `publish_staged_group()` transaction remains authoritative for grouped publication:
+
+```text
+stage exact artifact bytes and receipt bytes
+→ assert every destination unused
+→ link every destination
+→ fsync destination directories
+→ reread and compare every exact byte sequence
+→ remove staging files
+→ return published_verified records
+```
+
+Post-write semantic JSON equality is insufficient. Direct byte equality, SHA-256 equality and byte-length equality are required. Any mismatch invokes the existing complete rollback, cleanup and persisted-state diagnostics.
+
+Raw snapshot bytes are excluded from snapshot and staging dataclass representations. JSON-safe consumers use snapshot metadata only; bytes are not base64 encoded into logs, receipts, service responses or UI state.
 
 ## Current owner dependency
 
@@ -169,17 +231,19 @@ repository: rezahh107/EV4-Builder-Assistant-Repo
 commit: 69a2c61edf6d06b4418ad770fcefbfdffcf275d6
 ```
 
-Its Builder→Responsive boundary is documented but the formal export and compatible viewport capture emitter are not implemented. The pinned Responsive intake is schema-bound and non-executing. Project Gate therefore implements the exact-binding infrastructure but does not fabricate an emitter or claim a real viewport run.
+Its Builder→Responsive boundary is documented but the formal export and compatible viewport capture emitter are not implemented. The pinned Responsive intake is schema-bound and non-executing. Project Gate therefore implements exact binding and durable snapshot infrastructure but does not fabricate an emitter or claim a real viewport run.
 
 ```yaml
-runtime_binding_infrastructure_complete: true
+verified_artifact_snapshot_complete: true
+exact_bytes_survive_cleanup: true
+publication_from_exact_bytes_supported: true
 official_viewport_emitter_found: false
 official_viewport_emitter_executed: false
 viewport_real_verified_capability: insufficient_evidence
 external_dependency_required: true
 required_owner: rezahh107/EV4-Builder-Assistant-Repo
 required_contract_or_emitter: official viewport capture/export adapter returning the documented bounded runtime result
-root_operational_capability_complete: false
+root_operational_handoff_complete: false
 ```
 
 ## A2C publication transaction
@@ -190,4 +254,4 @@ Any failure rolls back all linked Project Gate artifacts, removes staged files, 
 
 ## Capability truth
 
-`src/ev4_transition/data/capability-status.v1.json` remains the sole machine-readable authority. The exact-binding worktree and output binding are implemented. The official Builder emitter and real non-synthetic viewport handoff remain unavailable and `insufficient_evidence`.
+`src/ev4_transition/data/capability-status.v1.json` remains the sole machine-readable authority. The pinned worktree, exact runtime binding and durable exact-byte snapshot are implemented. The official Builder emitter and real non-synthetic viewport handoff remain unavailable and `insufficient_evidence`.
