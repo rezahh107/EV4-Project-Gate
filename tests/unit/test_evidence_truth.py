@@ -10,6 +10,7 @@ from ev4_transition.evidence_truth import (
     resolve_evidence,
     synthetic_indicators,
 )
+from ev4_transition.viewport_runtime import OFFICIAL_RUNTIME_NOT_OBSERVED_REASON
 
 BUILDER_REPO = "rezahh107/EV4-Builder-Assistant-Repo"
 BUILDER_COMMIT = "69a2c61edf6d06b4418ad770fcefbfdffcf275d6"
@@ -47,24 +48,22 @@ def _viewport_artifact(tmp_path: Path, *, viewport: str = "desktop") -> tuple[Pa
     return path, digest
 
 
-def _write_receipt(
-    artifact_path: Path,
-    digest: str,
-    *,
-    viewport: str = "desktop",
-    receipt_hash: str | None = None,
-) -> None:
+def _write_matching_receipt(artifact_path: Path, digest: str) -> None:
     _write_json(
         artifact_path.with_name(artifact_path.name + ".receipt.json"),
         {
             "schema": RUNTIME_EVIDENCE_RECEIPT_SCHEMA,
             "evidence_type": "viewport_artifact",
-            "viewport": viewport,
             "run_id": "RUN-1",
-            "subject_ref": "desktop-proof",
-            "artifact_ref": artifact_path.name,
-            "artifact_sha256": receipt_hash or digest,
+            "producer_repository": BUILDER_REPO,
             "producer_commit": BUILDER_COMMIT,
+            "producer_tool": "scripts/capture-viewports.py",
+            "execution_status": "accepted",
+            "execution_record_digest": "a" * 64,
+            "subject_ref": "desktop-proof",
+            "viewport": "desktop",
+            "artifact_ref": artifact_path.name,
+            "artifact_sha256": digest,
             "capture_status": "completed",
             "validation_status": "accepted",
         },
@@ -150,44 +149,35 @@ def test_owner_validator_acceptance_is_positive_proof(tmp_path: Path):
         expected_subject_ref=path.name,
     )
     assert result.classification == "real_verified"
+    assert result.positive_proof_type == "owner_validator"
     assert result.positive_proof_verified is True
+
+
+def test_manual_artifact_and_matching_receipt_are_non_authoritative(tmp_path: Path):
+    path, digest = _viewport_artifact(tmp_path)
+    _write_matching_receipt(path, digest)
+
+    result = _resolve_viewport(tmp_path, digest)
+
+    assert result.source_resolved is True
+    assert result.hash_verified is True
     assert result.schema_valid is True
+    assert result.classification == "insufficient_evidence"
+    assert result.positive_proof_type == "runtime_execution"
+    assert result.positive_proof_verified is False
+    assert result.reason == OFFICIAL_RUNTIME_NOT_OBSERVED_REASON
+    assert result.runtime_receipt_path is not None
+    codes = {item["code"] for item in result.diagnostics}
+    assert "PG.EVIDENCE.RUNTIME_RECEIPT_NON_AUTHORITATIVE" in codes
+    assert "PG.EVIDENCE.OFFICIAL_RUNTIME_EXECUTION_NOT_OBSERVED" in codes
 
 
-def test_valid_hash_without_runtime_receipt_is_rejected(tmp_path: Path):
+def test_offline_artifact_without_receipt_is_also_non_authoritative(tmp_path: Path):
     _, digest = _viewport_artifact(tmp_path)
     result = _resolve_viewport(tmp_path, digest)
-    assert result.hash_verified is True
     assert result.classification == "insufficient_evidence"
-    assert any(item["code"] == "PG.EVIDENCE.RUNTIME_RECEIPT_REQUIRED" for item in result.diagnostics)
-
-
-def test_runtime_receipt_with_wrong_hash_is_rejected(tmp_path: Path):
-    path, digest = _viewport_artifact(tmp_path)
-    _write_receipt(path, digest, receipt_hash="a" * 64)
-    result = _resolve_viewport(tmp_path, digest)
-    assert result.classification == "insufficient_evidence"
-    assert any(item["code"] == "PG.EVIDENCE.RUNTIME_RECEIPT_BINDING_MISMATCH" for item in result.diagnostics)
-
-
-def test_runtime_receipt_with_wrong_viewport_is_rejected(tmp_path: Path):
-    path, digest = _viewport_artifact(tmp_path)
-    _write_receipt(path, digest, viewport="tablet")
-    result = _resolve_viewport(tmp_path, digest)
-    assert result.classification == "insufficient_evidence"
-    assert any(item["code"] == "PG.EVIDENCE.RUNTIME_RECEIPT_BINDING_MISMATCH" for item in result.diagnostics)
-
-
-def test_correct_runtime_receipt_and_artifact_are_real_verified(tmp_path: Path):
-    path, digest = _viewport_artifact(tmp_path)
-    _write_receipt(path, digest)
-    result = _resolve_viewport(tmp_path, digest)
-    assert result.classification == "real_verified"
-    assert result.positive_proof_type == "runtime_receipt"
-    assert result.positive_proof_verified is True
-    assert result.schema_valid is True
-    assert result.claim_binding_valid is True
-    assert result.subject_binding_valid is True
+    assert result.reason == OFFICIAL_RUNTIME_NOT_OBSERVED_REASON
+    assert result.positive_proof_verified is False
 
 
 def test_caller_classification_fields_do_not_authorize(tmp_path: Path):
@@ -206,6 +196,7 @@ def test_caller_classification_fields_do_not_authorize(tmp_path: Path):
             "classification": "real_verified",
         },
     )
+    _write_matching_receipt(path, digest)
     result = _resolve_viewport(tmp_path, digest)
     assert result.classification == "insufficient_evidence"
     assert result.positive_proof_verified is False
@@ -213,7 +204,7 @@ def test_caller_classification_fields_do_not_authorize(tmp_path: Path):
 
 def test_wrong_file_hash_is_rejected(tmp_path: Path):
     path, digest = _viewport_artifact(tmp_path)
-    _write_receipt(path, digest)
+    _write_matching_receipt(path, digest)
     result = _resolve_viewport(tmp_path, "a" * 64)
     assert result.classification == "insufficient_evidence"
     assert any(item["code"] == "PG.EVIDENCE.HASH_MISMATCH" for item in result.diagnostics)
@@ -221,7 +212,7 @@ def test_wrong_file_hash_is_rejected(tmp_path: Path):
 
 def test_desktop_evidence_cannot_satisfy_tablet_claim(tmp_path: Path):
     path, digest = _viewport_artifact(tmp_path)
-    _write_receipt(path, digest)
+    _write_matching_receipt(path, digest)
     result = resolve_evidence(
         artifact_ref="viewport.json",
         declared_sha256=digest,
