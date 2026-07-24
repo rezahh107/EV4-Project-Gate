@@ -6,16 +6,14 @@ Status: active status and fail-closed decision matrix. `src/ev4_transition/data/
 
 | Status | Meaning | Exit code | Presentation |
 |---|---|---:|---|
-| `accepted` | Required evidence for this check is explicit and no blocking diagnostic exists. | `0` | ✅ / success / پذیرفته شد |
+| `accepted` | Required evidence for this check is explicit, observed through the applicable production path, and no blocking diagnostic exists. | `0` | ✅ / success / پذیرفته شد |
 | `repair_needed` | Input is structurally understandable, but repairable warning diagnostics exist. | `1` | 🛠️ / warning / نیازمند اصلاح |
-| `insufficient_evidence` | Input is parseable/understood, but required evidence is missing or unresolved. | `2` | ⚠️ / warning / شواهد کافی نیست |
-| `invalid` | Input violates schema, identity, hash, lock, runtime binding, or fail-closed rules. | `1` | ❌ / danger / نامعتبر |
+| `insufficient_evidence` | Input is parseable/understood, but required evidence, observed execution, integration wiring, checkout, tool or validator is missing or unresolved. | `2` | ⚠️ / warning / شواهد کافی نیست |
+| `invalid` | Input violates schema, identity, hash, lock, runtime binding, snapshot, cleanup, or fail-closed rules. | `1` | ❌ / danger / نامعتبر |
 
-`insufficient_evidence` is a warning/blocking state, not ordinary info.
+`insufficient_evidence` is a blocking state, not ordinary info.
 
 ## Diagnostic-to-status mapping
-
-Target transition mapping:
 
 ```yaml
 error: invalid
@@ -32,6 +30,29 @@ insufficient_evidence: insufficient_evidence
 none_or_warning_or_info: valid
 ```
 
+## B2R implementation-state rule
+
+```text
+implemented runtime primitives
+≠ production B2R runtime integration
+≠ available Builder emitter
+```
+
+Current human-readable interpretation:
+
+```yaml
+runtime_primitives: implemented
+production_b2r_runtime_integration: not_implemented
+official_builder_viewport_emitter: missing_in_pinned_builder_owner
+applicable_final_gate_runtime_integration: not_implemented
+real_non_synthetic_handoff: insufficient_evidence
+root_operational_handoff_complete: false
+```
+
+The primitive implementation includes detached pinned worktrees, exact binding, one-read artifact handling, `VerifiedArtifactSnapshot`, metadata-only receipts, cleanup revocation and exact-byte publication helpers.
+
+The production `transition_builder_to_responsive` path does not currently call `execute_pinned_viewport_capture`, does not pass an observed `runtime_run` and exact expected runtime tool through viewport evidence resolution, and does not consume/publish the verified snapshot and receipt. This is independent of the missing Builder emitter.
+
 ## Builder → Responsive accepted policy
 
 `ev4-builder-to-responsive-transition@1.0.0` may emit `accepted` only when all applicable requirements are true:
@@ -42,7 +63,11 @@ builder_lock_hashes_match: true
 builder_repository_exact: true
 builder_commit_exact: true
 official_builder_viewport_tool_exists: true
+official_builder_viewport_tool_contract_pinned: true
 official_builder_viewport_tool_executed: true
+production_b2r_calls_execute_pinned_viewport_capture: true
+observed_runtime_run_passed_to_evidence_resolution: true
+expected_runtime_tool_passed_to_evidence_resolution: true
 producer_tool_ref_exact: true
 working_directory_ref_exact: true
 process_exit_zero: true
@@ -58,23 +83,22 @@ verified_artifact_snapshot_present: true
 snapshot_hash_valid: true
 snapshot_byte_length_valid: true
 pinned_worktree_cleanup_complete: true
+verified_snapshot_and_receipt_consumed_by_b2r: true
 responsive_input_schema_verified: true
 responsive_input_validator_passed: true
 no_forbidden_claim: true
 result_schema_valid: true
 ```
 
-The official operational path must create the verified snapshot from the same byte sequence read once from the exact producer output. Parsed JSON, a caller-authored execution record, a file-only artifact/receipt pair, or a path inside a removed worktree cannot authorize `accepted`.
+The official runtime primitive must create the snapshot from the same byte sequence read once from the exact producer output. Parsed JSON, caller-authored execution records, file-only artifacts/receipts, or paths inside removed worktrees cannot authorize `accepted`.
 
-Builder → Responsive must emit `insufficient_evidence` when any required owner checkout, official Builder emitter, observed official execution, snapshot, cleanup proof, Responsive schema, or official Responsive validator execution is absent or unverifiable.
+Builder → Responsive must emit `insufficient_evidence` when any required owner checkout, official Builder emitter, production runtime invocation, observed runtime result, expected tool, snapshot, cleanup proof, snapshot/receipt consumption, Responsive schema, or official Responsive validator execution is absent or unverifiable.
 
-The current pinned Builder owner does not provide the official viewport capture/export emitter. Therefore current real non-synthetic Builder → Responsive capability remains `insufficient_evidence` even though Project Gate's pinned-worktree verifier, exact output binding, immutable snapshot, and exact-byte publication infrastructure are implemented.
-
-Builder → Responsive must emit `invalid` when a lock/hash/schema identity mismatch, exact runtime binding mismatch, synthetic conflict, or forbidden readiness/correctness claim is detected.
+Builder → Responsive must emit `invalid` when a lock/hash/schema identity mismatch, exact runtime binding mismatch, synthetic conflict, snapshot inconsistency, or forbidden readiness/correctness claim is detected.
 
 ## Snapshot and publication policy
 
-A positive runtime verification may retain:
+A positive primitive verification may retain:
 
 ```yaml
 artifact_snapshot:
@@ -85,7 +109,7 @@ artifact_snapshot:
 ephemeral_artifact_path: null after operational cleanup
 ```
 
-Publication must stage `snapshot.exact_bytes` directly. It must not reconstruct bytes with `json.dumps`, canonical serialization, parsed JSON, or a stale temporary path. Post-write verification requires exact byte equality, SHA-256 equality, and byte-length equality.
+Publication must stage `snapshot.exact_bytes` directly. It must not reconstruct bytes with `json.dumps`, canonical serialization, parsed JSON, or a stale temporary path. Post-write verification requires exact byte equality, SHA-256 equality and byte-length equality.
 
 A cleanup failure revokes positive proof:
 
@@ -111,14 +135,31 @@ real_evidence_present: true
 observed_official_runtime_execution_present_when_required: true
 verified_runtime_snapshot_identity_consistent_when_required: true
 runtime_receipt_identity_consistent_when_required: true
+production_runtime_result_propagated_from_b2r_when_required: true
 no_forbidden_final_claim: true
 result_schema_valid: true
 ```
 
-The Final Gate must emit `invalid` for `production_ready`, `release_ready`, `frontend_correctness`, `responsive_correctness`, `pixel_perfect`, `accessibility_passed`, `export_json_validated`, or equivalent claims unless owner evidence and owner validators explicitly authorize them.
+Applicable Final Gate viewport resolution currently does not receive the observed `runtime_run` and exact expected runtime tool and does not consume the verified snapshot and receipt. Therefore Final Gate remains `insufficient_evidence` for those real runtime requirements.
 
-The Final Gate must emit `insufficient_evidence` when real non-synthetic Responsive evidence, observed official viewport execution when required, verified snapshot identity, Responsive output schema access, official validator execution, or prior lock-chain verification is missing.
+The Final Gate must emit `invalid` for `production_ready`, `release_ready`, `frontend_correctness`, `responsive_correctness`, `pixel_perfect`, `accessibility_passed`, `export_json_validated`, or equivalent claims unless owner evidence, observed execution, production integration and owner validators explicitly authorize them.
+
+## Remaining implementation sequence
+
+```yaml
+remaining_actions:
+  - implement the official Builder viewport capture/export emitter
+  - pin its exact commit, tool path and contract
+  - wire Project Gate production B2R to call execute_pinned_viewport_capture
+  - pass the exact observed runtime result and exact expected tool through evidence resolution
+  - consume and publish the verified snapshot and metadata-only receipt
+  - verify applicable Final Gate integration
+  - run exact-Head CI
+  - obtain a fresh independent PR Inspector review
+```
+
+Adding the Builder emitter alone does not complete the root operational handoff.
 
 ## CI and screenshot limits
 
-CI success is never frontend correctness evidence. Raw screenshots are never sufficient to prove responsive correctness. These inputs can be recorded as artifacts, but they cannot unlock `accepted` unless they are tied to explicit owner-validated evidence contracts and the active runtime authority requirements.
+CI success is never frontend correctness evidence. Raw screenshots are never sufficient to prove responsive correctness. Neither primitive test coverage nor file-only viewport artifacts unlock `accepted` unless the applicable production path observes, propagates and validates the required execution evidence.
