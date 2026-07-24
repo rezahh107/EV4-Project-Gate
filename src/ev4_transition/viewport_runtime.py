@@ -2,33 +2,52 @@ from __future__ import annotations
 
 import hashlib
 import json
-from dataclasses import dataclass, field
+import os
+import sys
+from dataclasses import dataclass, field, replace
 from pathlib import Path
 from typing import Any
 
-from ev4_transition.runners.records import ExecutionRecord, repo_relative
-from ev4_transition.runners.repository_identity import inspect_checkout
+from ev4_transition.runners.records import ExecutionRecord
+from ev4_transition.runners.repo_paths import (
+    RepoPathError,
+    normalize_repo_relative_ref,
+    repo_relative_ref,
+    resolve_repo_relative_directory,
+    resolve_repo_relative_file,
+)
+from ev4_transition.runners.repository_identity import (
+    PinnedExecutionWorktree,
+    PinnedWorktreeError,
+    inspect_checkout,
+    inspect_tracked_worktree_clean,
+    materialize_pinned_worktree,
+)
+from ev4_transition.runners.subprocess_runner import execute_official_tool
 
 RUNTIME_EVIDENCE_RECEIPT_SCHEMA = "ev4_runtime_evidence_receipt_v2"
 LEGACY_RUNTIME_EVIDENCE_RECEIPT_SCHEMA = "ev4_runtime_evidence_receipt_v1"
 OFFICIAL_RUNTIME_NOT_OBSERVED_REASON = "official_runtime_execution_not_observed"
+OUTPUT_REF_BINDING_MISMATCH_REASON = "runtime_output_ref_binding_mismatch"
 
 
 @dataclass(frozen=True)
 class ViewportEvidenceRun:
-    """Observed output of one official viewport producer execution.
+    """Typed result created internally after one viewport producer process run.
 
-    This is runtime state, not an authorization token. Project Gate rechecks the
-    checkout, tool, execution record, and artifact bytes before using it.
+    The pure verifier accepts this value for tests and diagnostics. Operational
+    authority must use ``execute_pinned_viewport_capture`` so the record and
+    output bindings originate inside Project Gate's detached-worktree runner.
     """
 
     run_id: str
     producer_repository: str
     producer_commit: str
-    producer_tool: str
+    producer_tool_ref: str
+    working_directory_ref: str
     subject_ref: str
     viewport: str
-    artifact_path: Path
+    artifact_ref: str
     artifact_sha256: str
     capture_status: str
     validation_status: str
@@ -46,35 +65,188 @@ class ViewportRunVerification:
     subject_binding_valid: bool
     synthetic_conflict: bool
     actual_sha256: str | None
-    artifact_ref: str | None
+    reason: str | None = None
+    verified_repository: str | None = None
+    verified_commit: str | None = None
+    verified_tool_ref: str | None = None
+    verified_working_directory_ref: str | None = None
+    verified_artifact_ref: str | None = None
+    verified_artifact_path: Path | None = None
+    execution_record_digest: str | None = None
+    verified_subject_ref: str | None = None
+    verified_viewport: str | None = None
+    verified_run_id: str | None = None
     value: Any = None
     derived_receipt: dict[str, Any] | None = None
     diagnostics: tuple[dict[str, Any], ...] = field(default_factory=tuple)
+
+    @property
+    def artifact_ref(self) -> str | None:
+        """Compatibility alias for callers that consume verification output."""
+
+        return self.verified_artifact_ref
+
+
+def execute_viewport_capture(
+    *,
+    execution_worktree: PinnedExecutionWorktree,
+    producer_tool_ref: str,
+    working_directory_ref: str,
+    subject_ref: str,
+    viewport: str,
+    timeout_seconds: float,
+) -> ViewportEvidenceRun:
+    """Execute one producer adapter and internally create the authoritative record.
+
+    The bounded adapter contract is stdout JSON containing ``run_id``,
+    ``artifact_ref``, ``capture_status`` and ``validation_status``. The output
+    reference and hash are read after execution and inserted into the final
+    ``ExecutionRecord`` by this runner, never by the caller.
+    """
+
+    root = execution_worktree.root.resolve(strict=True)
+    tool_ref = normalize_repo_relative_ref(producer_tool_ref)
+    cwd_ref = normalize_repo_relative_ref(working_directory_ref, allow_root=True)
+    tool = resolve_repo_relative_file(root, tool_ref)
+    cwd = resolve_repo_relative_directory(root, cwd_ref)
+    command = _adapter_command(tool, subject_ref=subject_ref, viewport=viewport)
+
+    outcome = execute_official_tool(
+        tool_kind="adapter",
+        owner_repo=execution_worktree.repository,
+        owner_commit=execution_worktree.commit,
+        tool_path=tool,
+        command=command,
+        working_directory=cwd,
+        repository_root=root,
+        working_directory_ref=cwd_ref,
+        timeout_seconds=timeout_seconds,
+        parsed_result_ref="stdout:json",
+        started_by="ev4-project-gate-pinned-viewport-runner",
+        env=_runtime_env(root),
+    )
+    parsed = outcome.parsed_result if isinstance(outcome.parsed_result, dict) else {}
+
+    raw_artifact_ref = parsed.get("artifact_ref")
+    artifact_ref = ""
+    artifact_sha256 = ""
+    failure_code = outcome.execution_record.failure_code
+    if isinstance(raw_artifact_ref, str):
+        try:
+            artifact_ref = normalize_repo_relative_ref(raw_artifact_ref)
+            artifact = resolve_repo_relative_file(root, artifact_ref)
+            artifact_sha256 = hashlib.sha256(artifact.read_bytes()).hexdigest()
+        except (RepoPathError, OSError):
+            artifact_ref = raw_artifact_ref
+            failure_code = failure_code or "PG.EVIDENCE.RUNTIME_OUTPUT_REF_INVALID"
+    else:
+        failure_code = failure_code or "PG.EVIDENCE.RUNTIME_OUTPUT_REF_REQUIRED"
+
+    record = replace(
+        outcome.execution_record,
+        owner_repo=execution_worktree.repository,
+        owner_commit=execution_worktree.commit,
+        adapter_path=tool_ref,
+        working_directory=str(cwd),
+        working_directory_ref=cwd_ref,
+        output_ref=artifact_ref or None,
+        output_hash=artifact_sha256 or None,
+        failure_code=failure_code,
+    )
+    return ViewportEvidenceRun(
+        run_id=parsed.get("run_id") if isinstance(parsed.get("run_id"), str) else "",
+        producer_repository=execution_worktree.repository,
+        producer_commit=execution_worktree.commit,
+        producer_tool_ref=tool_ref,
+        working_directory_ref=cwd_ref,
+        subject_ref=subject_ref,
+        viewport=viewport,
+        artifact_ref=artifact_ref,
+        artifact_sha256=artifact_sha256,
+        capture_status=parsed.get("capture_status") if isinstance(parsed.get("capture_status"), str) else "not_completed",
+        validation_status=parsed.get("validation_status") if isinstance(parsed.get("validation_status"), str) else "not_run",
+        execution_record=record,
+    )
+
+
+def execute_pinned_viewport_capture(
+    *,
+    source_repository: str | Path,
+    expected_repository: str,
+    expected_commit: str,
+    producer_tool_ref: str,
+    working_directory_ref: str,
+    subject_ref: str,
+    viewport: str,
+    timeout_seconds: float = 30,
+) -> ViewportRunVerification:
+    """Official operational path: materialize, execute, verify, derive, clean."""
+
+    cleanup_diagnostics: list[dict[str, Any]] = []
+    try:
+        with materialize_pinned_worktree(
+            source_repository,
+            expected_repository,
+            expected_commit,
+            cleanup_diagnostics=cleanup_diagnostics,
+        ) as worktree:
+            run = execute_viewport_capture(
+                execution_worktree=worktree,
+                producer_tool_ref=producer_tool_ref,
+                working_directory_ref=working_directory_ref,
+                subject_ref=subject_ref,
+                viewport=viewport,
+                timeout_seconds=timeout_seconds,
+            )
+            verification = verify_viewport_evidence_run(
+                run=run,
+                execution_worktree=worktree,
+                expected_repository=expected_repository,
+                expected_commit=expected_commit,
+                expected_tool_ref=producer_tool_ref,
+                expected_working_directory_ref=working_directory_ref,
+                expected_subject_ref=subject_ref,
+                expected_viewport=viewport,
+            )
+    except (PinnedWorktreeError, RepoPathError, OSError) as exc:
+        diagnostic = exc.to_diagnostic() if isinstance(exc, PinnedWorktreeError) else _diag(
+            getattr(exc, "code", "PG.EVIDENCE.RUNTIME_EXECUTION_SETUP_FAILED"),
+            "insufficient_evidence",
+            "$.runtime_execution",
+            str(exc),
+        )
+        return _empty_verification([diagnostic, *cleanup_diagnostics], reason="pinned_runtime_execution_failed")
+
+    if cleanup_diagnostics:
+        return replace(
+            verification,
+            classification="insufficient_evidence",
+            positive_proof_verified=False,
+            reason="pinned_worktree_cleanup_failed",
+            derived_receipt=None,
+            diagnostics=tuple([*verification.diagnostics, *cleanup_diagnostics]),
+        )
+    return verification
 
 
 def verify_viewport_evidence_run(
     *,
     run: ViewportEvidenceRun | None,
-    producer_checkout: str | Path | None,
     expected_repository: str,
     expected_commit: str,
-    expected_tool: str,
     expected_subject_ref: str,
     expected_viewport: str,
+    execution_worktree: PinnedExecutionWorktree | None = None,
+    expected_tool_ref: str | None = None,
+    expected_working_directory_ref: str = ".",
+    producer_checkout: str | Path | None = None,
+    expected_tool: str | None = None,
 ) -> ViewportRunVerification:
-    diagnostics: list[dict[str, Any]] = []
-    value: Any = None
-    actual_sha256: str | None = None
-    artifact_ref: str | None = None
-    source_resolved = False
-    schema_valid = False
-    claim_binding_valid = False
-    subject_binding_valid = False
-    hash_verified = False
-    synthetic_conflict = False
+    """Pure exact-binding verifier for an internally produced runtime result."""
 
+    diagnostics: list[dict[str, Any]] = []
     if run is None:
-        diagnostics.append(
+        return _empty_verification([
             _diag(
                 "PG.EVIDENCE.OFFICIAL_RUNTIME_EXECUTION_NOT_OBSERVED",
                 "insufficient_evidence",
@@ -82,153 +254,228 @@ def verify_viewport_evidence_run(
                 "Viewport evidence cannot be operationally verified without an observed official producer execution.",
                 reason=OFFICIAL_RUNTIME_NOT_OBSERVED_REASON,
             )
-        )
-        return _verification(
-            diagnostics=diagnostics,
-            source_resolved=False,
-            hash_verified=False,
-            schema_valid=False,
-            claim_binding_valid=False,
-            subject_binding_valid=False,
-            synthetic_conflict=False,
-            actual_sha256=None,
-            artifact_ref=None,
-            value=None,
-            derived_receipt=None,
-        )
-
-    if producer_checkout is None:
-        diagnostics.append(
+        ], reason=OFFICIAL_RUNTIME_NOT_OBSERVED_REASON)
+    if execution_worktree is None:
+        details = {}
+        if producer_checkout is not None:
+            details["caller_checkout_ignored"] = str(producer_checkout)
+        return _empty_verification([
             _diag(
-                "PG.EVIDENCE.RUNTIME_CHECKOUT_REQUIRED",
+                "PG.EVIDENCE.RUNTIME_PINNED_WORKTREE_REQUIRED",
                 "insufficient_evidence",
-                "$.runtime_execution.producer_checkout",
-                "Viewport runtime verification requires the observed producer checkout.",
+                "$.runtime_execution.worktree",
+                "Caller-supplied checkouts and runtime records cannot authorize; the official path must create a detached pinned worktree internally.",
+                **details,
             )
-        )
-        return _verification(
-            diagnostics=diagnostics,
-            source_resolved=False,
-            hash_verified=False,
-            schema_valid=False,
-            claim_binding_valid=False,
-            subject_binding_valid=False,
-            synthetic_conflict=False,
-            actual_sha256=None,
-            artifact_ref=None,
-            value=None,
-            derived_receipt=None,
-        )
+        ], reason="pinned_execution_worktree_required")
 
-    root = Path(producer_checkout)
-    identity = inspect_checkout(
-        root,
-        expected_repository=expected_repository,
-        expected_commit=expected_commit,
-    )
+    expected_tool_ref = expected_tool_ref or expected_tool
+    if not expected_tool_ref:
+        return _empty_verification([
+            _diag(
+                "PG.EVIDENCE.RUNTIME_TOOL_CONTRACT_REQUIRED",
+                "insufficient_evidence",
+                "$.runtime_execution.expected_tool_ref",
+                "An exact official producer tool reference is required.",
+            )
+        ], reason="official_runtime_tool_required")
+
+    root = execution_worktree.root.resolve()
+    expected_commit = expected_commit.lower()
+    identity = inspect_checkout(root, expected_repository=expected_repository, expected_commit=expected_commit)
     diagnostics.extend(_identity_diagnostics(identity))
     identity_valid = identity.get("status") == "accepted"
 
-    if run.producer_repository != expected_repository:
-        diagnostics.append(
-            _diag(
-                "PG.EVIDENCE.RUNTIME_REPOSITORY_MISMATCH",
-                "error",
-                "$.runtime_execution.producer_repository",
-                "Viewport runtime producer repository does not match the pinned owner.",
-                expected=expected_repository,
-                actual=run.producer_repository,
-            )
-        )
-    if run.producer_commit != expected_commit:
-        diagnostics.append(
-            _diag(
-                "PG.EVIDENCE.RUNTIME_COMMIT_MISMATCH",
-                "error",
-                "$.runtime_execution.producer_commit",
-                "Viewport runtime producer commit does not match the pinned owner commit.",
-                expected=expected_commit,
-                actual=run.producer_commit,
-            )
-        )
-    if run.producer_tool != expected_tool:
-        diagnostics.append(
-            _diag(
-                "PG.EVIDENCE.RUNTIME_TOOL_MISMATCH",
-                "error",
-                "$.runtime_execution.producer_tool",
-                "Viewport runtime tool does not match the approved producer entrypoint.",
-                expected=expected_tool,
-                actual=run.producer_tool,
-            )
-        )
+    tracked = inspect_tracked_worktree_clean(root)
+    diagnostics.extend(_identity_diagnostics(tracked))
+    tracked_clean = tracked.get("status") == "accepted"
+    declared_worktree_valid = all((
+        execution_worktree.clean_verified,
+        _same_repository(execution_worktree.repository, expected_repository),
+        _same_commit(execution_worktree.commit, expected_commit),
+    ))
+    if not declared_worktree_valid:
+        diagnostics.append(_diag(
+            "PG.EVIDENCE.RUNTIME_WORKTREE_BINDING_MISMATCH",
+            "error",
+            "$.runtime_execution.worktree",
+            "Detached worktree identity does not match the expected runtime context.",
+            expected_repository=expected_repository,
+            expected_commit=expected_commit,
+            actual_repository=execution_worktree.repository,
+            actual_commit=execution_worktree.commit,
+            clean_verified=execution_worktree.clean_verified,
+        ))
 
-    tool_valid = _verify_tool_identity(root, expected_tool, diagnostics)
-    record_valid = _verify_execution_record(
-        run,
-        expected_repository=expected_repository,
-        expected_commit=expected_commit,
-        expected_tool=expected_tool,
-        diagnostics=diagnostics,
-    )
-
-    artifact = _resolve_run_artifact(root, run.artifact_path, diagnostics)
-    if artifact is not None:
-        artifact_ref = repo_relative(artifact, root)
-        try:
-            raw = artifact.read_bytes()
-            source_resolved = True
-            actual_sha256 = hashlib.sha256(raw).hexdigest()
-            value = json.loads(raw.decode("utf-8"))
-        except json.JSONDecodeError:
-            diagnostics.append(
-                _diag(
-                    "PG.EVIDENCE.RUNTIME_ARTIFACT_JSON_INVALID",
-                    "error",
-                    "$.runtime_execution.artifact_path",
-                    "Viewport runtime artifact is not valid JSON.",
-                )
-            )
-        except (OSError, UnicodeDecodeError) as exc:
-            diagnostics.append(
-                _diag(
-                    "PG.EVIDENCE.RUNTIME_ARTIFACT_READ_FAILED",
-                    "insufficient_evidence",
-                    "$.runtime_execution.artifact_path",
-                    "Viewport runtime artifact bytes could not be read.",
-                    error_type=type(exc).__name__,
-                )
-            )
+    refs: dict[str, str | None] = {
+        "expected_tool": _normalize_ref(expected_tool_ref, diagnostics, "$.runtime_execution.expected_tool_ref"),
+        "run_tool": _normalize_ref(run.producer_tool_ref, diagnostics, "$.runtime_execution.producer_tool_ref"),
+        "expected_cwd": _normalize_ref(expected_working_directory_ref, diagnostics, "$.runtime_execution.expected_working_directory_ref", allow_root=True),
+        "run_cwd": _normalize_ref(run.working_directory_ref, diagnostics, "$.runtime_execution.working_directory_ref", allow_root=True),
+        "run_output": _normalize_ref(run.artifact_ref, diagnostics, "$.runtime_execution.artifact_ref"),
+    }
 
     record = run.execution_record
-    record_output_hash = record.output_hash if isinstance(record, ExecutionRecord) else None
-    hash_verified = bool(
-        actual_sha256
-        and actual_sha256 == run.artifact_sha256
-        and record_output_hash == actual_sha256
+    record_valid = isinstance(record, ExecutionRecord)
+    if not record_valid:
+        diagnostics.append(_diag(
+            "PG.EVIDENCE.RUNTIME_EXECUTION_RECORD_REQUIRED",
+            "insufficient_evidence",
+            "$.runtime_execution.execution_record",
+            "Viewport runtime authority requires a typed execution record created by the runner.",
+        ))
+        record_tool = record_cwd = record_output = None
+    else:
+        record_tool = _normalize_ref(record.adapter_path, diagnostics, "$.runtime_execution.execution_record.adapter_path")
+        record_cwd = _normalize_ref(record.working_directory_ref, diagnostics, "$.runtime_execution.execution_record.working_directory_ref", allow_root=True)
+        record_output = _normalize_ref(record.output_ref, diagnostics, "$.runtime_execution.execution_record.output_ref")
+
+    repository_binding = identity_valid and declared_worktree_valid and all((
+        _same_repository(run.producer_repository, expected_repository),
+        isinstance(record, ExecutionRecord) and _same_repository(record.owner_repo, expected_repository),
+    ))
+    if not repository_binding:
+        diagnostics.append(_diag(
+            "PG.EVIDENCE.RUNTIME_REPOSITORY_MISMATCH",
+            "error",
+            "$.runtime_execution.producer_repository",
+            "Runtime repository values do not all match the detached pinned owner repository.",
+            expected=expected_repository,
+            run=run.producer_repository,
+            record=(record.owner_repo if isinstance(record, ExecutionRecord) else None),
+        ))
+
+    commit_binding = identity_valid and declared_worktree_valid and all((
+        _same_commit(run.producer_commit, expected_commit),
+        isinstance(record, ExecutionRecord) and _same_commit(record.owner_commit, expected_commit),
+    ))
+    if not commit_binding:
+        diagnostics.append(_diag(
+            "PG.EVIDENCE.RUNTIME_COMMIT_MISMATCH",
+            "error",
+            "$.runtime_execution.producer_commit",
+            "Runtime commit values do not all match the detached pinned commit.",
+            expected=expected_commit,
+            run=run.producer_commit,
+            record=(record.owner_commit if isinstance(record, ExecutionRecord) else None),
+        ))
+
+    tool_binding = bool(refs["expected_tool"] and refs["expected_tool"] == refs["run_tool"] == record_tool)
+    tool_path: Path | None = None
+    if tool_binding:
+        try:
+            tool_path = resolve_repo_relative_file(root, refs["expected_tool"] or "")
+        except RepoPathError as exc:
+            diagnostics.append(_path_diag(exc, "$.runtime_execution.producer_tool_ref"))
+            tool_binding = False
+    if not tool_binding:
+        diagnostics.append(_diag(
+            "PG.EVIDENCE.RUNTIME_TOOL_MISMATCH",
+            "error",
+            "$.runtime_execution.producer_tool_ref",
+            "Runtime tool reference is not exactly bound across request, result, record, and worktree.",
+            expected=refs["expected_tool"],
+            run=refs["run_tool"],
+            record=record_tool,
+        ))
+
+    cwd_binding = bool(refs["expected_cwd"] and refs["expected_cwd"] == refs["run_cwd"] == record_cwd)
+    cwd_path: Path | None = None
+    if cwd_binding:
+        try:
+            cwd_path = resolve_repo_relative_directory(root, refs["expected_cwd"] or ".")
+            record_cwd_absolute = Path(record.working_directory).resolve(strict=True) if isinstance(record, ExecutionRecord) else None
+            if record_cwd_absolute != cwd_path:
+                cwd_binding = False
+        except (RepoPathError, OSError, TypeError):
+            cwd_binding = False
+    if not cwd_binding:
+        diagnostics.append(_diag(
+            "PG.EVIDENCE.RUNTIME_WORKING_DIRECTORY_MISMATCH",
+            "error",
+            "$.runtime_execution.working_directory_ref",
+            "Runtime working directory is not exactly bound to the subprocess working directory.",
+            expected=refs["expected_cwd"],
+            run=refs["run_cwd"],
+            record=record_cwd,
+            record_absolute=(record.working_directory if isinstance(record, ExecutionRecord) else None),
+        ))
+
+    process_valid = bool(
+        isinstance(record, ExecutionRecord)
+        and record.tool_kind == "adapter"
+        and record.exit_code == 0
+        and record.failure_code is None
+        and tool_path is not None
+        and isinstance(record.command, list)
+        and _command_invokes_tool(record.command, tool_path)
     )
-    if actual_sha256 and actual_sha256 != run.artifact_sha256:
-        diagnostics.append(
-            _diag(
-                "PG.EVIDENCE.RUNTIME_ARTIFACT_MUTATED",
+    if not process_valid:
+        diagnostics.append(_diag(
+            "PG.EVIDENCE.RUNTIME_EXECUTION_FAILED",
+            "insufficient_evidence",
+            "$.runtime_execution.execution_record",
+            "Viewport producer process or exact entrypoint binding did not complete successfully.",
+            exit_code=(record.exit_code if isinstance(record, ExecutionRecord) else None),
+            failure_code=(record.failure_code if isinstance(record, ExecutionRecord) else None),
+        ))
+
+    output_binding = bool(refs["run_output"] and refs["run_output"] == record_output)
+    if not output_binding:
+        diagnostics.append(_diag(
+            "PG.EVIDENCE.RUNTIME_OUTPUT_REF_BINDING_MISMATCH",
+            "insufficient_evidence",
+            "$.runtime_execution.artifact_ref",
+            "ExecutionRecord.output_ref must exactly equal the runtime artifact reference.",
+            reason=OUTPUT_REF_BINDING_MISMATCH_REASON,
+            run=refs["run_output"],
+            record=record_output,
+        ))
+
+    artifact_path: Path | None = None
+    verified_artifact_ref: str | None = None
+    value: Any = None
+    actual_sha256: str | None = None
+    source_resolved = False
+    if refs["run_output"]:
+        try:
+            artifact_path = resolve_repo_relative_file(root, refs["run_output"])
+            verified_artifact_ref = repo_relative_ref(artifact_path, root)
+            raw = artifact_path.read_bytes()
+            actual_sha256 = hashlib.sha256(raw).hexdigest()
+            value = json.loads(raw.decode("utf-8"))
+            source_resolved = True
+        except RepoPathError as exc:
+            diagnostics.append(_path_diag(exc, "$.runtime_execution.artifact_ref"))
+        except json.JSONDecodeError:
+            diagnostics.append(_diag(
+                "PG.EVIDENCE.RUNTIME_ARTIFACT_JSON_INVALID",
                 "error",
-                "$.runtime_execution.artifact_sha256",
-                "Viewport artifact bytes changed after the observed execution result was created.",
-                recorded=run.artifact_sha256,
-                actual=actual_sha256,
-            )
-        )
-    if actual_sha256 and record_output_hash != actual_sha256:
-        diagnostics.append(
-            _diag(
-                "PG.EVIDENCE.RUNTIME_EXECUTION_OUTPUT_HASH_MISMATCH",
-                "error",
-                "$.runtime_execution.execution_record.output_hash",
-                "Execution record output hash does not match the current artifact bytes.",
-                recorded=record_output_hash,
-                actual=actual_sha256,
-            )
-        )
+                "$.runtime_execution.artifact_ref",
+                "Viewport runtime artifact is not valid JSON.",
+            ))
+        except (OSError, UnicodeDecodeError) as exc:
+            diagnostics.append(_diag(
+                "PG.EVIDENCE.RUNTIME_ARTIFACT_READ_FAILED",
+                "insufficient_evidence",
+                "$.runtime_execution.artifact_ref",
+                "Viewport runtime artifact bytes could not be read.",
+                error_type=type(exc).__name__,
+            ))
+
+    output_binding = output_binding and verified_artifact_ref == refs["run_output"]
+    record_output_hash = record.output_hash if isinstance(record, ExecutionRecord) else None
+    hash_verified = bool(actual_sha256 and actual_sha256 == run.artifact_sha256 == record_output_hash)
+    if source_resolved and not hash_verified:
+        diagnostics.append(_diag(
+            "PG.EVIDENCE.RUNTIME_OUTPUT_HASH_BINDING_MISMATCH",
+            "error",
+            "$.runtime_execution.artifact_sha256",
+            "Runtime output bytes are not exactly bound across artifact, run, record, and verification.",
+            actual=actual_sha256,
+            run=run.artifact_sha256,
+            record=record_output_hash,
+        ))
 
     schema_diagnostics, binding_diagnostics = _validate_runtime_artifact(
         value,
@@ -243,70 +490,69 @@ def verify_viewport_evidence_run(
     subject_binding_valid = claim_binding_valid
 
     if run.capture_status != "completed":
-        diagnostics.append(
-            _diag(
-                "PG.EVIDENCE.RUNTIME_CAPTURE_INCOMPLETE",
-                "insufficient_evidence",
-                "$.runtime_execution.capture_status",
-                "Viewport runtime capture must be completed.",
-                actual=run.capture_status,
-            )
-        )
+        diagnostics.append(_diag(
+            "PG.EVIDENCE.RUNTIME_CAPTURE_INCOMPLETE",
+            "insufficient_evidence",
+            "$.runtime_execution.capture_status",
+            "Viewport runtime capture must be completed by the producer result.",
+            actual=run.capture_status,
+        ))
     if run.validation_status != "accepted":
-        diagnostics.append(
-            _diag(
-                "PG.EVIDENCE.RUNTIME_VALIDATION_NOT_ACCEPTED",
-                "insufficient_evidence",
-                "$.runtime_execution.validation_status",
-                "Viewport runtime validation must be accepted.",
-                actual=run.validation_status,
-            )
-        )
+        diagnostics.append(_diag(
+            "PG.EVIDENCE.RUNTIME_VALIDATION_NOT_ACCEPTED",
+            "insufficient_evidence",
+            "$.runtime_execution.validation_status",
+            "Viewport runtime validation must be explicitly accepted by the official result contract.",
+            actual=run.validation_status,
+        ))
 
     from ev4_transition.evidence_truth import synthetic_indicators
 
     indicators = synthetic_indicators(value)
     synthetic_conflict = bool(indicators)
     if synthetic_conflict:
-        diagnostics.append(
-            _diag(
-                "PG.EVIDENCE.SYNTHETIC_DERIVED",
-                "insufficient_evidence",
-                "$.runtime_execution.artifact_path",
-                "Observed viewport runtime artifact contains a synthetic conflict.",
-                indicators=indicators,
-            )
+        diagnostics.append(_diag(
+            "PG.EVIDENCE.SYNTHETIC_DERIVED",
+            "insufficient_evidence",
+            "$.runtime_execution.artifact_ref",
+            "Observed viewport runtime artifact contains a synthetic conflict.",
+            indicators=indicators,
+        ))
+
+    exact_context = all((
+        identity_valid,
+        tracked_clean,
+        declared_worktree_valid,
+        repository_binding,
+        commit_binding,
+        tool_binding,
+        cwd_binding,
+        process_valid,
+        output_binding,
+    ))
+    positive = all((
+        exact_context,
+        source_resolved,
+        hash_verified,
+        schema_valid,
+        claim_binding_valid,
+        subject_binding_valid,
+        run.capture_status == "completed",
+        run.validation_status == "accepted",
+        not synthetic_conflict,
+        not _has_blocking(diagnostics),
+    ))
+    reason = None
+    if not positive:
+        reason = (
+            OUTPUT_REF_BINDING_MISMATCH_REASON
+            if any(item.get("code") == "PG.EVIDENCE.RUNTIME_OUTPUT_REF_BINDING_MISMATCH" for item in diagnostics)
+            else "official_runtime_execution_not_verified"
         )
 
-    positive_proof_verified = all(
-        (
-            identity_valid,
-            run.producer_repository == expected_repository,
-            run.producer_commit == expected_commit,
-            run.producer_tool == expected_tool,
-            tool_valid,
-            record_valid,
-            source_resolved,
-            hash_verified,
-            schema_valid,
-            claim_binding_valid,
-            subject_binding_valid,
-            run.capture_status == "completed",
-            run.validation_status == "accepted",
-            not synthetic_conflict,
-        )
-    )
-    derived_receipt = (
-        build_runtime_evidence_receipt(
-            run=run,
-            producer_checkout=root,
-            artifact_sha256=actual_sha256,
-        )
-        if positive_proof_verified and actual_sha256
-        else None
-    )
-    return _verification(
-        diagnostics=diagnostics,
+    verification = ViewportRunVerification(
+        classification="synthetic" if synthetic_conflict else ("real_verified" if positive else "insufficient_evidence"),
+        positive_proof_verified=positive,
         source_resolved=source_resolved,
         hash_verified=hash_verified,
         schema_valid=schema_valid,
@@ -314,36 +560,65 @@ def verify_viewport_evidence_run(
         subject_binding_valid=subject_binding_valid,
         synthetic_conflict=synthetic_conflict,
         actual_sha256=actual_sha256,
-        artifact_ref=artifact_ref,
+        reason=reason,
+        verified_repository=expected_repository if repository_binding else None,
+        verified_commit=expected_commit if commit_binding else None,
+        verified_tool_ref=refs["expected_tool"] if tool_binding else None,
+        verified_working_directory_ref=refs["expected_cwd"] if cwd_binding else None,
+        verified_artifact_ref=verified_artifact_ref if output_binding else None,
+        verified_artifact_path=artifact_path if output_binding and source_resolved else None,
+        execution_record_digest=(record.execution_record_hash if positive and isinstance(record, ExecutionRecord) else None),
+        verified_subject_ref=(expected_subject_ref if positive else None),
+        verified_viewport=(expected_viewport if positive else None),
+        verified_run_id=(run.run_id if positive else None),
         value=value,
-        derived_receipt=derived_receipt,
+        derived_receipt=None,
+        diagnostics=tuple(diagnostics),
     )
+    if positive:
+        verification = replace(
+            verification,
+            derived_receipt=build_runtime_evidence_receipt(verification=verification),
+        )
+    return verification
 
 
-def build_runtime_evidence_receipt(
-    *,
-    run: ViewportEvidenceRun,
-    producer_checkout: str | Path,
-    artifact_sha256: str,
-) -> dict[str, Any]:
-    record = run.execution_record
-    if not isinstance(record, ExecutionRecord):
-        raise ValueError("A typed execution record is required before receipt derivation.")
+def build_runtime_evidence_receipt(*, verification: ViewportRunVerification) -> dict[str, Any]:
+    """Build a deterministic audit receipt from verified values only."""
+
+    mandatory = {
+        "producer_repository": verification.verified_repository,
+        "producer_commit": verification.verified_commit,
+        "producer_tool": verification.verified_tool_ref,
+        "working_directory_ref": verification.verified_working_directory_ref,
+        "artifact_ref": verification.verified_artifact_ref,
+        "artifact_sha256": verification.actual_sha256,
+        "execution_record_digest": verification.execution_record_digest,
+        "subject_ref": verification.verified_subject_ref,
+        "viewport": verification.verified_viewport,
+        "run_id": verification.verified_run_id,
+    }
+    if not verification.positive_proof_verified or verification.classification != "real_verified":
+        raise ValueError("A successful exact-bound verification is required before receipt derivation.")
+    missing = sorted(key for key, value in mandatory.items() if not isinstance(value, str) or not value)
+    if missing:
+        raise ValueError(f"Verified receipt fields are missing: {', '.join(missing)}")
     return {
         "schema": RUNTIME_EVIDENCE_RECEIPT_SCHEMA,
         "evidence_type": "viewport_artifact",
-        "run_id": run.run_id,
-        "producer_repository": run.producer_repository,
-        "producer_commit": run.producer_commit,
-        "producer_tool": run.producer_tool,
+        "run_id": mandatory["run_id"],
+        "producer_repository": mandatory["producer_repository"],
+        "producer_commit": mandatory["producer_commit"],
+        "producer_tool": mandatory["producer_tool"],
+        "working_directory_ref": mandatory["working_directory_ref"],
         "execution_status": "accepted",
-        "execution_record_digest": record.execution_record_hash,
-        "subject_ref": run.subject_ref,
-        "viewport": run.viewport,
-        "artifact_ref": repo_relative(run.artifact_path, producer_checkout),
-        "artifact_sha256": artifact_sha256,
-        "capture_status": run.capture_status,
-        "validation_status": run.validation_status,
+        "execution_record_digest": mandatory["execution_record_digest"],
+        "subject_ref": mandatory["subject_ref"],
+        "viewport": mandatory["viewport"],
+        "artifact_ref": mandatory["artifact_ref"],
+        "artifact_sha256": mandatory["artifact_sha256"],
+        "capture_status": "completed",
+        "validation_status": "accepted",
     }
 
 
@@ -353,28 +628,19 @@ def inspect_adjacent_runtime_receipt(
     artifact_ref: str | None,
     receipt_ref: str | None = None,
 ) -> tuple[Path | None, Any, list[dict[str, Any]]]:
-    """Read a legacy/derived receipt for diagnostics without granting authority."""
+    """Read a stored receipt for diagnostics without granting authority."""
 
     if repository_root is None or not artifact_ref:
         return None, None, []
-    raw_ref = receipt_ref or f"{artifact_ref}.receipt.json"
-    root = Path(repository_root)
     try:
-        resolved_root = root.resolve(strict=True)
-        path = (resolved_root / raw_ref).resolve(strict=True)
-        path.relative_to(resolved_root)
-    except FileNotFoundError:
-        return None, None, []
-    except (OSError, RuntimeError, ValueError):
-        return None, None, [
-            _diag(
-                "PG.EVIDENCE.RUNTIME_RECEIPT_PATH_UNSAFE",
-                "warning",
-                "$.runtime_receipt_ref",
-                "An adjacent runtime receipt path could not be inspected safely.",
-                receipt_ref=raw_ref,
-            )
-        ]
+        normalized_artifact = normalize_repo_relative_ref(artifact_ref)
+        raw_ref = receipt_ref or f"{normalized_artifact}.receipt.json"
+        normalized_receipt = normalize_repo_relative_ref(raw_ref)
+        path = resolve_repo_relative_file(repository_root, normalized_receipt)
+    except RepoPathError as exc:
+        if exc.code == "PG.RUNTIME.REF_MISSING":
+            return None, None, []
+        return None, None, [_path_diag(exc, "$.runtime_receipt_ref", severity="warning")]
     try:
         value = json.loads(path.read_text(encoding="utf-8"))
     except (OSError, UnicodeDecodeError, json.JSONDecodeError) as exc:
@@ -384,7 +650,7 @@ def inspect_adjacent_runtime_receipt(
                 "warning",
                 "$.runtime_receipt_ref",
                 "Adjacent runtime receipt could not be parsed for diagnostics.",
-                receipt_ref=raw_ref,
+                receipt_ref=normalized_receipt,
                 error_type=type(exc).__name__,
             )
         ]
@@ -394,173 +660,48 @@ def inspect_adjacent_runtime_receipt(
             "PG.EVIDENCE.RUNTIME_RECEIPT_NON_AUTHORITATIVE",
             "warning",
             "$.runtime_receipt_ref",
-            "Adjacent runtime receipt is diagnostic metadata only; an observed official execution is required.",
-            receipt_ref=raw_ref,
+            "Stored runtime receipt is diagnostic metadata only; an observed pinned execution is required.",
+            receipt_ref=normalized_receipt,
             observed_schema=schema,
             reason=OFFICIAL_RUNTIME_NOT_OBSERVED_REASON,
         )
     ]
 
 
-def _verify_tool_identity(root: Path, expected_tool: str, diagnostics: list[dict[str, Any]]) -> bool:
-    try:
-        resolved_root = root.resolve(strict=True)
-        tool = (resolved_root / expected_tool).resolve(strict=True)
-        tool.relative_to(resolved_root)
-    except FileNotFoundError:
-        diagnostics.append(
-            _diag(
-                "PG.EVIDENCE.RUNTIME_TOOL_MISSING",
-                "insufficient_evidence",
-                "$.runtime_execution.producer_tool",
-                "The pinned official viewport producer tool is unavailable.",
-                expected_tool=expected_tool,
-            )
-        )
-        return False
-    except (OSError, RuntimeError, ValueError):
-        diagnostics.append(
-            _diag(
-                "PG.EVIDENCE.RUNTIME_TOOL_PATH_INVALID",
-                "error",
-                "$.runtime_execution.producer_tool",
-                "The official viewport producer tool path is invalid.",
-                expected_tool=expected_tool,
-            )
-        )
-        return False
-    if not tool.is_file():
-        diagnostics.append(
-            _diag(
-                "PG.EVIDENCE.RUNTIME_TOOL_NOT_FILE",
-                "error",
-                "$.runtime_execution.producer_tool",
-                "The official viewport producer entrypoint must be a regular file.",
-                expected_tool=expected_tool,
-            )
-        )
-        return False
-    return True
+def _same_repository(actual: Any, expected: str) -> bool:
+    return isinstance(actual, str) and actual.lower() == expected.lower()
 
 
-def _verify_execution_record(
-    run: ViewportEvidenceRun,
-    *,
-    expected_repository: str,
-    expected_commit: str,
-    expected_tool: str,
-    diagnostics: list[dict[str, Any]],
-) -> bool:
-    record = run.execution_record
-    if not isinstance(record, ExecutionRecord):
-        diagnostics.append(
-            _diag(
-                "PG.EVIDENCE.RUNTIME_EXECUTION_RECORD_REQUIRED",
-                "insufficient_evidence",
-                "$.runtime_execution.execution_record",
-                "Viewport runtime authority requires a typed execution record.",
-            )
-        )
-        return False
-    valid = True
-    expected_pairs = (
-        ("tool_kind", "adapter", record.tool_kind),
-        ("owner_repo", expected_repository, record.owner_repo),
-        ("owner_commit", expected_commit, record.owner_commit),
-        ("adapter_path", expected_tool, record.adapter_path),
-    )
-    for field_name, expected, actual in expected_pairs:
-        if actual != expected:
-            valid = False
-            diagnostics.append(
-                _diag(
-                    "PG.EVIDENCE.RUNTIME_EXECUTION_RECORD_MISMATCH",
-                    "error",
-                    f"$.runtime_execution.execution_record.{field_name}",
-                    "Viewport execution record does not match the official producer context.",
-                    field=field_name,
-                    expected=expected,
-                    actual=actual,
-                )
-            )
-    if record.exit_code != 0 or record.failure_code is not None:
-        valid = False
-        diagnostics.append(
-            _diag(
-                "PG.EVIDENCE.RUNTIME_EXECUTION_FAILED",
-                "insufficient_evidence",
-                "$.runtime_execution.execution_record.exit_code",
-                "Viewport producer process did not complete successfully.",
-                exit_code=record.exit_code,
-                failure_code=record.failure_code,
-            )
-        )
-    if not _entrypoint_mentions_tool(record.command_or_entrypoint, record.command, expected_tool):
-        valid = False
-        diagnostics.append(
-            _diag(
-                "PG.EVIDENCE.RUNTIME_ENTRYPOINT_MISMATCH",
-                "error",
-                "$.runtime_execution.execution_record.command_or_entrypoint",
-                "Viewport execution record does not identify the approved producer entrypoint.",
-                expected_tool=expected_tool,
-            )
-        )
-    return valid
+def _same_commit(actual: Any, expected: str) -> bool:
+    return isinstance(actual, str) and actual.lower() == expected.lower()
 
 
-def _entrypoint_mentions_tool(entrypoint: list[str] | str | None, command: list[str], expected_tool: str) -> bool:
-    values: list[str] = []
-    if isinstance(entrypoint, str):
-        values.append(entrypoint)
-    elif isinstance(entrypoint, list):
-        values.extend(str(item) for item in entrypoint)
-    values.extend(str(item) for item in command)
-    return any(value == expected_tool or value.endswith(f"/{expected_tool}") for value in values)
+def _adapter_command(tool: Path, *, subject_ref: str, viewport: str) -> list[str]:
+    suffix = tool.suffix.lower()
+    args = ["--subject-ref", subject_ref, "--viewport", viewport]
+    if suffix == ".py":
+        return [sys.executable, str(tool), *args]
+    if suffix in {".js", ".mjs", ".cjs"}:
+        return ["node", str(tool), *args]
+    return [str(tool), *args]
 
 
-def _resolve_run_artifact(root: Path, raw_path: Path, diagnostics: list[dict[str, Any]]) -> Path | None:
-    candidate = raw_path if raw_path.is_absolute() else root / raw_path
-    try:
-        resolved_root = root.resolve(strict=True)
-        if candidate.is_symlink():
-            raise ValueError("symlink")
-        artifact = candidate.resolve(strict=True)
-        artifact.relative_to(resolved_root)
-    except FileNotFoundError:
-        diagnostics.append(
-            _diag(
-                "PG.EVIDENCE.RUNTIME_ARTIFACT_MISSING",
-                "insufficient_evidence",
-                "$.runtime_execution.artifact_path",
-                "Observed viewport runtime artifact is missing.",
-                artifact_path=str(raw_path),
-            )
-        )
-        return None
-    except (OSError, RuntimeError, ValueError):
-        diagnostics.append(
-            _diag(
-                "PG.EVIDENCE.RUNTIME_ARTIFACT_PATH_INVALID",
-                "error",
-                "$.runtime_execution.artifact_path",
-                "Observed viewport runtime artifact is outside the producer checkout or cannot be resolved safely.",
-                artifact_path=str(raw_path),
-            )
-        )
-        return None
-    if not artifact.is_file():
-        diagnostics.append(
-            _diag(
-                "PG.EVIDENCE.RUNTIME_ARTIFACT_NOT_FILE",
-                "error",
-                "$.runtime_execution.artifact_path",
-                "Observed viewport runtime artifact must be a regular file.",
-                artifact_path=str(raw_path),
-            )
-        )
-        return None
-    return artifact
+def _runtime_env(root: Path) -> dict[str, str]:
+    allowed = {"PATH", "HOME", "SYSTEMROOT", "WINDIR"}
+    env = {key: value for key, value in os.environ.items() if key in allowed}
+    env.update({"LC_ALL": "C.UTF-8", "LANG": "C.UTF-8", "PYTHONHASHSEED": "0", "PYTHONPATH": str(root)})
+    return env
+
+
+def _command_invokes_tool(command: list[str], expected_tool: Path) -> bool:
+    expected = expected_tool.resolve(strict=True)
+    for value in command[:2]:
+        try:
+            if Path(value).resolve(strict=True) == expected:
+                return True
+        except (OSError, RuntimeError):
+            continue
+    return False
 
 
 def _validate_runtime_artifact(
@@ -577,31 +718,27 @@ def _validate_runtime_artifact(
             _diag(
                 "PG.EVIDENCE.RUNTIME_ARTIFACT_INVALID",
                 "error",
-                "$.runtime_execution.artifact_path",
+                "$.runtime_execution.artifact_ref",
                 "Viewport runtime artifact must be a JSON object.",
             )
         ], []
     for field_name in ("evidence_ref", "viewport", "run_id", "status"):
         if not isinstance(value.get(field_name), str) or not value.get(field_name):
-            schema_diagnostics.append(
-                _diag(
-                    "PG.EVIDENCE.RUNTIME_ARTIFACT_SCHEMA_INVALID",
-                    "error",
-                    f"$.runtime_execution.artifact.{field_name}",
-                    "Viewport runtime artifact is missing a required non-empty field.",
-                    field=field_name,
-                )
-            )
-    if value.get("status") != "confirmed":
-        schema_diagnostics.append(
-            _diag(
-                "PG.EVIDENCE.RUNTIME_ARTIFACT_STATUS_INVALID",
+            schema_diagnostics.append(_diag(
+                "PG.EVIDENCE.RUNTIME_ARTIFACT_SCHEMA_INVALID",
                 "error",
-                "$.runtime_execution.artifact.status",
-                "Viewport runtime artifact status must be confirmed.",
-                actual=value.get("status"),
-            )
-        )
+                f"$.runtime_execution.artifact.{field_name}",
+                "Viewport runtime artifact is missing a required non-empty field.",
+                field=field_name,
+            ))
+    if value.get("status") != "confirmed":
+        schema_diagnostics.append(_diag(
+            "PG.EVIDENCE.RUNTIME_ARTIFACT_STATUS_INVALID",
+            "error",
+            "$.runtime_execution.artifact.status",
+            "Viewport runtime artifact status must be confirmed.",
+            actual=value.get("status"),
+        ))
     expected = {
         "run_id": run.run_id,
         "evidence_ref": expected_subject_ref,
@@ -610,85 +747,64 @@ def _validate_runtime_artifact(
     for field_name, expected_value in expected.items():
         actual = value.get(field_name)
         if actual != expected_value:
-            binding_diagnostics.append(
-                _diag(
-                    "PG.EVIDENCE.RUNTIME_ARTIFACT_BINDING_MISMATCH",
-                    "error",
-                    f"$.runtime_execution.artifact.{field_name}",
-                    "Viewport runtime artifact does not match the observed execution context.",
-                    field=field_name,
-                    expected=expected_value,
-                    actual=actual,
-                )
-            )
+            binding_diagnostics.append(_diag(
+                "PG.EVIDENCE.RUNTIME_ARTIFACT_BINDING_MISMATCH",
+                "error",
+                f"$.runtime_execution.artifact.{field_name}",
+                "Viewport runtime artifact does not match the observed execution context.",
+                field=field_name,
+                expected=expected_value,
+                actual=actual,
+            ))
     if run.subject_ref != expected_subject_ref:
-        binding_diagnostics.append(
-            _diag(
-                "PG.EVIDENCE.RUNTIME_SUBJECT_MISMATCH",
-                "error",
-                "$.runtime_execution.subject_ref",
-                "Viewport runtime result does not match the expected subject.",
-                expected=expected_subject_ref,
-                actual=run.subject_ref,
-            )
-        )
+        binding_diagnostics.append(_diag(
+            "PG.EVIDENCE.RUNTIME_SUBJECT_MISMATCH",
+            "error",
+            "$.runtime_execution.subject_ref",
+            "Viewport runtime result does not match the expected subject.",
+            expected=expected_subject_ref,
+            actual=run.subject_ref,
+        ))
     if run.viewport != expected_viewport:
-        binding_diagnostics.append(
-            _diag(
-                "PG.EVIDENCE.RUNTIME_VIEWPORT_MISMATCH",
-                "error",
-                "$.runtime_execution.viewport",
-                "Viewport runtime result does not match the expected viewport.",
-                expected=expected_viewport,
-                actual=run.viewport,
-            )
-        )
+        binding_diagnostics.append(_diag(
+            "PG.EVIDENCE.RUNTIME_VIEWPORT_MISMATCH",
+            "error",
+            "$.runtime_execution.viewport",
+            "Viewport runtime result does not match the expected viewport.",
+            expected=expected_viewport,
+            actual=run.viewport,
+        ))
     return schema_diagnostics, binding_diagnostics
+
+
+def _normalize_ref(raw: Any, diagnostics: list[dict[str, Any]], path: str, *, allow_root: bool = False) -> str | None:
+    try:
+        return normalize_repo_relative_ref(raw, allow_root=allow_root)
+    except RepoPathError as exc:
+        diagnostics.append(_path_diag(exc, path))
+        return None
+
+
+def _path_diag(exc: RepoPathError, path: str, *, severity: str = "error") -> dict[str, Any]:
+    return _diag(exc.code, severity, path, str(exc), raw_ref=exc.raw_ref)
 
 
 def _identity_diagnostics(identity: dict[str, Any]) -> list[dict[str, Any]]:
     return [dict(item) for item in identity.get("diagnostics", []) if isinstance(item, dict)]
 
 
-def _verification(
-    *,
-    diagnostics: list[dict[str, Any]],
-    source_resolved: bool,
-    hash_verified: bool,
-    schema_valid: bool,
-    claim_binding_valid: bool,
-    subject_binding_valid: bool,
-    synthetic_conflict: bool,
-    actual_sha256: str | None,
-    artifact_ref: str | None,
-    value: Any,
-    derived_receipt: dict[str, Any] | None,
-) -> ViewportRunVerification:
-    positive = all(
-        (
-            source_resolved,
-            hash_verified,
-            schema_valid,
-            claim_binding_valid,
-            subject_binding_valid,
-            not synthetic_conflict,
-            not _has_blocking(diagnostics),
-        )
-    )
-    classification = "synthetic" if synthetic_conflict else ("real_verified" if positive else "insufficient_evidence")
+def _empty_verification(diagnostics: list[dict[str, Any]], *, reason: str) -> ViewportRunVerification:
     return ViewportRunVerification(
-        classification=classification,
-        positive_proof_verified=positive,
-        source_resolved=source_resolved,
-        hash_verified=hash_verified,
-        schema_valid=schema_valid,
-        claim_binding_valid=claim_binding_valid,
-        subject_binding_valid=subject_binding_valid,
-        synthetic_conflict=synthetic_conflict,
-        actual_sha256=actual_sha256,
-        artifact_ref=artifact_ref,
-        value=value,
-        derived_receipt=derived_receipt,
+        classification="insufficient_evidence",
+        positive_proof_verified=False,
+        source_resolved=False,
+        hash_verified=False,
+        schema_valid=False,
+        claim_binding_valid=False,
+        subject_binding_valid=False,
+        synthetic_conflict=False,
+        actual_sha256=None,
+        reason=reason,
         diagnostics=tuple(diagnostics),
     )
 
