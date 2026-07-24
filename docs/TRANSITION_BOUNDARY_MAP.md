@@ -13,7 +13,7 @@ insufficient_evidence
 invalid
 ```
 
-`accepted` is allowed only when every transition-specific `accepted_requires` item is true and no blocking diagnostic exists.
+`accepted` is allowed only when every transition-specific `accepted_requires` item is true, the applicable production path actually observed and consumed the required evidence, and no blocking diagnostic exists.
 
 ## Architect → CE
 
@@ -73,6 +73,8 @@ Pinned owner-fixture integration proves the bounded integration only. It does no
 
 ## Builder → Responsive
 
+### Current capability summary
+
 ```yaml
 transition_id: ev4-builder-to-responsive-transition@1.0.0
 orchestration_baseline: implemented
@@ -93,26 +95,73 @@ real_non_synthetic_handoff: insufficient_evidence
 project_gate_result_schema: schemas/builder-to-responsive-transition-result/builder-to-responsive-transition-result.v1.schema.json
 ```
 
-The current Project Gate runtime authority is:
+### Mandatory distinction
 
 ```text
-materialize a detached worktree at the exact pinned Builder commit
-→ execute the exact official Builder producer tool
+implemented runtime primitives
+≠ production B2R runtime integration
+≠ available Builder emitter
+```
+
+### Implemented runtime primitives
+
+Project Gate implements and regression-tests:
+
+```text
+execute_pinned_viewport_capture
+→ materialize a detached worktree at the exact pinned owner commit
+→ execute an exact supplied official producer tool
 → read its emitted artifact exactly once
 → bind repository, commit, tool, working directory, output ref/hash, subject, viewport and process result
 → parse and validate the same bytes
-→ create immutable VerifiedArtifactSnapshot only after all predicates pass
-→ derive receipt metadata from the snapshot
+→ create immutable VerifiedArtifactSnapshot after every positive predicate passes
+→ derive metadata-only receipt identity
 → remove and prune the worktree
-→ return the snapshot with no temporary path
-→ stage and publish snapshot.exact_bytes directly
+→ return no durable temporary path
+→ stage and verify snapshot.exact_bytes
+→ rollback grouped publication on failure
 ```
 
-The snapshot infrastructure, exact-byte staging and post-write byte/hash/length verification are implemented. A cleanup failure revokes the snapshot and receipt.
+These are reusable runtime verification and publication primitives. A cleanup failure revokes the snapshot and receipt. File-only artifact/receipt replay remains non-authoritative.
 
-The pinned Builder owner does not currently define the required official viewport capture/export emitter. Project Gate must not add a fake emitter, reconstruct bytes from parsed JSON, authorize file-only evidence, or claim a real Builder → Responsive handoff.
+### Production B2R integration gap
 
-Responsive owns a schema-bound Builder intake package and official validator at the pinned Responsive commit. That intake eligibility boundary is not responsive-correctness evidence.
+The production `transition_builder_to_responsive` path does not currently invoke `execute_pinned_viewport_capture`.
+
+Its viewport evidence resolver calls do not receive:
+
+```yaml
+runtime_run: observed ViewportEvidenceRun
+expected_runtime_tool: exact pinned Builder producer tool
+```
+
+The production path therefore does not currently obtain, consume or publish the verified snapshot and metadata-only runtime receipt for viewport evidence.
+
+```yaml
+production_b2r_calls_pinned_runtime_execution: false
+production_b2r_passes_observed_runtime_run: false
+production_b2r_passes_expected_runtime_tool: false
+production_b2r_consumes_verified_snapshot: false
+production_b2r_consumes_runtime_receipt: false
+production_b2r_runtime_integration: not_implemented
+```
+
+Under the active fail-closed policy, file-only viewport evidence correctly remains `insufficient_evidence`.
+
+### Builder owner dependency
+
+The pinned Builder owner does not provide the required official viewport capture/export emitter or formal associated contract.
+
+```yaml
+official_builder_viewport_emitter: missing_in_pinned_builder_owner
+official_builder_viewport_emitter_executed: false
+```
+
+This owner dependency is separate from the Project Gate production integration gap. Adding the emitter alone does not complete the handoff.
+
+### Responsive owner boundary
+
+Responsive owns a schema-bound, non-executing Builder intake package and official validator at the pinned Responsive commit. That proves input eligibility only; it is not responsive-correctness evidence.
 
 ## Final Evidence Gate
 
@@ -127,14 +176,49 @@ real_non_synthetic_evidence: insufficient_evidence
 project_gate_result_schema: schemas/final-gate-result/final-gate-result.v1.schema.json
 ```
 
-The final gate verifies the immutable prior lock chain, Responsive-owned output schema and validator execution, explicit real-evidence presence, and runtime snapshot/receipt identity when viewport evidence is required. Synthetic fixtures, file-only receipts, parsed JSON equivalence and CI success cannot be promoted into frontend or production correctness.
+Applicable Final Gate viewport evidence resolution also does not currently receive the observed `runtime_run` and exact expected runtime tool. It does not consume the verified B2R snapshot and receipt as an observed runtime result.
+
+```yaml
+final_gate_observed_runtime_result_integration: not_implemented
+final_gate_verified_snapshot_consumption: not_implemented
+final_gate_runtime_receipt_consumption: not_implemented
+```
+
+The final gate verifies its existing immutable prior lock chain, Responsive-owned output schema, validator execution, explicit evidence bindings and Kernel intake behavior. For viewport runtime authority, it must remain fail-closed until the production B2R result is propagated and verified through the applicable Final Gate path.
+
+Synthetic fixtures, file-only receipts, parsed JSON equivalence and CI success cannot be promoted into frontend or production correctness.
+
+## Remaining implementation sequence
+
+```yaml
+remaining_actions:
+  - implement the official Builder viewport capture/export emitter
+  - pin its exact Builder commit, tool path and contract
+  - wire production B2R to call execute_pinned_viewport_capture
+  - pass the exact observed runtime result and exact expected tool through evidence resolution
+  - consume and publish the verified snapshot and metadata-only receipt
+  - verify applicable Final Gate integration
+  - run exact-Head CI
+  - obtain a fresh independent PR Inspector review
+```
+
+Current root status:
+
+```yaml
+runtime_primitives: implemented
+production_b2r_runtime_integration: not_implemented
+official_builder_viewport_emitter: missing_in_pinned_builder_owner
+applicable_final_gate_runtime_integration: not_implemented
+real_non_synthetic_handoff: insufficient_evidence
+root_operational_handoff_complete: false
+```
 
 ## Report and UX boundary
 
-Persian report rendering and UI presentation are non-authorizing layers over already-computed Project Gate results. Reports may explain a result but must not change transition status, add diagnostics after validation, repair evidence, normalize specialist output, reconstruct verified artifact bytes, or treat output-write failure as success.
+Persian report rendering and UI presentation are non-authorizing layers over already-computed Project Gate results. Reports may explain a result but must not change transition status, add diagnostics after validation, repair evidence, normalize specialist output, reconstruct verified artifact bytes, or imply production runtime integration from primitive availability.
 
 ## Evidence interpretation
 
-A green Project Gate CI run proves only that the checked implementation, fixtures, immutable locks, owner-tool integrations and fail-closed behavior passed for the exact tested Head. It does not prove real Elementor execution, Responsive correctness, accessibility, export validity, release readiness, or production readiness.
+A green Project Gate CI run proves only that the checked implementation, fixtures, immutable locks, owner-tool integrations and fail-closed behavior passed for the exact tested Head. It does not prove real Elementor execution, responsive correctness, frontend correctness, accessibility completion, export validity, release readiness or production readiness.
 
-Current limits must be read from `src/ev4_transition/data/capability-status.v1.json`. The active detailed runtime rule is `docs/EVIDENCE_TRUTH_SPINE.md`.
+Current limits must be read from `src/ev4_transition/data/capability-status.v1.json`. The active detailed primitive contract is `docs/EVIDENCE_TRUTH_SPINE.md`.
