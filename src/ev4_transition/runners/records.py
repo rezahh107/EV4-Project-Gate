@@ -6,6 +6,7 @@ from typing import Any, Literal
 
 from ev4_transition.canonical_json import canonical_sha256
 from ev4_transition.diagnostics import Diagnostic
+from ev4_transition.runners.repo_paths import repo_relative_ref
 
 ToolKind = Literal["validator", "adapter"]
 RunStatus = Literal["accepted", "repair_needed", "insufficient_evidence", "invalid"]
@@ -42,6 +43,7 @@ class ExecutionRecord:
     output_hash: str | None = None
     validator_after_adapter_ref: str | None = None
     failure_code: str | None = None
+    working_directory_ref: str | None = None
 
     def to_dict_without_hash(self) -> dict[str, Any]:
         payload: dict[str, Any] = {
@@ -56,6 +58,8 @@ class ExecutionRecord:
             "started_by": self.started_by,
             "timeout_policy": self.timeout_policy.to_dict(),
         }
+        if self.working_directory_ref is not None:
+            payload["working_directory_ref"] = self.working_directory_ref
         if self.tool_kind == "validator":
             payload.update({"validator_path": self.validator_path, "parsed_result_ref": self.parsed_result_ref})
         else:
@@ -103,12 +107,9 @@ class ToolExecutionOutcome:
 
 
 def repo_relative(path: str | Path, repo_root: str | Path) -> str:
-    candidate = Path(path).resolve()
-    root = Path(repo_root).resolve()
-    try:
-        return candidate.relative_to(root).as_posix()
-    except ValueError:
-        return candidate.name
+    """Return a canonical repository-relative identity without basename fallback."""
+
+    return repo_relative_ref(path, repo_root, require_exists=False)
 
 
 def build_validator_execution_record(
@@ -125,6 +126,7 @@ def build_validator_execution_record(
     timeout_policy: TimeoutPolicy,
     parsed_result_ref: str | None,
     failure_code: str | None = None,
+    working_directory_ref: str | None = None,
 ) -> ExecutionRecord:
     return ExecutionRecord(
         tool_kind="validator",
@@ -140,6 +142,7 @@ def build_validator_execution_record(
         timeout_policy=timeout_policy,
         parsed_result_ref=parsed_result_ref,
         failure_code=failure_code,
+        working_directory_ref=working_directory_ref,
     )
 
 
@@ -162,6 +165,7 @@ def build_adapter_execution_record(
     output_hash: str | None,
     validator_after_adapter_ref: str | None,
     failure_code: str | None = None,
+    working_directory_ref: str | None = None,
 ) -> ExecutionRecord:
     return ExecutionRecord(
         tool_kind="adapter",
@@ -182,4 +186,5 @@ def build_adapter_execution_record(
         output_hash=output_hash,
         validator_after_adapter_ref=validator_after_adapter_ref,
         failure_code=failure_code,
+        working_directory_ref=working_directory_ref,
     )
