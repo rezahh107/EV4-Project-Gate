@@ -144,16 +144,33 @@ def derive_evidence_classification(
     *,
     source_resolved: bool,
     hash_verified: bool,
-    schema_valid: bool,
-    claim_binding_valid: bool,
-    subject_binding_valid: bool,
-    positive_proof_verified: bool,
+    schema_valid: bool | None = None,
+    claim_binding_valid: bool | None = None,
+    subject_binding_valid: bool | None = None,
+    positive_proof_verified: bool | None = None,
     synthetic_conflict: bool | None = None,
+    owner_validation_status: OwnerValidationStatus | None = None,
 ) -> EvidenceClassification:
+    """Derive classification without allowing legacy arguments to grant authority.
+
+    ``owner_validation_status`` remains accepted as a compatibility input for
+    callers that only need synthetic rejection. It cannot replace the explicit
+    schema, binding, and positive-proof predicates.
+    """
+
     conflict = bool(synthetic_indicators(value)) if synthetic_conflict is None else synthetic_conflict
     if conflict:
         return "synthetic"
-    if all((source_resolved, hash_verified, schema_valid, claim_binding_valid, subject_binding_valid, positive_proof_verified)):
+    if all(
+        (
+            source_resolved,
+            hash_verified,
+            schema_valid is True,
+            claim_binding_valid is True,
+            subject_binding_valid is True,
+            positive_proof_verified is True,
+        )
+    ):
         return "real_verified"
     return "insufficient_evidence"
 
