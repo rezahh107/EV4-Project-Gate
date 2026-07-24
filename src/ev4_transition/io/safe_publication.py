@@ -5,11 +5,12 @@ import json
 import os
 import stat
 import tempfile
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
 from ev4_transition.canonical_json import bytes_sha256, canonical_dumps
+from ev4_transition.verified_artifact import VerifiedArtifactSnapshot
 
 
 class PublicationError(OSError):
@@ -26,7 +27,7 @@ class PublicationError(OSError):
 class StagedJson:
     temporary_path: Path
     final_path: Path
-    content: bytes
+    content: bytes = field(repr=False)
     sha256: str
     verify_json: bool = True
 
@@ -92,6 +93,70 @@ def stage_exact_bytes(
             handle.close()
     _verify_exact_bytes(temporary, content, verify_json=verify_json)
     return StagedJson(temporary, destination, content, bytes_sha256(content), verify_json)
+
+
+def stage_verified_artifact_snapshot(
+    final_path: str | Path,
+    snapshot: VerifiedArtifactSnapshot,
+) -> StagedJson:
+    """Stage the exact verified bytes without reconstructing parsed JSON."""
+
+    snapshot.validate_integrity()
+    staged = stage_exact_bytes(final_path, snapshot.exact_bytes, verify_json=True)
+    if staged.sha256 != snapshot.sha256:
+        discard_staged_json(staged)
+        raise PublicationError(
+            "PG.RUNTIME.SNAPSHOT_STAGING_HASH_MISMATCH",
+            "Staged bytes differ from the verified artifact snapshot hash.",
+            path=str(final_path),
+            expected=snapshot.sha256,
+            actual=staged.sha256,
+        )
+    if len(staged.content) != snapshot.byte_length:
+        discard_staged_json(staged)
+        raise PublicationError(
+            "PG.RUNTIME.SNAPSHOT_STAGING_LENGTH_MISMATCH",
+            "Staged length differs from the verified artifact snapshot.",
+            path=str(final_path),
+            expected=snapshot.byte_length,
+            actual=len(staged.content),
+        )
+    return staged
+
+
+def verify_published_artifact_snapshot(
+    destination: str | Path,
+    snapshot: VerifiedArtifactSnapshot,
+) -> dict[str, Any]:
+    """Reread one published artifact and require exact snapshot byte identity."""
+
+    snapshot.validate_integrity()
+    path = Path(destination)
+    observed = path.read_bytes()
+    if observed != snapshot.exact_bytes:
+        raise PublicationError(
+            "PG.RUNTIME.SNAPSHOT_POST_WRITE_BYTES_MISMATCH",
+            "Published bytes differ from the verified artifact snapshot.",
+            path=str(path),
+        )
+    observed_hash = bytes_sha256(observed)
+    if observed_hash != snapshot.sha256:
+        raise PublicationError(
+            "PG.RUNTIME.SNAPSHOT_POST_WRITE_HASH_MISMATCH",
+            "Published SHA-256 differs from the verified artifact snapshot.",
+            path=str(path),
+            expected=snapshot.sha256,
+            actual=observed_hash,
+        )
+    if len(observed) != snapshot.byte_length:
+        raise PublicationError(
+            "PG.RUNTIME.SNAPSHOT_POST_WRITE_LENGTH_MISMATCH",
+            "Published byte length differs from the verified artifact snapshot.",
+            path=str(path),
+            expected=snapshot.byte_length,
+            actual=len(observed),
+        )
+    return snapshot.metadata()
 
 
 def publish_staged_json(staged: StagedJson) -> dict[str, Any]:
