@@ -2,7 +2,9 @@
 
 ## Scope
 
-Project Gate derives consequential runtime authority only from an execution it performs inside a clean detached Git worktree at an exact pinned owner commit.
+Project Gate may derive consequential viewport runtime authority only from an execution it performs inside a clean detached Git worktree at an exact pinned owner commit.
+
+This document defines implemented runtime verification and exact-byte publication primitives and the authority conditions they enforce. It does not claim that the production `transition_builder_to_responsive` or applicable Final Gate path currently invokes and consumes those primitives.
 
 ```text
 ordinary owner checkout (may be dirty)
@@ -25,7 +27,7 @@ This mechanism provides reproducible execution bytes. It is not cryptographic at
 | Evidence type | Required positive proof |
 |---|---|
 | Architect, Builder, Responsive and Kernel-owned artifacts with official validators | Accepted official owner validator |
-| Viewport runtime artifact | Exact-bound result from Project Gate's pinned-worktree execution path |
+| Viewport runtime artifact | Exact-bound result from Project Gate's pinned-worktree execution path, observed and passed through the applicable production transition |
 
 Keyword and fixture-marker scanning remains rejection-only. Caller fields such as `real_evidence`, `evidence_status`, `verification_status`, `classification` and `synthetic: false` cannot create authority.
 
@@ -69,7 +71,7 @@ pure_verifier:
   purpose: isolated tests, diagnostics and verification of an internally produced value
   caller_supplied_checkout_authoritative: false
 
-official_operational_path:
+official_operational_primitive:
   function: execute_pinned_viewport_capture
   accepts: source checkout, pinned repository and commit, tool ref, working-directory ref, subject, viewport, timeout
   internally_creates:
@@ -83,6 +85,8 @@ official_operational_path:
 ```
 
 The operational caller does not supply the execution record, exit status, output reference, output hash, receipt digest, capture success or validation success.
+
+`execute_pinned_viewport_capture` is implemented as a reusable primitive. The production B2R transition does not currently invoke it or provide its observed result and exact expected tool to viewport evidence resolution.
 
 ## Exact runtime bindings
 
@@ -154,11 +158,11 @@ sha256: SHA-256 of exact_bytes
 byte_length: exact byte count
 ```
 
-The artifact is read once on the official operational path. Hashing, UTF-8 JSON parsing, the snapshot, receipt metadata and publication payload all originate from that same byte sequence. Parsed JSON remains separately available as `ViewportRunVerification.value`; it is never reserialized to reconstruct the verified artifact.
+The artifact is read once on the official operational primitive path. Hashing, UTF-8 JSON parsing, the snapshot, receipt metadata and publication payload all originate from that same byte sequence. Parsed JSON remains separately available as `ViewportRunVerification.value`; it is never reserialized to reconstruct the verified artifact.
 
 The snapshot is created only after all positive-proof predicates pass. Synthetic, invalid or insufficient-evidence results contain no snapshot.
 
-While the pure verifier runs inside a live worktree it may expose `ephemeral_artifact_path`. After `execute_pinned_viewport_capture()` returns, the worktree has been removed and the operational result always exposes:
+While the pure verifier runs inside a live worktree it may expose `ephemeral_artifact_path`. After `execute_pinned_viewport_capture()` returns, the worktree has been removed and the primitive result always exposes:
 
 ```yaml
 artifact_snapshot: present only for real_verified
@@ -206,7 +210,7 @@ reason: official_runtime_execution_not_observed
 
 `stage_verified_artifact_snapshot()` validates snapshot integrity and stages `snapshot.exact_bytes` directly. It does not call `json.dumps`, canonical serialization, or a deleted worktree path.
 
-The existing `publish_staged_group()` transaction remains authoritative for grouped publication:
+The existing `publish_staged_group()` transaction remains the grouped publication primitive:
 
 ```text
 stage exact artifact bytes and receipt bytes
@@ -222,7 +226,33 @@ Post-write semantic JSON equality is insufficient. Direct byte equality, SHA-256
 
 Raw snapshot bytes are excluded from snapshot and staging dataclass representations. JSON-safe consumers use snapshot metadata only; bytes are not base64 encoded into logs, receipts, service responses or UI state.
 
-## Current owner dependency
+The existence of these publication helpers does not mean the production B2R route currently consumes and publishes a verified viewport snapshot and receipt.
+
+## Production integration and owner dependencies
+
+The following states are separate:
+
+```text
+implemented runtime primitives
+≠ production B2R runtime integration
+≠ available Builder emitter
+```
+
+### Project Gate production integration gap
+
+The production `transition_builder_to_responsive` path currently resolves viewport evidence without supplying an observed `runtime_run` and exact expected runtime tool. It does not call `execute_pinned_viewport_capture` or consume/publish the resulting snapshot and receipt.
+
+Applicable Final Gate viewport evidence resolution also does not currently consume the observed verified runtime result, snapshot and receipt.
+
+```yaml
+production_b2r_calls_execute_pinned_viewport_capture: false
+production_b2r_passes_observed_runtime_run: false
+production_b2r_passes_expected_runtime_tool: false
+production_b2r_consumes_verified_snapshot_and_receipt: false
+applicable_final_gate_runtime_integration: not_implemented
+```
+
+### Builder owner dependency
 
 The pinned Builder revision is:
 
@@ -231,20 +261,31 @@ repository: rezahh107/EV4-Builder-Assistant-Repo
 commit: 69a2c61edf6d06b4418ad770fcefbfdffcf275d6
 ```
 
-Its Builder→Responsive boundary is documented but the formal export and compatible viewport capture emitter are not implemented. The pinned Responsive intake is schema-bound and non-executing. Project Gate therefore implements exact binding and durable snapshot infrastructure but does not fabricate an emitter or claim a real viewport run.
+Its Builder→Responsive boundary is documented but the formal export and compatible viewport capture emitter are not implemented. The pinned Responsive intake is schema-bound and non-executing.
 
 ```yaml
 verified_artifact_snapshot_complete: true
 exact_bytes_survive_cleanup: true
 publication_from_exact_bytes_supported: true
+production_b2r_runtime_integration: not_implemented
 official_viewport_emitter_found: false
 official_viewport_emitter_executed: false
+applicable_final_gate_runtime_integration: not_implemented
 viewport_real_verified_capability: insufficient_evidence
-external_dependency_required: true
-required_owner: rezahh107/EV4-Builder-Assistant-Repo
-required_contract_or_emitter: official viewport capture/export adapter returning the documented bounded runtime result
 root_operational_handoff_complete: false
 ```
+
+The Builder owner is not the sole remaining implementation dependency. Adding the emitter alone does not complete the root operational handoff.
+
+Remaining sequence:
+
+1. implement the official Builder viewport capture/export emitter;
+2. pin its exact commit, tool path and contract;
+3. wire production B2R to call `execute_pinned_viewport_capture`;
+4. pass the exact observed runtime result and exact expected tool through evidence resolution;
+5. consume and publish the verified snapshot and metadata-only receipt;
+6. verify applicable Final Gate integration;
+7. run exact-Head CI and obtain a fresh independent PR Inspector review.
 
 ## A2C publication transaction
 
@@ -254,4 +295,6 @@ Any failure rolls back all linked Project Gate artifacts, removes staged files, 
 
 ## Capability truth
 
-`src/ev4_transition/data/capability-status.v1.json` remains the sole machine-readable authority. The pinned worktree, exact runtime binding and durable exact-byte snapshot are implemented. The official Builder emitter and real non-synthetic viewport handoff remain unavailable and `insufficient_evidence`.
+`src/ev4_transition/data/capability-status.v1.json` remains the sole machine-readable authority. Pinned-worktree verification, exact runtime binding, durable exact-byte snapshot and exact-byte publication primitives are implemented. Production B2R runtime integration, the official Builder emitter, applicable Final Gate runtime propagation and real non-synthetic viewport handoff remain unavailable or `insufficient_evidence`.
+
+Nothing in this document proves responsive correctness, frontend correctness, accessibility completion, export validity, release readiness or production readiness.
