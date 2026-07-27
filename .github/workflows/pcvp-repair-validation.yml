@@ -10,6 +10,7 @@ on:
       - "src/ev4_transition/service/environment_preflight.py"
       - "src/ev4_transition/service/request_identity.py"
       - "src/ev4_transition/service/transition_contracts.py"
+      - "src/ev4_transition/data/capability-status.v1.json"
       - "contracts/locks/pcvp-v1.lock.json"
       - "tests/producer_integration/test_pcvp_*.py"
       - "tests/service/test_pcvp_preflight_identity.py"
