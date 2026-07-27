@@ -1,0 +1,110 @@
+name: PCVP Repair Validation
+
+on:
+  pull_request:
+    paths:
+      - "src/ev4_transition/pcvp_*.py"
+      - "contracts/locks/pcvp-v1.lock.json"
+      - "tests/producer_integration/test_pcvp_*.py"
+      - "tests/service/test_pg_int_producer_handoff.py"
+      - ".github/workflows/pcvp-repair-validation.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  pcvp-unit:
+    name: pcvp-unit
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout exact Project Gate source
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+          show-progress: false
+      - name: Install uv
+        uses: astral-sh/setup-uv@08807647e7069bb48b6ef5acd8ec9567f424441b
+        with:
+          version: "0.7.22"
+          enable-cache: true
+      - name: Install locked Project Gate
+        run: uv sync --locked --extra dev --extra ui --quiet
+      - name: Run dependency-independent PCVP tests
+        run: >-
+          uv run pytest -vv
+          tests/producer_integration/test_pcvp_boundary_reader.py
+          -k "not clean_exact_owner_execution and not caller_node_modules"
+
+  pcvp-owner-integration:
+    name: pcvp-owner-integration
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout exact Project Gate source
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+          show-progress: false
+      - name: Checkout exact Decision Kernel owner source
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+        with:
+          repository: rezahh107/EV4-Decision-Kernel
+          ref: 069a50fa243b01fa578a7c1bcb8864d9e796d34b
+          fetch-depth: 0
+          path: EV4-Decision-Kernel-PCVP
+          persist-credentials: false
+          show-progress: false
+      - name: Setup Node
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: 20
+      - name: Install uv
+        uses: astral-sh/setup-uv@08807647e7069bb48b6ef5acd8ec9567f424441b
+        with:
+          version: "0.7.22"
+          enable-cache: true
+      - name: Install locked Project Gate
+        run: uv sync --locked --extra dev --extra ui --quiet
+      - name: Assert read-only owner checkout baseline
+        run: |
+          test "$(git -C EV4-Decision-Kernel-PCVP rev-parse HEAD)" = "069a50fa243b01fa578a7c1bcb8864d9e796d34b"
+          test -z "$(git -C EV4-Decision-Kernel-PCVP status --porcelain=v1 --untracked-files=all)"
+          test ! -e EV4-Decision-Kernel-PCVP/node_modules
+      - name: Run clean owner integration tests
+        env:
+          EV4_PCVP_KERNEL_REPO: ${{ github.workspace }}/EV4-Decision-Kernel-PCVP
+        run: uv run pytest -vv tests/producer_integration/test_pcvp_boundary_reader.py
+      - name: Assert owner checkout remained unchanged
+        run: |
+          test "$(git -C EV4-Decision-Kernel-PCVP rev-parse HEAD)" = "069a50fa243b01fa578a7c1bcb8864d9e796d34b"
+          test -z "$(git -C EV4-Decision-Kernel-PCVP status --porcelain=v1 --untracked-files=all)"
+          test ! -e EV4-Decision-Kernel-PCVP/node_modules
+
+  pcvp-callers:
+    name: pcvp-callers
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout exact Project Gate source
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+          show-progress: false
+      - name: Install uv
+        uses: astral-sh/setup-uv@08807647e7069bb48b6ef5acd8ec9567f424441b
+        with:
+          version: "0.7.22"
+          enable-cache: true
+      - name: Install locked Project Gate
+        run: uv sync --locked --extra dev --extra ui --quiet
+      - name: Run immediate caller compatibility tests
+        run: >-
+          uv run pytest -vv
+          tests/producer_integration/test_pcvp_workflow_contract.py
+          tests/service/test_pg_int_producer_handoff.py
