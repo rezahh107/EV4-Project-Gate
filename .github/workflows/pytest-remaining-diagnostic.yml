@@ -1,0 +1,61 @@
+name: Pytest Remaining Diagnostic
+
+on:
+  pull_request:
+    paths:
+      - "src/ev4_transition/pcvp_*.py"
+      - "tests/producer_integration/test_pcvp_*.py"
+      - ".github/workflows/pytest-remaining-diagnostic.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  pytest-scope:
+    name: pytest-remaining-${{ matrix.name }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: root
+            target: tests/*.py
+          - name: ci
+            target: tests/ci
+          - name: e2e
+            target: tests/e2e
+          - name: boundary
+            target: tests/boundary
+          - name: reporting
+            target: tests/reporting
+          - name: runners
+            target: tests/runners
+          - name: presentation
+            target: tests/presentation
+          - name: packaging
+            target: tests/packaging
+          - name: theme
+            target: tests/theme_acceptance
+          - name: ux
+            target: tests/ux_acceptance
+    steps:
+      - name: Checkout exact Project Gate source
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+          show-progress: false
+      - name: Install uv
+        uses: astral-sh/setup-uv@08807647e7069bb48b6ef5acd8ec9567f424441b
+        with:
+          version: "0.7.22"
+          enable-cache: true
+      - name: Install locked Project Gate
+        run: uv sync --locked --extra dev --extra ui --quiet
+      - name: Run scoped pytest
+        shell: bash
+        env:
+          TARGET: ${{ matrix.target }}
+        run: uv run pytest -vv $TARGET
