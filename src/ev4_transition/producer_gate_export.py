@@ -9,7 +9,7 @@ from typing import Any
 from jsonschema import Draft202012Validator
 
 from .canonical_json import canonical_sha256, load_json_file
-from .diagnostics import Diagnostic, diagnostic, sort_diagnostics
+from .diagnostics import Diagnostic, diagnostic, sort_diagnostics, status_from_diagnostics
 from .evidence_truth import derive_evidence_classification, synthetic_indicators
 from .pcvp_carrier import inspect_optional_pcvp_carrier
 
@@ -20,9 +20,18 @@ STAGE_BUNDLE_ID = "https://ev4.local/schemas/stage-bundle/stage-bundle.v1.schema
 
 
 class ProducerGateExportValidator:
-    def __init__(self, repository_root: str | Path = ".", *, operational: bool = True) -> None:
+    def __init__(
+        self,
+        repository_root: str | Path = ".",
+        *,
+        operational: bool = True,
+        decision_kernel_repo: str | Path | None = None,
+        downstream_stage: str | None = None,
+    ) -> None:
         self.repository_root = Path(repository_root)
         self.operational = operational
+        self.decision_kernel_repo = decision_kernel_repo
+        self.downstream_stage = downstream_stage
         self.schema = load_json_file(self.repository_root / "contracts/common/producer-gate-export.v1.schema.json")
         self.stage_bundle_schema = load_json_file(self.repository_root / "schemas/stage-bundle/stage-bundle.v1.schema.json")
         runtime_schema = copy.deepcopy(self.schema)
@@ -38,6 +47,8 @@ class ProducerGateExportValidator:
         pcvp_carrier, pcvp_diagnostics = inspect_optional_pcvp_carrier(
             item,
             self.repository_root,
+            decision_kernel_repo=self.decision_kernel_repo,
+            downstream_stage=self.downstream_stage,
         )
         diagnostics.extend(pcvp_diagnostics)
         if isinstance(item, dict):
@@ -52,7 +63,7 @@ class ProducerGateExportValidator:
             "schema_version": "producer-gate-export-validation-result.v1",
             "validator_id": VALIDATOR_ID,
             "validator_version": VALIDATOR_VERSION,
-            "status": "invalid" if any(d.severity == "error" for d in ordered) else "valid",
+            "status": status_from_diagnostics(ordered),
             "diagnostics": [d.to_dict() for d in ordered],
             "pcvp_carrier": pcvp_carrier,
         }
