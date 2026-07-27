@@ -37,11 +37,20 @@ Each specialist repository owns its schemas, validators, adapters, fixtures, and
 
 Producer Gate Export intake is additive and dual-read for the optional
 `continuation_assurance` carrier from `EV4-PCVP@1.0.0`. Legacy exports without
-the carrier remain accepted. Present carriers are checked against exact,
-non-authoritative schema bytes pinned from `EV4-Decision-Kernel`, followed by
-bounded mechanical reference, Authorization-coverage, scope, status and derived
-projection checks. A validated carrier is surfaced losslessly in the intake
-result; malformed or unsupported carriers fail closed.
+the carrier remain accepted without Node or a Decision Kernel checkout.
+
+For a present carrier, Project Gate verifies an exact read-only checkout of
+`rezahh107/EV4-Decision-Kernel` at
+`069a50fa243b01fa578a7c1bcb8864d9e796d34b`, verifies every execution-critical
+owner file against `contracts/locks/pcvp-v1.lock.json`, executes the official
+`validatePcvpBundle()` and `evaluatePcvpCarrier()` functions, and then applies
+only explicit source Profile effect-class and Stage endpoint checks. The local
+canonical semantic evaluator and four vendored Schema mirrors have been removed.
+
+Owner or Profile rejection yields `invalid`. Missing owner checkout, Node,
+locked dependencies, or executable authority yields `insufficient_evidence`.
+Only owner `ACCEPT` plus all Profile/Stage checks can surface a lossless
+`pcvp_carrier.status: validated`; PCVP intake never sets `handoff_allowed`.
 
 This does not enable Producer emission, specialist downstream propagation,
 adoption, strictness, an official PASS, or activation. Those remain separate,
@@ -149,6 +158,11 @@ uv run ev4-transition transition final-evidence-gate input.json \
   --project-gate-repo . \
   --responsive-repo ../EV4-Responsive-Architect \
   --kernel-repo ../EV4-Decision-Kernel
+
+# The PCVP owner checkout is required only when continuation_assurance is present.
+uv run ev4-handoff producer-export.json \
+  --project-gate-repo . \
+  --kernel-repo ../EV4-Decision-Kernel
 ```
 
 Exit codes:
@@ -189,8 +203,9 @@ uv build --wheel
 GitHub Actions uses one required workflow, `.github/workflows/validate.yml` (`Skeleton Health`):
 
 - `scope`: exact Head and fail-safe changed-path classification;
-- `core-quality`: full internal pytest once, CLI smokes, capability truth, wheel build, clean install, packaged UI construction once;
+- `python-core`: full internal pytest once, CLI smokes, capability truth, wheel build, clean install, packaged UI construction once;
 - `boundary-*`: only affected owner-boundary checks on ordinary PRs, all boundaries on `main`, Workflow changes, classifier changes, shared/unknown changes, or full dispatch;
+- `boundary-kernel_intake`: uses separate exact Decision Kernel checkouts for the legacy Kernel intake pin and PCVP owner authority pin;
 - `quality-gate`: one final required result.
 
 The reusable external contract verifier remains:
