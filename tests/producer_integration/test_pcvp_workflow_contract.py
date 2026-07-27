@@ -31,6 +31,10 @@ def test_dedicated_pcvp_workflow_proves_clean_owner_execution() -> None:
     assert "test ! -e EV4-Decision-Kernel-PCVP/node_modules" in workflow
     assert "EV4_PCVP_KERNEL_REPO" in workflow
     assert "test_pcvp_boundary_reader.py" in workflow
+    assert "test_pcvp_preflight_identity.py" in workflow
+    assert "src/ev4_transition/service/environment_preflight.py" in workflow
+    assert "src/ev4_transition/service/request_identity.py" in workflow
+    assert "src/ev4_transition/service/transition_contracts.py" in workflow
 
 
 def test_pcvp_changes_select_kernel_owner_boundary() -> None:
