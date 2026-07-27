@@ -1,24 +1,21 @@
 # KROAD-011 — Project Gate Intake
 
-Status: primary implementation merged through PR #51. Exact PR-head CI passed on `765fd4b1f086141e6453bd57ed4674d2025caf73`; corrected-main CI remains pending until the post-merge correction PR is merged and runs on `main`.
+## Durable status
 
-## Live merge and evidence state
+KROAD-011 is implemented as the Project Gate internal orchestration baseline for pinned Decision Kernel intake. This document describes the stable contract and trust boundary; it is not a live PR, branch, Head, or CI ledger.
 
-```yaml
-implementation_pull_request: 51
-implementation_state: merged
-implementation_merge_commit: 01fdc126f834e0c0d8fbb297a2d44488487e5379
-current_main_head_at_correction_start: 8c06ace347bd0cfe5d2a3b5abb128f90fb69da74
-pr_head_ci:
-  state: verified_by_exact_head_ci
-  head_sha: 765fd4b1f086141e6453bd57ed4674d2025caf73
-  kroad_011_workflow_run_id: 29168112399
-corrected_main_ci:
-  state: insufficient_evidence
-  reason: pending_until_post_merge_correction_pr_is_merged
+Current machine-readable capability truth remains:
+
+```text
+src/ev4_transition/data/capability-status.v1.json
 ```
 
-PR-head CI is retained as review evidence and is not relabelled as exact corrected-main CI. `KROAD-011` is not closed in `EV4-Decision-Kernel` by this document.
+Current repository-change validation remains defined by:
+
+```text
+.github/workflows/validate.yml
+docs/VALIDATION_STRATEGY.md
+```
 
 ## Ownership boundary
 
@@ -57,6 +54,8 @@ semantic_dependencies:
 ```
 
 `package.json` and `package-lock.json` are toolchain dependencies only. Decision cards, vertical-slice manifests, downstream-consumer contracts, Architect fixtures and planning documents are not semantic acceptance evidence.
+
+The separate EV4-PCVP authority pin at `069a50fa243b01fa578a7c1bcb8864d9e796d34b` is not reused for KROAD-011. The two Decision Kernel roles remain distinct in CI and runtime.
 
 ## Intake and binding behavior
 
@@ -109,7 +108,7 @@ A complete legacy seven-field `decision_lineage` trace remains a compatibility p
 
 ## Guarded Final Gate CLI invocation
 
-The public guarded CLI requires local checkouts for Project Gate, Responsive Architect and the approved Decision Kernel. Missing paths, GitHub URLs and nonexistent directories fail closed during preflight.
+The public guarded CLI requires local checkouts for Project Gate, Responsive Architect and the approved Decision Kernel. Missing paths, GitHub URLs and nonexistent directories fail closed during Preflight.
 
 ```bash
 uv run ev4-transition transition final-evidence-gate path/to/final-evidence.json \
@@ -137,39 +136,24 @@ Receipts do not create lineage, evidence, Kernel acceptance, downstream enforcem
 
 ## Validation
 
-Repository checks:
+Current repository validation is:
 
 ```bash
 uv lock --check
 uv sync --locked --extra dev --extra ui
-uv run pytest
+uv run python -m compileall -q src tests
+uv run pytest -vv
+uv run ev4-transition validate fixtures/valid/architect-stage-bundle.v1.json
+uv run ev4-transition validate fixtures/invalid/array-input.v1.json
+uv run ev4-transition validate fixtures/insufficient-evidence/architect-stage-bundle.v1.json --format persian
 uv run python scripts/check-capability-truth.py
-uv run python scripts/check-workflow-permissions.py
-uv run python scripts/check-github-action-pinning.py
-uv run python scripts/check-runner-boundary.py
-npm run status
-npm run validate
+uv build --wheel
 ```
 
-Focused checks:
+Focused KROAD-011 checks remain under `tests/kernel_decision_intake`, Final Gate transition tests, receipt tests and CLI tests. Exact owner checkout, locked dependency installation and official Kernel execution are exercised by the `boundary-kernel_intake` job in `.github/workflows/validate.yml`.
 
-```bash
-uv run pytest tests/test_cli.py tests/test_cli_final_gate_kernel_repo.py tests/kernel_decision_intake tests/transitions/test_final_gate.py tests/reports/test_decision_receipts.py tests/planning/test_decision_escape_routes_schema.py
-python scripts/compute-kernel-decision-intake-lock.py \
-  --kernel-repo ../EV4-Decision-Kernel \
-  --output /tmp/kernel-decision-intake-lock.json
-```
-
-Pinned Kernel checks:
-
-```bash
-cd ../EV4-Decision-Kernel
-npm ci --ignore-scripts
-npm run validate:mvk
-```
+Removed scripts such as `scripts/check-workflow-permissions.py` and `scripts/check-github-action-pinning.py`, global `npm run status`, global `npm run validate`, mutable corrected-main ledgers and post-merge correction tracking are not part of the active validation model.
 
 ## Evidence limits
 
 All KROAD-011 fixtures are explicitly synthetic. This implementation does not prove a real non-synthetic handoff, Builder execution, runtime/browser validity, downstream producer integration, ecosystem readiness, release readiness or production readiness.
-
-The `EV4-Decision-Kernel` evidence-closure and roadmap-memory update remain deferred to ordered PR 2 after this correction PR is merged and exact corrected-main evidence exists.

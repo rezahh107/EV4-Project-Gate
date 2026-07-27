@@ -35,6 +35,8 @@ Every affected boundary retains:
 
 For a present EV4-PCVP carrier, the boundary additionally requires an exact read-only Decision Kernel checkout, locked execution-critical owner bytes, locked Node dependencies, official bundle/carrier execution, and explicit source Profile/Stage integration. Carrier absence remains dependency-free.
 
+When an operator supplies `kernel_repo_path` for producer-emitted execution, that path is a dispatch-affecting optional request field. Authoritative Preflight forwards the same path into owner-backed inspection, request identity includes it in the fingerprint, and runtime reuses it for execution. Replacing the path after Preflight invalidates the fingerprint and requires a fresh Preflight. Omitting the path does not trigger Git, Node, npm, or Decision Kernel access when the carrier is absent.
+
 ### 3. Repository-change validation
 
 `.github/workflows/validate.yml` is the single Project Gate quality Workflow.
