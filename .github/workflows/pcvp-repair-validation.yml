@@ -7,9 +7,16 @@ on:
       - "src/ev4_transition/runners/pcvp_owner.py"
       - "src/ev4_transition/runners/canonical_json.py"
       - "src/ev4_transition/runners/diagnostics.py"
+      - "src/ev4_transition/service/environment_preflight.py"
+      - "src/ev4_transition/service/request_identity.py"
+      - "src/ev4_transition/service/transition_contracts.py"
       - "contracts/locks/pcvp-v1.lock.json"
       - "tests/producer_integration/test_pcvp_*.py"
+      - "tests/service/test_pcvp_preflight_identity.py"
+      - "tests/service/test_transition_aware_request_identity.py"
       - "tests/service/test_pg_int_producer_handoff.py"
+      - "tests/ui/test_request_bound_preflight.py"
+      - "tests/test_cli.py"
       - ".github/workflows/pcvp-repair-validation.yml"
   workflow_dispatch:
 
@@ -39,7 +46,8 @@ jobs:
         run: >-
           uv run pytest -vv
           tests/producer_integration/test_pcvp_boundary_reader.py
-          -k "not clean_exact_owner_execution and not caller_node_modules"
+          tests/service/test_pcvp_preflight_identity.py
+          -k "not clean_exact_owner_execution and not caller_node_modules and not exact_owner"
 
   pcvp-owner-integration:
     name: pcvp-owner-integration
@@ -78,10 +86,13 @@ jobs:
           test "$(git -C EV4-Decision-Kernel-PCVP rev-parse HEAD)" = "069a50fa243b01fa578a7c1bcb8864d9e796d34b"
           test -z "$(git -C EV4-Decision-Kernel-PCVP status --porcelain=v1 --untracked-files=all)"
           test ! -e EV4-Decision-Kernel-PCVP/node_modules
-      - name: Run clean owner integration tests
+      - name: Run clean owner lifecycle integration tests
         env:
           EV4_PCVP_KERNEL_REPO: ${{ github.workspace }}/EV4-Decision-Kernel-PCVP
-        run: uv run pytest -vv tests/producer_integration/test_pcvp_boundary_reader.py
+        run: >-
+          uv run pytest -vv
+          tests/producer_integration/test_pcvp_boundary_reader.py
+          tests/service/test_pcvp_preflight_identity.py
       - name: Assert owner checkout remained unchanged
         run: |
           test "$(git -C EV4-Decision-Kernel-PCVP rev-parse HEAD)" = "069a50fa243b01fa578a7c1bcb8864d9e796d34b"
@@ -110,4 +121,9 @@ jobs:
         run: >-
           uv run pytest -vv
           tests/producer_integration/test_pcvp_workflow_contract.py
+          tests/service/test_pcvp_preflight_identity.py
+          tests/service/test_transition_aware_request_identity.py
           tests/service/test_pg_int_producer_handoff.py
+          tests/ui/test_request_bound_preflight.py
+          tests/test_cli.py
+          -k "not exact_owner"
