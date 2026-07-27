@@ -39,11 +39,15 @@
       "canonical_contract_owner": "rezahh107/EV4-Decision-Kernel",
       "compatibility_mode": "dual_read",
       "downstream_specialist_emission": "dormant_not_enabled",
-      "legacy_absent_input": "accepted",
+      "exact_owner_commit": "069a50fa243b01fa578a7c1bcb8864d9e796d34b",
+      "legacy_absent_input": "accepted_dependency_free",
+      "local_canonical_semantic_reimplementation": "removed",
       "malformed_or_unsupported_carrier": "rejected",
-      "mechanical_cross_record_validation": "implemented",
+      "owner_authority_or_execution_unavailable": "insufficient_evidence",
+      "owner_validator_execution": "implemented_exact_read_only_checkout",
       "producer_export_intake_surface": "implemented_lossless",
-      "vendored_schema_authority": "non_authoritative_exact_byte_pin"
+      "source_profile_and_stage_binding": "implemented_explicit_identifiers_only",
+      "vendored_executable_or_schema_authority": "absent"
     },
     "producer_emitted_gate_artifact": {
       "common_contract": "implemented",
@@ -85,6 +89,8 @@
     "KROAD-011 kernel decision intake internal orchestration baseline",
     "final evidence gate orchestration baseline",
     "EV4-PCVP v1 tolerant Producer Gate Export boundary reader",
+    "EV4-PCVP exact Decision Kernel owner-validator execution",
+    "EV4-PCVP source Profile and downstream Stage binding",
     "local operator UI shell",
     "PG-INT validated producer-export routing facade",
     "PG-INT unified local service API",
