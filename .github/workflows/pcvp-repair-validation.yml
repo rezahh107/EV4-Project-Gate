@@ -118,13 +118,15 @@ jobs:
           enable-cache: true
       - name: Install locked Project Gate
         run: uv sync --locked --extra dev --extra ui --quiet
-      - name: Run immediate caller compatibility tests
-        run: >-
-          uv run pytest -vv
-          tests/producer_integration/test_pcvp_workflow_contract.py
-          tests/service/test_pcvp_preflight_identity.py
-          tests/service/test_transition_aware_request_identity.py
-          tests/service/test_pg_int_producer_handoff.py
-          tests/ui/test_request_bound_preflight.py
-          tests/test_cli.py
-          -k "not exact_owner"
+      - name: Verify PCVP workflow contract
+        run: uv run pytest -vv tests/producer_integration/test_pcvp_workflow_contract.py
+      - name: Verify public Preflight identity callers
+        run: uv run pytest -vv tests/service/test_pcvp_preflight_identity.py -k "not exact_owner"
+      - name: Verify transition-aware request identity
+        run: uv run pytest -vv tests/service/test_transition_aware_request_identity.py
+      - name: Verify producer handoff service callers
+        run: uv run pytest -vv tests/service/test_pg_int_producer_handoff.py
+      - name: Verify request-bound UI Preflight
+        run: uv run pytest -vv tests/ui/test_request_bound_preflight.py
+      - name: Verify CLI regressions
+        run: uv run pytest -vv tests/test_cli.py
