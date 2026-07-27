@@ -4,6 +4,9 @@ on:
   pull_request:
     paths:
       - "src/ev4_transition/pcvp_*.py"
+      - "src/ev4_transition/runners/pcvp_owner.py"
+      - "src/ev4_transition/runners/canonical_json.py"
+      - "src/ev4_transition/runners/diagnostics.py"
       - "contracts/locks/pcvp-v1.lock.json"
       - "tests/producer_integration/test_pcvp_*.py"
       - "tests/service/test_pg_int_producer_handoff.py"
