@@ -25,11 +25,12 @@ def inspect_producer_handoff(
     source_path: str | Path,
     *,
     project_gate_repo: str | Path = ".",
+    decision_kernel_repo: str | Path | None = None,
 ) -> dict[str, Any]:
     root, failure = _project_gate_root(project_gate_repo)
     if failure is not None:
         return failure
-    _, result = _capture_and_inspect(source_path, root)
+    _, result = _capture_and_inspect(source_path, root, decision_kernel_repo)
     return result
 
 
@@ -40,6 +41,7 @@ def execute_producer_handoff(
     architect_repo: str | Path | None = None,
     ce_repo: str | Path | None = None,
     builder_repo: str | Path | None = None,
+    decision_kernel_repo: str | Path | None = None,
     output_dir: str | Path | None = None,
     output_path: str | Path | None = None,
     receipt_path: str | Path | None = None,
@@ -53,7 +55,11 @@ def execute_producer_handoff(
     if failure is not None:
         return _legacy._with_operator_artifacts(failure)
 
-    snapshot, inspection = _capture_and_inspect(source_path, root)
+    snapshot, inspection = _capture_and_inspect(
+        source_path,
+        root,
+        decision_kernel_repo,
+    )
     if snapshot is None or inspection.get("status") != "accepted":
         return _legacy._with_operator_artifacts(inspection)
 
@@ -125,22 +131,27 @@ def execute_producer_handoff(
             "publication_failed",
         )
 
+    transition_kwargs: dict[str, Any] = {
+        "snapshot": snapshot,
+        "schema_root": selected_schema_root,
+        "lock_path": selected_lock,
+        "architect_repo": normalized["architect_repo"],
+        "ce_repo": normalized["ce_repo"],
+        "builder_repo": normalized["builder_repo"],
+        "project_gate_repo": root,
+        "output_path": selected_publication_paths.downstream_artifact,
+        "receipt_path": selected_publication_paths.receipt,
+        "registry_path": root / _legacy._ROUTING_FILES[0],
+        "targets_path": root / _legacy._ROUTING_FILES[1],
+        "repository_root": root,
+    }
+    if decision_kernel_repo is not None:
+        transition_kwargs["decision_kernel_repo"] = decision_kernel_repo
     try:
         result = transition_producer_export(
             resolved,
             snapshot.value,
-            snapshot=snapshot,
-            schema_root=selected_schema_root,
-            lock_path=selected_lock,
-            architect_repo=normalized["architect_repo"],
-            ce_repo=normalized["ce_repo"],
-            builder_repo=normalized["builder_repo"],
-            project_gate_repo=root,
-            output_path=selected_publication_paths.downstream_artifact,
-            receipt_path=selected_publication_paths.receipt,
-            registry_path=root / _legacy._ROUTING_FILES[0],
-            targets_path=root / _legacy._ROUTING_FILES[1],
-            repository_root=root,
+            **transition_kwargs,
         )
     except Exception as exc:
         return _legacy._operator_failure(
@@ -176,6 +187,7 @@ def required_repository_fields(resolved_transition: str) -> tuple[str, ...]:
 def _capture_and_inspect(
     source_path: str | Path,
     project_gate_root: Path,
+    decision_kernel_repo: str | Path | None,
 ) -> tuple[JsonInputSnapshot | None, dict[str, Any]]:
     workspace, diagnostic = _legacy._workspace()
     if diagnostic is not None:
@@ -214,13 +226,15 @@ def _capture_and_inspect(
             ),
         )
 
+    intake_kwargs: dict[str, Any] = {
+        "registry_path": project_gate_root / _legacy._ROUTING_FILES[0],
+        "targets_path": project_gate_root / _legacy._ROUTING_FILES[1],
+        "repository_root": project_gate_root,
+    }
+    if decision_kernel_repo is not None:
+        intake_kwargs["decision_kernel_repo"] = decision_kernel_repo
     try:
-        intake = intake_producer_export(
-            snapshot.value,
-            registry_path=project_gate_root / _legacy._ROUTING_FILES[0],
-            targets_path=project_gate_root / _legacy._ROUTING_FILES[1],
-            repository_root=project_gate_root,
-        )
+        intake = intake_producer_export(snapshot.value, **intake_kwargs)
     except Exception as exc:
         failure = _legacy._empty_failure(
             "invalid",
