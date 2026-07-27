@@ -86,6 +86,7 @@ def validate_gate_request_environment(request: GateRequest) -> PreflightResult:
         inspected = inspect_producer_handoff_request(
             request.input_json_path,
             project_gate_repo_path=str(project_gate_root),
+            decision_kernel_repo_path=repos.kernel_repo_path,
         )
         if inspected.status == "accepted" and inspected.resolved_transition == expected_transition:
             checks.append(
