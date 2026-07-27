@@ -49,9 +49,7 @@
       "owner_checkout_mutation": "forbidden_and_post_execution_verified",
       "owner_validator_execution": "implemented_clean_lock_derived_temporary_tree",
       "producer_export_intake_surface": "implemented_lossless",
-      "producer_preflight_kernel_path_forwarding": "implemented_same_operator_selected_path",
       "profile_preauthorization_binding": "exact_unique_effect_class_and_scope",
-      "request_identity_kernel_path_binding": "implemented_when_supplied_in_producer_mode",
       "source_profile_and_stage_binding": "implemented_exact_identifiers_scope_and_endpoints",
       "vendored_executable_or_schema_authority": "absent"
     },
@@ -97,7 +95,6 @@
     "EV4-PCVP v1 tolerant Producer Gate Export boundary reader",
     "EV4-PCVP clean lock-derived Decision Kernel owner-validator execution",
     "EV4-PCVP exact unique Profile class-and-scope and downstream Stage binding",
-    "EV4-PCVP producer Preflight and request-identity Kernel path binding",
     "local operator UI shell",
     "PG-INT validated producer-export routing facade",
     "PG-INT unified local service API",
