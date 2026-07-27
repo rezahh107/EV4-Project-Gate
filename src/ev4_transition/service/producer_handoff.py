@@ -6,7 +6,6 @@ from pathlib import Path
 from typing import Any
 
 from ev4_transition.io.secure_snapshot import JsonInputSnapshot, SnapshotError, validate_json_snapshot
-
 from ev4_transition.producer_integration.facade import execute_producer_handoff, inspect_producer_handoff
 from ev4_transition.producer_integration.path_environment import PublicationPaths
 
@@ -47,15 +46,18 @@ def inspect_producer_handoff_request(
     *,
     source_snapshot: JsonInputSnapshot | None = None,
     project_gate_repo_path: str | None = ".",
+    decision_kernel_repo_path: str | None = None,
 ) -> ProducerHandoffResponse:
     try:
         selected_source = _authoritative_source_path(source_path, source_snapshot)
     except SnapshotError as exc:
         return _response(_snapshot_failure(exc))
-    result = inspect_producer_handoff(
-        selected_source,
-        project_gate_repo=project_gate_repo_path or ".",
-    )
+    inspect_kwargs: dict[str, Any] = {
+        "project_gate_repo": project_gate_repo_path or ".",
+    }
+    if decision_kernel_repo_path is not None:
+        inspect_kwargs["decision_kernel_repo"] = decision_kernel_repo_path
+    result = inspect_producer_handoff(selected_source, **inspect_kwargs)
     return _response(result)
 
 
@@ -65,19 +67,21 @@ def run_producer_handoff_request(request: ProducerHandoffRequest) -> ProducerHan
         selected_source = _authoritative_source_path(request.source_path, request.source_snapshot)
     except SnapshotError as exc:
         return _response(_snapshot_failure(exc))
-    result = execute_producer_handoff(
-        selected_source,
-        project_gate_repo=repos.project_gate_repo_path or ".",
-        architect_repo=repos.architect_repo_path,
-        ce_repo=repos.ce_repo_path,
-        builder_repo=repos.builder_repo_path,
-        output_dir=request.output_dir,
-        output_path=request.output_path,
-        receipt_path=request.receipt_path,
-        schema_root=request.schema_root,
-        lock_path=request.lock_path,
-        publication_paths=request.publication_paths,
-    )
+    execute_kwargs: dict[str, Any] = {
+        "project_gate_repo": repos.project_gate_repo_path or ".",
+        "architect_repo": repos.architect_repo_path,
+        "ce_repo": repos.ce_repo_path,
+        "builder_repo": repos.builder_repo_path,
+        "output_dir": request.output_dir,
+        "output_path": request.output_path,
+        "receipt_path": request.receipt_path,
+        "schema_root": request.schema_root,
+        "lock_path": request.lock_path,
+        "publication_paths": request.publication_paths,
+    }
+    if repos.kernel_repo_path is not None:
+        execute_kwargs["decision_kernel_repo"] = repos.kernel_repo_path
+    result = execute_producer_handoff(selected_source, **execute_kwargs)
     return _response(result)
 
 

@@ -11,6 +11,7 @@ Compatibility is established only through exact pinned owner contracts, observed
 | Builder → Responsive | Builder evidence plus an observed official viewport producer execution at the pinned Builder commit | Responsive schema-bound input and official input/tree validators | Builder/Responsive lock reproduction; production invocation of pinned runtime execution; exact observed runtime result/tool propagation; immutable verified snapshot and receipt consumption; official Responsive validator execution |
 | Final Gate | Responsive evidence plus required prior lock chain and verified runtime evidence when applicable | Final result schema, receipt semantics and Kernel intake when selected | Evidence sufficiency, lock validation, observed runtime propagation when required, snapshot/receipt identity, deterministic result and receipt |
 | Producer integration | Producer Gate Export and adoption/target records | Recorded producer validator and Project Gate intake/dispatch | Exact producer commit/path/hash identity and supported routing |
+| EV4-PCVP carrier intake | Optional `continuation_assurance`; legacy absence remains valid and dependency-free | Official Decision Kernel `validatePcvpBundle()` and `evaluatePcvpCarrier()`, then exact source Profile and resolved Stage checks | Exact repository/commit/file identities; tracked-byte disposable execution tree; exact `package-lock.json` installation via `npm ci --ignore-scripts --no-audit --no-fund`; caller `node_modules` ignored; owner rejection preservation; one unique exact Profile `effect_class` and `scope` match for `PROFILE_PREAUTHORIZED`; exact `stage_scope` endpoints; immutable lossless projection |
 
 ## Three-layer runtime rule
 
@@ -54,6 +55,14 @@ The pinned Builder commit lacks the required official viewport capture/export em
 - The verified snapshot and metadata-only receipt must be consumed by the production B2R publication path and carried into applicable Final Gate verification.
 - Invalid, stale, incompatible or insufficient inputs fail closed.
 - Synthetic or owner fixtures retain their evidence class and cannot establish real handoff readiness.
+- EV4-PCVP carrier absence preserves the legacy Producer Gate Export path without Git, Node, npm or a Decision Kernel checkout.
+- A present EV4-PCVP carrier can be `validated` only after exact owner identity, clean lock-derived owner execution and source Profile/Stage integration all pass.
+- Project Gate never resolves Ajv or YAML from the caller-supplied Decision Kernel checkout; dependencies are installed only in an automatically cleaned tracked-byte tree.
+- `PROFILE_PREAUTHORIZED` requires exactly one Profile entry with the same `effect_class` and scope text exactly equal to both Effect and Authorization `permitted_scope`.
+- Broader, narrower, contained, semantically similar and duplicate Profile scope candidates are rejected; free-form Profile prose is never inferred.
+- Missing owner checkout, Git, Node, npm, locked installation or executable authority yields `insufficient_evidence`; owner or Profile rejection yields `invalid`.
+- The supplied Decision Kernel checkout is verified read-only before execution and reverified unchanged after success or failure.
+- This boundary reader does not emit the carrier into specialist artifacts, set `handoff_allowed`, claim official PASS or activate PCVP.
 - Runtime publication is atomic, collision-safe and no-overwrite, with active handoff receipts.
 - Adding the Builder emitter alone does not establish compatibility; Project Gate production integration and applicable Final Gate integration must also be completed and verified.
 - `src/ev4_transition/data/capability-status.v1.json` is the only machine-readable capability authority.
@@ -69,6 +78,6 @@ real_non_synthetic_handoff: insufficient_evidence
 root_operational_handoff_complete: false
 ```
 
-CI compatibility checks are selected by `scripts/classify-validation-scope.py`. Shared, unknown, Workflow, dependency, schema-infrastructure or contract-infrastructure changes execute all boundaries; ordinary transition-specific changes execute the affected boundary only, while full internal tests still run once on every PR Head.
+CI compatibility checks are selected by `scripts/classify-validation-scope.py`. PCVP authority, lock and test changes select `kernel_intake`; shared, unknown, Workflow, dependency, schema-infrastructure or contract-infrastructure changes execute all boundaries. Full internal tests still run once on every PR Head.
 
 No compatibility statement in this document proves responsive correctness, frontend correctness, accessibility completion, export validity, release readiness or production readiness.

@@ -33,6 +33,42 @@ Architect → Project Gate → CE → Project Gate → Builder
 
 Each specialist repository owns its schemas, validators, adapters, fixtures, and domain behavior. Project Gate owns deterministic orchestration, result envelopes, diagnostics, contract locks, publication safety, receipts, CLI/UI presentation, and selective CI boundary execution.
 
+## Dormant EV4-PCVP boundary compatibility
+
+Producer Gate Export intake is additive and dual-read for the optional
+`continuation_assurance` carrier from `EV4-PCVP@1.0.0`. Legacy exports without
+the carrier remain accepted without Git, Node, npm or a Decision Kernel checkout.
+
+For a present carrier, Project Gate verifies an exact read-only checkout of
+`rezahh107/EV4-Decision-Kernel` at
+`069a50fa243b01fa578a7c1bcb8864d9e796d34b` and every execution-critical owner
+file against `contracts/locks/pcvp-v1.lock.json`. It then materializes only
+tracked bytes from that exact commit into an automatically cleaned temporary
+tree, reverifies the locked files, installs the exact `package-lock.json` with
+`npm ci --ignore-scripts --no-audit --no-fund`, and executes the official
+`validatePcvpBundle()` and `evaluatePcvpCarrier()` functions from that tree.
+Caller-supplied `node_modules`, `NODE_PATH` and `NODE_OPTIONS` do not provide
+authority, and the supplied Decision Kernel checkout is reverified unchanged
+after success or failure.
+
+After owner `ACCEPT`, Project Gate applies explicit source Profile and Stage
+checks. Each `PROFILE_PREAUTHORIZED` Effect requires one unique Profile entry
+with the same exact `effect_class`; that entry's exact scope text must equal both
+the Effect and Authorization `permitted_scope`. Broader, narrower, contained,
+semantically similar or duplicate scope matches are rejected without prose
+inference. `SAFE_REVERSIBLE_DEFAULT` remains a separate Profile rule. The local
+canonical semantic evaluator and four vendored Schema mirrors remain removed.
+
+Owner or Profile rejection yields `invalid`. Missing owner checkout, Git, Node,
+npm, locked installation, extraction or executable authority yields
+`insufficient_evidence`. Only owner `ACCEPT` plus all exact Profile/Stage checks
+can surface a lossless `pcvp_carrier.status: validated`; PCVP intake never sets
+`handoff_allowed`.
+
+This does not enable Producer emission, specialist downstream propagation,
+adoption, strictness, an official PASS, or activation. Those remain separate,
+dependency-ordered work.
+
 ## Builder → Responsive runtime truth
 
 Three different implementation states must not be conflated:
@@ -135,6 +171,11 @@ uv run ev4-transition transition final-evidence-gate input.json \
   --project-gate-repo . \
   --responsive-repo ../EV4-Responsive-Architect \
   --kernel-repo ../EV4-Decision-Kernel
+
+# The PCVP owner checkout is required only when continuation_assurance is present.
+uv run ev4-handoff producer-export.json \
+  --project-gate-repo . \
+  --kernel-repo ../EV4-Decision-Kernel
 ```
 
 Exit codes:
@@ -175,9 +216,12 @@ uv build --wheel
 GitHub Actions uses one required workflow, `.github/workflows/validate.yml` (`Skeleton Health`):
 
 - `scope`: exact Head and fail-safe changed-path classification;
-- `core-quality`: full internal pytest once, CLI smokes, capability truth, wheel build, clean install, packaged UI construction once;
+- `python-core`: full internal pytest once, CLI smokes, capability truth, wheel build, clean install, packaged UI construction once;
 - `boundary-*`: only affected owner-boundary checks on ordinary PRs, all boundaries on `main`, Workflow changes, classifier changes, shared/unknown changes, or full dispatch;
+- `boundary-kernel_intake`: uses separate exact Decision Kernel checkouts for the legacy Kernel intake pin and PCVP owner authority pin;
 - `quality-gate`: one final required result.
+
+The dedicated `.github/workflows/pcvp-repair-validation.yml` additionally proves dependency-free legacy absence, clean tracked-byte owner execution, caller `node_modules` isolation, exact fixture parity, checkout immutability, exact Profile scope binding and immediate caller compatibility.
 
 The reusable external contract verifier remains:
 

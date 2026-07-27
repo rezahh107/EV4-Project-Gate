@@ -1,0 +1,83 @@
+{
+  "schema_version": "ev4-pcvp-execution-authority-lock.v1",
+  "architecture_lock_id": "EV4-PCVP-ROLL-LOCK-20260727-R1",
+  "policy": {
+    "id": "EV4-PCVP",
+    "version": "1.0.0",
+    "adoption_status": "not_yet_adopted",
+    "activation": "NONE"
+  },
+  "owner": {
+    "repository": "rezahh107/EV4-Decision-Kernel",
+    "commit_sha": "069a50fa243b01fa578a7c1bcb8864d9e796d34b",
+    "bundle_root": "kernel/pcvp/v1.0.0/bundle",
+    "validator_path": "kernel/validator/pcvp-v1.mjs"
+  },
+  "authority_files": [
+    {
+      "path": "kernel/validator/pcvp-v1.mjs",
+      "role": "official_owner_validator",
+      "git_blob_sha": "517e3ea536e90500f9816e075a8e05d7bd4688cf"
+    },
+    {
+      "path": "kernel/pcvp/v1.0.0/bundle/00-MANIFEST.yaml",
+      "role": "bundle_manifest",
+      "sha256_file_bytes": "3992c5a82d6ffbaa3c095e7590c2a3d7101aae9dc825bce461ff1c5562bf7b4b"
+    },
+    {
+      "path": "kernel/pcvp/v1.0.0/bundle/SHA256SUMS.txt",
+      "role": "bundle_checksum_inventory",
+      "git_blob_sha": "78a1ccc8d47371e89ef7838c8941137ff56e46ee"
+    },
+    {
+      "path": "kernel/pcvp/v1.0.0/bundle/04-SCHEMAS/authorization.schema.json",
+      "role": "authorization_schema",
+      "sha256_file_bytes": "8eba853834bc3881ae836857a5bef3d8cc8e7c9edecd535ba22fb58a26fa5ff9"
+    },
+    {
+      "path": "kernel/pcvp/v1.0.0/bundle/04-SCHEMAS/claim.schema.json",
+      "role": "claim_schema",
+      "sha256_file_bytes": "7d4c686b983330c454d76ebc34ef97ca4c595dd77b221de194e6a75e41859a72"
+    },
+    {
+      "path": "kernel/pcvp/v1.0.0/bundle/04-SCHEMAS/effect.schema.json",
+      "role": "effect_schema",
+      "sha256_file_bytes": "59c201b7277f3bf3488eb43afbd04f686efae25b9a143c73f97aca5f65a1bbeb"
+    },
+    {
+      "path": "kernel/pcvp/v1.0.0/bundle/04-SCHEMAS/handoff.schema.json",
+      "role": "handoff_schema",
+      "sha256_file_bytes": "dcc3189ef4662b27e440aee3d3c698d503e265f81fb71d5d1904972cfe8728da"
+    },
+    {
+      "path": "kernel/pcvp/v1.0.0/bundle/03-PROFILES/architect.profile.yaml",
+      "role": "architect_source_profile",
+      "sha256_file_bytes": "a4fc9b2912eea0fcba06880759f246c019f3d36b181696824d8c8e54d39b5248"
+    },
+    {
+      "path": "kernel/pcvp/v1.0.0/bundle/03-PROFILES/constructability.profile.yaml",
+      "role": "constructability_source_profile",
+      "sha256_file_bytes": "00b5e3a1b3490f9b81ef8e81fc1b51b8899f2dd6ba5ba416b38a47a270488461"
+    },
+    {
+      "path": "kernel/pcvp/v1.0.0/bundle/03-PROFILES/builder.profile.yaml",
+      "role": "builder_source_profile",
+      "sha256_file_bytes": "366a8362fc2eb429ad1498152f40ee57a7af677f62536340f7fd1ee2d1fb5b9b"
+    },
+    {
+      "path": "kernel/pcvp/v1.0.0/bundle/03-PROFILES/responsive.profile.yaml",
+      "role": "responsive_source_profile",
+      "sha256_file_bytes": "92a316af37a3f85afe3ca917e62b2a4017fb9dfaa7190370e7a6529e554ced1e"
+    },
+    {
+      "path": "package.json",
+      "role": "owner_node_dependency_manifest",
+      "git_blob_sha": "30f2977512731d42e814e80c379223966e0c8ce1"
+    },
+    {
+      "path": "package-lock.json",
+      "role": "owner_node_dependency_lock",
+      "git_blob_sha": "c72c094d16f94165725c0b2016c9da3ebf026ec1"
+    }
+  ]
+}

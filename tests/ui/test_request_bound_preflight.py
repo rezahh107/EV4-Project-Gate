@@ -108,6 +108,7 @@ def test_effective_dispatch_mutations_change_request_fingerprint_and_irrelevant_
         replace(request, repo_paths=replace(request.repo_paths, project_gate_repo_path=str(tmp_path))),
         replace(request, repo_paths=replace(request.repo_paths, architect_repo_path=str(tmp_path / "other-a"))),
         replace(request, repo_paths=replace(request.repo_paths, ce_repo_path=str(tmp_path / "other-ce"))),
+        replace(request, repo_paths=replace(request.repo_paths, kernel_repo_path=str(tmp_path / "kernel"))),
         replace(request, output_dir=str(tmp_path / "other-output")),
         replace(request, schema_root="other-schemas"),
         replace(request, lock_path="other-lock.json"),
@@ -122,7 +123,6 @@ def test_effective_dispatch_mutations_change_request_fingerprint_and_irrelevant_
     irrelevant_mutations = [
         replace(request, repo_paths=replace(request.repo_paths, builder_repo_path=str(tmp_path / "builder"))),
         replace(request, repo_paths=replace(request.repo_paths, responsive_repo_path=str(tmp_path / "responsive"))),
-        replace(request, repo_paths=replace(request.repo_paths, kernel_repo_path=str(tmp_path / "kernel"))),
     ]
     for mutated in irrelevant_mutations:
         assert build_gate_request_identity(mutated).fingerprint == baseline

@@ -53,6 +53,10 @@
     "validation": {
       "$ref": "#/$defs/validation"
     },
+    "continuation_assurance": {
+      "type": "object",
+      "description": "Optional EV4-PCVP carrier. Project Gate validates this value against the exact non-authoritative schema bytes pinned from EV4-Decision-Kernel; absence preserves the legacy path."
+    },
     "acquisition_mode": {
       "type": "object",
       "additionalProperties": false,

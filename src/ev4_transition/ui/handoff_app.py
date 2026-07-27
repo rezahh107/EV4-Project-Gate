@@ -14,11 +14,14 @@ from ev4_transition.service.producer_handoff import (
 from .app import operator_gradio_theme, operator_panel_css
 from .components import DIAGNOSTIC_HEADERS, diagnostics_to_rows, status_summary_markdown
 
-
 HEADER_FA = "یک Producer Gate Export را انتخاب کنید؛ Project Gate مسیر Architect→CE یا CE→Builder را از قرارداد معتبر تشخیص می‌دهد."
 
 
-def inspect_uploaded_route(source_path: str | None, project_gate_repo: str | None = None) -> dict[str, Any]:
+def inspect_uploaded_route(
+    source_path: str | None,
+    project_gate_repo: str | None = None,
+    decision_kernel_repo: str | None = None,
+) -> dict[str, Any]:
     if not source_path:
         return {
             "status": "invalid",
@@ -29,6 +32,7 @@ def inspect_uploaded_route(source_path: str | None, project_gate_repo: str | Non
     return inspect_producer_handoff_request(
         source_path,
         project_gate_repo_path=project_gate_repo or ".",
+        decision_kernel_repo_path=_clean(decision_kernel_repo),
     ).to_dict()
 
 
@@ -58,6 +62,7 @@ def run_uploaded_handoff(
     ce_repo: str | None,
     builder_repo: str | None,
     output_dir: str | None,
+    decision_kernel_repo: str | None = None,
 ) -> tuple[str, list[list[str]], str, list[str]]:
     if not source_path:
         payload = {
@@ -81,6 +86,7 @@ def run_uploaded_handoff(
                 architect_repo_path=_clean(architect_repo),
                 ce_repo_path=_clean(ce_repo),
                 builder_repo_path=_clean(builder_repo),
+                kernel_repo_path=_clean(decision_kernel_repo),
             ),
             output_dir=_clean(output_dir),
         )
@@ -126,26 +132,19 @@ def build_demo():
                 value=".",
                 elem_classes=["ev4-ltr"],
             )
+            decision_kernel = gr.Textbox(
+                label="Decision Kernel checkout — فقط برای continuation_assurance",
+                placeholder="Exact checkout at 069a50fa243b01fa578a7c1bcb8864d9e796d34b",
+                elem_classes=["ev4-ltr"],
+            )
             route = gr.HTML(
                 '<section lang="fa" dir="rtl" class="ev4-status-content">فایل را انتخاب کنید تا مسیر معتبر تشخیص داده شود.</section>'
             )
 
         with gr.Accordion("مسیرهای local repository موردنیاز", open=True, elem_classes=["ev4-section"]):
-            architect = gr.Textbox(
-                label="Architect checkout",
-                visible=False,
-                elem_classes=["ev4-ltr"],
-            )
-            ce = gr.Textbox(
-                label="CE checkout",
-                visible=False,
-                elem_classes=["ev4-ltr"],
-            )
-            builder = gr.Textbox(
-                label="Builder checkout",
-                visible=False,
-                elem_classes=["ev4-ltr"],
-            )
+            architect = gr.Textbox(label="Architect checkout", visible=False, elem_classes=["ev4-ltr"])
+            ce = gr.Textbox(label="CE checkout", visible=False, elem_classes=["ev4-ltr"])
+            builder = gr.Textbox(label="Builder checkout", visible=False, elem_classes=["ev4-ltr"])
             output_dir = gr.Textbox(
                 label="Output directory — اختیاری",
                 placeholder="خالی بگذارید تا پوشه موقت امن داخل workspace ساخته شود",
@@ -168,8 +167,8 @@ def build_demo():
             file_count="multiple",
         )
 
-        def _inspect(source_path, project_gate_path):
-            payload = inspect_uploaded_route(source_path, project_gate_path)
+        def _inspect(source_path, project_gate_path, kernel_path):
+            payload = inspect_uploaded_route(source_path, project_gate_path, kernel_path)
             routing = payload.get("routing") if isinstance(payload.get("routing"), dict) else {}
             roles = set(routing.get("required_repository_roles") or [])
             return (
@@ -179,19 +178,23 @@ def build_demo():
                 gr.update(visible="builder" in roles),
             )
 
-        source.change(
-            _inspect,
-            inputs=[source, project_gate],
-            outputs=[route, architect, ce, builder],
-        )
-        project_gate.change(
-            _inspect,
-            inputs=[source, project_gate],
-            outputs=[route, architect, ce, builder],
-        )
+        for control in (source, project_gate, decision_kernel):
+            control.change(
+                _inspect,
+                inputs=[source, project_gate, decision_kernel],
+                outputs=[route, architect, ce, builder],
+            )
         run_button.click(
             run_uploaded_handoff,
-            inputs=[source, project_gate, architect, ce, builder, output_dir],
+            inputs=[
+                source,
+                project_gate,
+                architect,
+                ce,
+                builder,
+                output_dir,
+                decision_kernel,
+            ],
             outputs=[status, diagnostics, preview, downloads],
         )
 

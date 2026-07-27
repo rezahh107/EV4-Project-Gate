@@ -13,6 +13,7 @@ class TransitionContract:
     optional_repo_fields: tuple[str, ...] = ()
     producer_transition: str | None = None
     producer_required_repo_fields: tuple[str, ...] = ()
+    producer_optional_repo_fields: tuple[str, ...] = ()
     downstream_filename: str | None = None
     receipt_filename: str | None = None
 
@@ -29,6 +30,7 @@ _TRANSITIONS: tuple[TransitionContract, ...] = (
         ("project_gate_repo_path",),
         "architect-to-ce",
         ("project_gate_repo_path", "architect_repo_path", "ce_repo_path"),
+        ("kernel_repo_path",),
         "ce-input.json",
         "project-gate-a2c-receipt.json",
     ),
@@ -41,6 +43,7 @@ _TRANSITIONS: tuple[TransitionContract, ...] = (
         ("project_gate_repo_path",),
         "ce-to-builder",
         ("project_gate_repo_path", "ce_repo_path", "builder_repo_path"),
+        ("kernel_repo_path",),
         "builder-input.json",
         "project-gate-c2b-receipt.json",
     ),
@@ -101,14 +104,21 @@ def effective_repository_fields(
 ) -> tuple[str, ...]:
     """Return repository paths that can affect this exact request lifecycle.
 
-    Producer-emitted execution has an explicit repository set. Other modes may
-    consume both required and optional contract paths, for example the optional
-    Project Gate root used to resolve lock files.
+    Producer-emitted execution consumes both required transition repositories and
+    optional authority repositories such as the operator-selected Decision Kernel
+    checkout. Other modes may consume both required and optional contract paths.
     """
 
     contract = contract_for_service(service_choice)
     if acquisition_mode == "producer_emitted_gate_artifact":
-        return contract.producer_required_repo_fields
+        return tuple(
+            dict.fromkeys(
+                (
+                    *contract.producer_required_repo_fields,
+                    *contract.producer_optional_repo_fields,
+                )
+            )
+        )
     return tuple(dict.fromkeys((*contract.required_repo_fields, *contract.optional_repo_fields)))
 
 
@@ -132,6 +142,7 @@ def repository_path_matrix() -> tuple[dict[str, object], ...]:
             "optional_repo_fields": item.optional_repo_fields,
             "producer_transition": item.producer_transition,
             "producer_required_repo_fields": item.producer_required_repo_fields,
+            "producer_optional_repo_fields": item.producer_optional_repo_fields,
             "downstream_filename": item.downstream_filename,
             "receipt_filename": item.receipt_filename,
         }

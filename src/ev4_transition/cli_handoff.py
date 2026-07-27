@@ -19,6 +19,10 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--architect-repo")
     parser.add_argument("--ce-repo")
     parser.add_argument("--builder-repo")
+    parser.add_argument(
+        "--kernel-repo",
+        help="Exact EV4-Decision-Kernel checkout required only when continuation_assurance is present.",
+    )
     parser.add_argument("--output-dir")
     parser.add_argument("--output")
     parser.add_argument("--receipt-output")
@@ -35,6 +39,7 @@ def main(argv: list[str] | None = None) -> int:
                 architect_repo_path=args.architect_repo,
                 ce_repo_path=args.ce_repo,
                 builder_repo_path=args.builder_repo,
+                kernel_repo_path=args.kernel_repo,
             ),
             output_dir=args.output_dir,
             output_path=args.output,

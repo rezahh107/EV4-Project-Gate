@@ -33,6 +33,26 @@
       "real_non_synthetic_evidence": "insufficient_evidence",
       "viewport_runtime_authority": "insufficient_evidence_until_observed_official_execution"
     },
+    "pcvp_boundary_reader": {
+      "activation": "none",
+      "adoption_status": "not_yet_adopted",
+      "caller_checkout_node_modules": "ignored",
+      "canonical_contract_owner": "rezahh107/EV4-Decision-Kernel",
+      "compatibility_mode": "dual_read",
+      "dependency_installation": "exact_package_lock_npm_ci_ignore_scripts_in_disposable_tree",
+      "downstream_specialist_emission": "dormant_not_enabled",
+      "exact_owner_commit": "069a50fa243b01fa578a7c1bcb8864d9e796d34b",
+      "legacy_absent_input": "accepted_dependency_free",
+      "local_canonical_semantic_reimplementation": "removed",
+      "malformed_or_unsupported_carrier": "rejected",
+      "owner_authority_or_execution_unavailable": "insufficient_evidence",
+      "owner_checkout_mutation": "forbidden_and_post_execution_verified",
+      "owner_validator_execution": "implemented_clean_lock_derived_temporary_tree",
+      "producer_export_intake_surface": "implemented_lossless",
+      "profile_preauthorization_binding": "exact_unique_effect_class_and_scope",
+      "source_profile_and_stage_binding": "implemented_exact_identifiers_scope_and_endpoints",
+      "vendored_executable_or_schema_authority": "absent"
+    },
     "producer_emitted_gate_artifact": {
       "common_contract": "implemented",
       "downstream_producer_ci_enforcement": "implemented_immutable_sha_workflow",
@@ -72,6 +92,9 @@
     "grouped A2C publication transaction",
     "KROAD-011 kernel decision intake internal orchestration baseline",
     "final evidence gate orchestration baseline",
+    "EV4-PCVP v1 tolerant Producer Gate Export boundary reader",
+    "EV4-PCVP clean lock-derived Decision Kernel owner-validator execution",
+    "EV4-PCVP exact unique Profile class-and-scope and downstream Stage binding",
     "local operator UI shell",
     "PG-INT validated producer-export routing facade",
     "PG-INT unified local service API",
@@ -90,7 +113,9 @@
     "KROAD-012 downstream producer integration",
     "KROAD-013 runtime or browser evidence collection",
     "KROAD-014 re-audit automation",
-    "KROAD-015 reopen automation"
+    "KROAD-015 reopen automation",
+    "EV4-PCVP producer emission and downstream specialist propagation",
+    "EV4-PCVP adoption and strict activation"
   ],
   "package": "ev4-project-gate",
   "pinned_owner_file_computation": {
