@@ -11,6 +11,7 @@ Compatibility is established only through exact pinned owner contracts, observed
 | Builder → Responsive | Builder evidence plus an observed official viewport producer execution at the pinned Builder commit | Responsive schema-bound input and official input/tree validators | Builder/Responsive lock reproduction; production invocation of pinned runtime execution; exact observed runtime result/tool propagation; immutable verified snapshot and receipt consumption; official Responsive validator execution |
 | Final Gate | Responsive evidence plus required prior lock chain and verified runtime evidence when applicable | Final result schema, receipt semantics and Kernel intake when selected | Evidence sufficiency, lock validation, observed runtime propagation when required, snapshot/receipt identity, deterministic result and receipt |
 | Producer integration | Producer Gate Export and adoption/target records | Recorded producer validator and Project Gate intake/dispatch | Exact producer commit/path/hash identity and supported routing |
+| EV4-PCVP carrier intake | Optional `continuation_assurance` on Producer Gate Export; legacy absence remains valid | Project Gate dual-read boundary only | Exact non-authoritative Decision Kernel schema pin, structural and bounded mechanical validation, immutable input, lossless intake-result surface |
 
 ## Three-layer runtime rule
 
@@ -54,6 +55,9 @@ The pinned Builder commit lacks the required official viewport capture/export em
 - The verified snapshot and metadata-only receipt must be consumed by the production B2R publication path and carried into applicable Final Gate verification.
 - Invalid, stale, incompatible or insufficient inputs fail closed.
 - Synthetic or owner fixtures retain their evidence class and cannot establish real handoff readiness.
+- EV4-PCVP carrier absence preserves the legacy Producer Gate Export path.
+- A present EV4-PCVP carrier is validated without moving canonical ownership out of Decision Kernel.
+- This boundary reader does not emit the carrier into specialist artifacts and does not activate PCVP.
 - Runtime publication is atomic, collision-safe and no-overwrite, with active handoff receipts.
 - Adding the Builder emitter alone does not establish compatibility; Project Gate production integration and applicable Final Gate integration must also be completed and verified.
 - `src/ev4_transition/data/capability-status.v1.json` is the only machine-readable capability authority.

@@ -216,6 +216,7 @@ def intake_producer_export(
         producer,
         resolved,
         sorted(diagnostics, key=lambda item: (item["path"], item["code"])),
+        pcvp_carrier=common.get("pcvp_carrier"),
     )
 
 
@@ -428,8 +429,10 @@ def _result(
     producer: Any,
     transition: Any,
     diagnostics: list[dict[str, Any]],
+    *,
+    pcvp_carrier: Any = None,
 ) -> dict[str, Any]:
-    return {
+    result = {
         "schema_version": "producer-emitted-transition-result.v1",
         "status": status,
         "acquisition_mode": "producer_emitted_gate_artifact",
@@ -439,6 +442,9 @@ def _result(
         "handoff_allowed": False,
         "diagnostics": diagnostics,
     }
+    if isinstance(pcvp_carrier, dict):
+        result["pcvp_carrier"] = copy.deepcopy(pcvp_carrier)
+    return result
 
 
 def _diag(

@@ -11,6 +11,7 @@ from jsonschema import Draft202012Validator
 from .canonical_json import canonical_sha256, load_json_file
 from .diagnostics import Diagnostic, diagnostic, sort_diagnostics
 from .evidence_truth import derive_evidence_classification, synthetic_indicators
+from .pcvp_carrier import inspect_optional_pcvp_carrier
 
 VALIDATOR_ID = "ev4-producer-gate-export-validator"
 VALIDATOR_VERSION = "1.1.0"
@@ -34,6 +35,11 @@ class ProducerGateExportValidator:
         diagnostics: list[Diagnostic] = []
         for error in sorted(self._validator.iter_errors(item), key=lambda e: (_path(list(e.absolute_path)), e.message)):
             diagnostics.append(diagnostic("PG_EXPORT_SCHEMA_INVALID", "error", error.message, _path(list(error.absolute_path))))
+        pcvp_carrier, pcvp_diagnostics = inspect_optional_pcvp_carrier(
+            item,
+            self.repository_root,
+        )
+        diagnostics.extend(pcvp_diagnostics)
         if isinstance(item, dict):
             diagnostics.extend(self._semantic_diagnostics(item))
             if self.operational:
@@ -48,6 +54,7 @@ class ProducerGateExportValidator:
             "validator_version": VALIDATOR_VERSION,
             "status": "invalid" if any(d.severity == "error" for d in ordered) else "valid",
             "diagnostics": [d.to_dict() for d in ordered],
+            "pcvp_carrier": pcvp_carrier,
         }
 
     def _semantic_diagnostics(self, artifact: dict[str, Any]) -> list[Diagnostic]:

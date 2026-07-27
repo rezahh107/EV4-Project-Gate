@@ -33,6 +33,20 @@ Architect → Project Gate → CE → Project Gate → Builder
 
 Each specialist repository owns its schemas, validators, adapters, fixtures, and domain behavior. Project Gate owns deterministic orchestration, result envelopes, diagnostics, contract locks, publication safety, receipts, CLI/UI presentation, and selective CI boundary execution.
 
+## Dormant EV4-PCVP boundary compatibility
+
+Producer Gate Export intake is additive and dual-read for the optional
+`continuation_assurance` carrier from `EV4-PCVP@1.0.0`. Legacy exports without
+the carrier remain accepted. Present carriers are checked against exact,
+non-authoritative schema bytes pinned from `EV4-Decision-Kernel`, followed by
+bounded mechanical reference, Authorization-coverage, scope, status and derived
+projection checks. A validated carrier is surfaced losslessly in the intake
+result; malformed or unsupported carriers fail closed.
+
+This does not enable Producer emission, specialist downstream propagation,
+adoption, strictness, an official PASS, or activation. Those remain separate,
+dependency-ordered work.
+
 ## Builder → Responsive runtime truth
 
 Three different implementation states must not be conflated:

@@ -33,6 +33,18 @@
       "real_non_synthetic_evidence": "insufficient_evidence",
       "viewport_runtime_authority": "insufficient_evidence_until_observed_official_execution"
     },
+    "pcvp_boundary_reader": {
+      "activation": "none",
+      "adoption_status": "not_yet_adopted",
+      "canonical_contract_owner": "rezahh107/EV4-Decision-Kernel",
+      "compatibility_mode": "dual_read",
+      "downstream_specialist_emission": "dormant_not_enabled",
+      "legacy_absent_input": "accepted",
+      "malformed_or_unsupported_carrier": "rejected",
+      "mechanical_cross_record_validation": "implemented",
+      "producer_export_intake_surface": "implemented_lossless",
+      "vendored_schema_authority": "non_authoritative_exact_byte_pin"
+    },
     "producer_emitted_gate_artifact": {
       "common_contract": "implemented",
       "downstream_producer_ci_enforcement": "implemented_immutable_sha_workflow",
@@ -72,6 +84,7 @@
     "grouped A2C publication transaction",
     "KROAD-011 kernel decision intake internal orchestration baseline",
     "final evidence gate orchestration baseline",
+    "EV4-PCVP v1 tolerant Producer Gate Export boundary reader",
     "local operator UI shell",
     "PG-INT validated producer-export routing facade",
     "PG-INT unified local service API",
@@ -90,7 +103,9 @@
     "KROAD-012 downstream producer integration",
     "KROAD-013 runtime or browser evidence collection",
     "KROAD-014 re-audit automation",
-    "KROAD-015 reopen automation"
+    "KROAD-015 reopen automation",
+    "EV4-PCVP producer emission and downstream specialist propagation",
+    "EV4-PCVP adoption and strict activation"
   ],
   "package": "ev4-project-gate",
   "pinned_owner_file_computation": {
