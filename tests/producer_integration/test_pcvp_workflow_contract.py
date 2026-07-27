@@ -37,6 +37,6 @@ def test_pcvp_changes_select_kernel_owner_boundary() -> None:
     classifier = CLASSIFIER.read_text(encoding="utf-8")
     assert '"src/ev4_transition/pcvp_carrier.py"' in classifier
     assert '"src/ev4_transition/pcvp_owner.py"' in classifier
-    assert '"src/ev4_transition/runners/pcvp_owner.py"' in classifier
+    assert '"src/ev4_transition/runners/**"' in classifier
     assert '"contracts/locks/pcvp-v1.lock.json"' in classifier
     assert '"tests/producer_integration/test_pcvp_*.py"' in classifier
