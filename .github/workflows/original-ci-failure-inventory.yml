@@ -1,0 +1,60 @@
+name: Original CI Failure Inventory
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/original-ci-failure-inventory.yml"
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  inventory:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Retrieve and classify original python-core failure
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ORIGINAL_JOB_ID: "90046640783"
+        run: |
+          set -euo pipefail
+          curl --fail --silent --show-error --location \
+            -H "Accept: application/vnd.github+json" \
+            -H "Authorization: Bearer $GH_TOKEN" \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            "$GITHUB_API_URL/repos/$GITHUB_REPOSITORY/actions/jobs/$ORIGINAL_JOB_ID/logs" \
+            -o "$RUNNER_TEMP/original-python-core.log"
+          python - "$RUNNER_TEMP/original-python-core.log" <<'PY'
+          from pathlib import Path
+          import re
+          import sys
+
+          path = Path(sys.argv[1])
+          lines = path.read_text(encoding="utf-8-sig", errors="replace").splitlines()
+          selected: list[str] = []
+          for index, line in enumerate(lines):
+              plain = re.sub(r"^\d{4}-\d{2}-\d{2}T[^ ]+Z ?", "", line)
+              if (
+                  "short test summary info" in plain
+                  or re.search(r"\bFAILED\s+tests/", plain)
+                  or re.search(r"\bERROR\s+tests/", plain)
+                  or "AssertionError" in plain
+                  or "PG.RUNNER_BOUNDARY." in plain
+              ):
+                  start = max(0, index - 2)
+                  end = min(len(lines), index + 5)
+                  selected.extend(lines[start:end])
+          deduped: list[str] = []
+          seen: set[str] = set()
+          for line in selected:
+              if line not in seen:
+                  seen.add(line)
+                  deduped.append(line)
+          print("ORIGINAL_CI_FAILURE_INVENTORY_BEGIN")
+          print("\n".join(deduped) if deduped else "NO_MATCHING_FAILURE_LINES")
+          print("ORIGINAL_CI_FAILURE_INVENTORY_END")
+          if not deduped:
+              raise SystemExit(1)
+          PY
