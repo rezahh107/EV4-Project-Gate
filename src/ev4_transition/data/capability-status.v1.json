@@ -127,5 +127,6 @@
     "builder-to-responsive",
     "final-evidence-gate"
   ],
-  "repository": "rezahh107/EV4-Project-Gate"
+  "repository": "rezahh107/EV4-Project-Gate",
+  "schema_version": "ev4-project-gate-capability-status.v1"
 }
