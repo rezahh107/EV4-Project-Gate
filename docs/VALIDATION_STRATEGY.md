@@ -33,18 +33,20 @@ Every affected boundary retains:
 - atomic no-overwrite publication;
 - runtime handoff receipt and required post-write reread.
 
+For a present EV4-PCVP carrier, the boundary additionally requires an exact read-only Decision Kernel checkout, locked execution-critical owner bytes, locked Node dependencies, official bundle/carrier execution, and explicit source Profile/Stage integration. Carrier absence remains dependency-free.
+
 ### 3. Repository-change validation
 
 `.github/workflows/validate.yml` is the single Project Gate quality Workflow.
 
 ```text
 scope
-→ core-quality
+→ python-core
 → affected boundaries
 → quality-gate
 ```
 
-The Workflow name remains `Skeleton Health` for compatibility. Legacy job IDs `skeleton` and `python-core` remain while their implementation follows the lean topology.
+The Workflow name remains `Skeleton Health` for compatibility. Job IDs `skeleton` and `python-core` remain stable.
 
 ## Exact Head
 
@@ -54,7 +56,7 @@ GitHub logs and the Workflow summary are the evidence. CI does not upload source
 
 ## Core quality: once per Head
 
-`core-quality` always runs exactly once:
+`python-core` always runs exactly once:
 
 ```bash
 uv lock --check
@@ -84,7 +86,7 @@ Fail-safe `run_all=true` applies to:
 - `push` to `main`;
 - explicit full validation dispatch.
 
-Known non-authoritative docs-only changes run core quality but no external boundary matrix.
+PCVP authority code, `contracts/locks/pcvp-v1.lock.json`, and PCVP contract tests select both `kernel_intake` and the applicable producer-integration coverage. Known non-authoritative docs-only changes run core quality but no external boundary matrix.
 
 ## Boundary matrix
 
@@ -94,10 +96,10 @@ The selected matrix can execute:
 - `ce_to_builder`: pinned CE/Builder contracts, lock verification, owner-tool smoke, publication and lineage tests;
 - `builder_to_responsive`: pinned Builder/Responsive contracts, lock reproduction, official Responsive validators, transition tests;
 - `final_gate`: prior lock chain, Responsive evidence, result/receipt semantics, insufficient-evidence behavior;
-- `kernel_intake`: pinned Kernel toolchain, MVK validation, semantic lock, Node bridge, intake/Final Gate tests;
+- `kernel_intake`: a legacy Kernel checkout at `76a82e28543ff8f0babca11b7d7dccac96b92894` for MVK plus a separate PCVP authority checkout at `069a50fa243b01fa578a7c1bcb8864d9e796d34b`; locked dependency installation; official bundle/fixture/carrier execution; Profile mutations; bridge and intake tests;
 - `producer_integration`: adoption registry, transition targets, exact producer artifact bytes, recorded validator existence, routing and dispatch tests.
 
-Node setup is limited to `kernel_intake`, where the official pinned owner toolchain actually requires it.
+Node setup is limited to `kernel_intake`, where official pinned owner toolchains require it. The unrelated legacy Kernel pin is never reused as PCVP authority.
 
 ## Final quality gate
 
