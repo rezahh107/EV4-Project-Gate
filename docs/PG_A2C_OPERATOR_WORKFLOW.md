@@ -15,7 +15,7 @@ Prepare local checkouts at these exact accepted revisions:
 
 ```text
 rezahh107/EV4-Architect-Repo@3d4eda2643f68888cc38bcaba5b5f451774c33db
-rezahh107/EV4-Constructability-Engineer-Repo@a747518d20014593d8921aec855b82aa5a30d449
+rezahh107/EV4-Constructability-Engineer-Repo@bc4a901d82fcdbdb131e30058b399508262706c5
 ```
 
 Project Gate verifies each checkout's GitHub repository identity and exact Git `HEAD`. A moving branch name cannot substitute for the accepted commit.

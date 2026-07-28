@@ -230,7 +230,7 @@ jobs:
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
         with:
           repository: rezahh107/EV4-Constructability-Engineer-Repo
-          ref: a747518d20014593d8921aec855b82aa5a30d449
+          ref: bc4a901d82fcdbdb131e30058b399508262706c5
           path: EV4-Constructability-Engineer-Repo
           persist-credentials: false
           show-progress: false
