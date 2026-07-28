@@ -14,8 +14,8 @@ The operator does not extract nested JSON, inspect `result.output`, or rebuild a
 Prepare local checkouts at these exact accepted revisions:
 
 ```text
-rezahh107/EV4-Architect-Repo@2934a273a6762a2f6d468a1ae7b30c3fe3431730
-rezahh107/EV4-Constructability-Engineer-Repo@6650c31304e5a0472b276c36018c1df8f42ac983
+rezahh107/EV4-Architect-Repo@3d4eda2643f68888cc38bcaba5b5f451774c33db
+rezahh107/EV4-Constructability-Engineer-Repo@bc4a901d82fcdbdb131e30058b399508262706c5
 ```
 
 Project Gate verifies each checkout's GitHub repository identity and exact Git `HEAD`. A moving branch name cannot substitute for the accepted commit.

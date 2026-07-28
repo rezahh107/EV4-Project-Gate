@@ -99,6 +99,23 @@ def test_valid_transition_outputs_complete_ce_v1_1_bundle():
     assert "ce_review_units" not in canonical_dumps(target)
 
 
+def test_unsupported_responsive_risk_state_is_copied_then_rejected_by_ce_schema():
+    payload = architect_payload()
+    payload["architect_intent"]["responsive_risk_seeds"][0]["state"] = "proposed"
+
+    result = run_transition(source_bundle(payload), official_hooks())
+
+    assert result["status"] == "invalid"
+    assert result["output"] is None
+    diagnostic = next(
+        item
+        for item in result["diagnostics"]
+        if item["code"] == "PG_A2C_CE_SCHEMA_VALIDATION_FAILED"
+    )
+    assert "architect_intent_preserved.responsive_risk_seeds" in diagnostic["path"]
+    assert diagnostic["message"] == "'insufficient_evidence' was expected"
+
+
 def test_operational_hooks_reject_synthetic_handoff_authority():
     result = run_transition(source_bundle(architect_payload()), operational_hooks())
     assert result["status"] == "insufficient_evidence"

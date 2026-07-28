@@ -65,6 +65,53 @@ def test_architect_registry_lock_and_lock_discovery_share_runtime_authority():
     }
 
 
+def test_a2c_live_ce_authority_isolated_from_ce_producer_and_c2b_pins():
+    invalid_unpublished_commit = "a747518d20014593d8921aec855b82aa5a30d449"
+    live_ce_a2c_commit = "bc4a901d82fcdbdb131e30058b399508262706c5"
+    ce_producer_commit = "6650c31304e5a0472b276c36018c1df8f42ac983"
+
+    assert CE_COMMIT == live_ce_a2c_commit
+    lock = load("contracts/locks/architect-to-ce-transition.v1.lock.json")
+    ce_entries = [item for item in lock["files"] if item["repository"] == CE_REPO]
+    assert ce_entries
+    assert {item["accepted_commit"] for item in ce_entries} == {live_ce_a2c_commit}
+
+    registry = load("contracts/producer-adoption/ev4-producer-adoption-set.v1.json")
+    ce_producer = next(item for item in registry["producers"] if item["stage"] == "ce")
+    assert ce_producer["runtime_pin"]["merged_commit_sha"] == ce_producer_commit
+
+    c2b_lock = load("contracts/locks/ce-to-builder-transition.v1.lock.json")
+    assert {
+        item["accepted_commit"]
+        for item in c2b_lock["files"]
+        if item["repository"] == CE_REPO
+    } == {ce_producer_commit}
+
+    active_authority_files = [
+        Path("src/ev4_transition/external_lock.py"),
+        Path("contracts/locks/architect-to-ce-transition.v1.lock.json"),
+        Path(".github/workflows/validate.yml"),
+        Path("docs/PG_A2C_OPERATOR_WORKFLOW.md"),
+    ]
+    assert all(
+        invalid_unpublished_commit not in path.read_text(encoding="utf-8")
+        for path in active_authority_files
+    )
+
+
+def test_a2c_lock_discovery_standalone_help_needs_no_installed_package():
+    completed = subprocess.run(
+        [sys.executable, "scripts/discover-architect-to-ce-contract-lock.py", "--help"],
+        text=True,
+        capture_output=True,
+        check=False,
+    )
+
+    assert completed.returncode == 0, completed.stderr
+    assert "--architect-repo" in completed.stdout
+    assert "--ce-repo" in completed.stdout
+
+
 def test_git_blob_unavailable_is_insufficient_not_mismatch(tmp_path):
     subprocess.run(["git", "init"], cwd=tmp_path, check=True, stdout=subprocess.PIPE)
     result = git_blob_sha256(tmp_path, "0123456789abcdef0123456789abcdef01234567", "missing.txt")
@@ -80,6 +127,22 @@ def test_valid_producer_emitted_intakes_do_not_mutate():
         assert artifact == before
         assert result["status"] == "accepted", result
         assert result["acquisition_mode"] == "producer_emitted_gate_artifact"
+
+
+def test_historical_architect_producer_commit_remains_rejected():
+    artifact = load("fixtures/producer-emitted/valid/architect-export.v1.json")
+    artifact["producer"]["commit_sha"] = (
+        "be9bdea9ae246b1587043f2582c1a950ea2a6ec5"
+    )
+
+    result = intake_producer_export(artifact)
+
+    assert result["status"] == "invalid"
+    assert any(
+        diagnostic["path"] == "$.producer.commit_sha"
+        and diagnostic["code"] == "PG-P05-PRODUCER-REGISTRY-INVALID"
+        for diagnostic in result["diagnostics"]
+    )
 
 
 def test_all_transition_targets_resolve_at_intake_boundary():
