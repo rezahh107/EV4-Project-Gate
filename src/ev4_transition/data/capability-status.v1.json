@@ -3,8 +3,10 @@
     "architect_to_ce": {
       "cli_exposure": "implemented",
       "orchestration_baseline": "implemented",
+      "pcvp_first_edge_activation": "implemented_exact_authority_gated",
+      "pcvp_validated_carrier_propagation": "implemented_lossless_to_ce_intake",
       "real_non_synthetic_handoff": "insufficient_evidence",
-      "verification_state": "synthetic_fixture_only"
+      "verification_state": "exact_head_synthetic_cross_repository"
     },
     "builder_to_responsive": {
       "cli_exposure": "guarded",
@@ -34,8 +36,9 @@
       "viewport_runtime_authority": "insufficient_evidence_until_observed_official_execution"
     },
     "pcvp_boundary_reader": {
-      "activation": "none",
-      "adoption_status": "not_yet_adopted",
+      "activation": "architect_to_project_gate_to_ce_only",
+      "activation_authority_commit": "ad0e7235929d7f6d847724f6b4d1a6a3c57453db",
+      "adoption_status": "first_edge_only",
       "caller_checkout_node_modules": "ignored",
       "canonical_contract_owner": "rezahh107/EV4-Decision-Kernel",
       "compatibility_mode": "dual_read",
@@ -51,6 +54,7 @@
       "producer_export_intake_surface": "implemented_lossless",
       "profile_preauthorization_binding": "exact_unique_effect_class_and_scope",
       "source_profile_and_stage_binding": "implemented_exact_identifiers_scope_and_endpoints",
+      "staged_activation_validation": "official_decision_kernel_validator_exact_commit",
       "vendored_executable_or_schema_authority": "absent"
     },
     "producer_emitted_gate_artifact": {
@@ -95,6 +99,8 @@
     "EV4-PCVP v1 tolerant Producer Gate Export boundary reader",
     "EV4-PCVP clean lock-derived Decision Kernel owner-validator execution",
     "EV4-PCVP exact unique Profile class-and-scope and downstream Stage binding",
+    "EV4-PCVP exact staged activation validation for Architect-to-Project-Gate-to-CE",
+    "EV4-PCVP lossless validated Architect carrier propagation into CE intake",
     "local operator UI shell",
     "PG-INT validated producer-export routing facade",
     "PG-INT unified local service API",
@@ -114,8 +120,8 @@
     "KROAD-013 runtime or browser evidence collection",
     "KROAD-014 re-audit automation",
     "KROAD-015 reopen automation",
-    "EV4-PCVP producer emission and downstream specialist propagation",
-    "EV4-PCVP adoption and strict activation"
+    "EV4-PCVP downstream specialist emission and propagation beyond Architect-to-CE",
+    "EV4-PCVP full rollout and downstream edge activation"
   ],
   "package": "ev4-project-gate",
   "pinned_owner_file_computation": {
