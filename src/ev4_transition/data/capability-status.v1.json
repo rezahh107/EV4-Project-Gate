@@ -36,9 +36,8 @@
       "viewport_runtime_authority": "insufficient_evidence_until_observed_official_execution"
     },
     "pcvp_boundary_reader": {
-      "activation": "architect_to_project_gate_to_ce_only",
-      "activation_authority_commit": "ad0e7235929d7f6d847724f6b4d1a6a3c57453db",
-      "adoption_status": "first_edge_only",
+      "activation": "none",
+      "adoption_status": "not_yet_adopted",
       "caller_checkout_node_modules": "ignored",
       "canonical_contract_owner": "rezahh107/EV4-Decision-Kernel",
       "compatibility_mode": "dual_read",
@@ -54,7 +53,6 @@
       "producer_export_intake_surface": "implemented_lossless",
       "profile_preauthorization_binding": "exact_unique_effect_class_and_scope",
       "source_profile_and_stage_binding": "implemented_exact_identifiers_scope_and_endpoints",
-      "staged_activation_validation": "official_decision_kernel_validator_exact_commit",
       "vendored_executable_or_schema_authority": "absent"
     },
     "producer_emitted_gate_artifact": {
