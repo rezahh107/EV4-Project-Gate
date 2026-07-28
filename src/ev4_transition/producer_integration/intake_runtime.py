@@ -347,6 +347,7 @@ def transition_producer_export(
             receipt_path=receipt_path
             if receipt_path is not None
             else defaults["receipt"],
+            decision_kernel_repo=decision_kernel_repo,
         )
 
     if resolved == "ce-to-builder":
