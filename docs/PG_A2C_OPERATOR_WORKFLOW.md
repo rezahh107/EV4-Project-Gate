@@ -14,7 +14,7 @@ The operator does not extract nested JSON, inspect `result.output`, or rebuild a
 Prepare local checkouts at these exact accepted revisions:
 
 ```text
-rezahh107/EV4-Architect-Repo@be9bdea9ae246b1587043f2582c1a950ea2a6ec5
+rezahh107/EV4-Architect-Repo@2934a273a6762a2f6d468a1ae7b30c3fe3431730
 rezahh107/EV4-Constructability-Engineer-Repo@6650c31304e5a0472b276c36018c1df8f42ac983
 ```
 

@@ -12,7 +12,7 @@ from .diagnostics import Diagnostic, diagnostic, sort_diagnostics
 TRANSITION_ID = "ev4-architect-to-ce-transition@1.0.0"
 LOCK_SCHEMA_VERSION = "external-contract-lock.v1"
 ARCHITECT_REPO = "rezahh107/EV4-Architect-Repo"
-ARCHITECT_COMMIT = "be9bdea9ae246b1587043f2582c1a950ea2a6ec5"
+ARCHITECT_COMMIT = "2934a273a6762a2f6d468a1ae7b30c3fe3431730"
 ARCHITECT_RUNTIME_COMMIT = ARCHITECT_COMMIT
 CE_REPO = "rezahh107/EV4-Constructability-Engineer-Repo"
 CE_COMMIT = "6650c31304e5a0472b276c36018c1df8f42ac983"
