@@ -12,10 +12,10 @@ from .diagnostics import Diagnostic, diagnostic, sort_diagnostics
 TRANSITION_ID = "ev4-architect-to-ce-transition@1.0.0"
 LOCK_SCHEMA_VERSION = "external-contract-lock.v1"
 ARCHITECT_REPO = "rezahh107/EV4-Architect-Repo"
-ARCHITECT_COMMIT = "2934a273a6762a2f6d468a1ae7b30c3fe3431730"
+ARCHITECT_COMMIT = "3d4eda2643f68888cc38bcaba5b5f451774c33db"
 ARCHITECT_RUNTIME_COMMIT = ARCHITECT_COMMIT
 CE_REPO = "rezahh107/EV4-Constructability-Engineer-Repo"
-CE_COMMIT = "6650c31304e5a0472b276c36018c1df8f42ac983"
+CE_COMMIT = "a747518d20014593d8921aec855b82aa5a30d449"
 
 
 @dataclass(frozen=True)

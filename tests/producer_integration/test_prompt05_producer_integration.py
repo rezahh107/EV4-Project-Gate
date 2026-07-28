@@ -65,6 +65,19 @@ def test_architect_registry_lock_and_lock_discovery_share_runtime_authority():
     }
 
 
+def test_a2c_lock_discovery_standalone_help_needs_no_installed_package():
+    completed = subprocess.run(
+        [sys.executable, "scripts/discover-architect-to-ce-contract-lock.py", "--help"],
+        text=True,
+        capture_output=True,
+        check=False,
+    )
+
+    assert completed.returncode == 0, completed.stderr
+    assert "--architect-repo" in completed.stdout
+    assert "--ce-repo" in completed.stdout
+
+
 def test_git_blob_unavailable_is_insufficient_not_mismatch(tmp_path):
     subprocess.run(["git", "init"], cwd=tmp_path, check=True, stdout=subprocess.PIPE)
     result = git_blob_sha256(tmp_path, "0123456789abcdef0123456789abcdef01234567", "missing.txt")
@@ -80,6 +93,22 @@ def test_valid_producer_emitted_intakes_do_not_mutate():
         assert artifact == before
         assert result["status"] == "accepted", result
         assert result["acquisition_mode"] == "producer_emitted_gate_artifact"
+
+
+def test_historical_architect_producer_commit_remains_rejected():
+    artifact = load("fixtures/producer-emitted/valid/architect-export.v1.json")
+    artifact["producer"]["commit_sha"] = (
+        "be9bdea9ae246b1587043f2582c1a950ea2a6ec5"
+    )
+
+    result = intake_producer_export(artifact)
+
+    assert result["status"] == "invalid"
+    assert any(
+        diagnostic["path"] == "$.producer.commit_sha"
+        and diagnostic["code"] == "PG-P05-PRODUCER-REGISTRY-INVALID"
+        for diagnostic in result["diagnostics"]
+    )
 
 
 def test_all_transition_targets_resolve_at_intake_boundary():

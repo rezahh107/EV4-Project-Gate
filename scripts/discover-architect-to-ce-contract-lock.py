@@ -9,7 +9,30 @@ import sys
 from pathlib import Path
 from typing import Any
 
-from ev4_transition.external_lock import (
+# This file is a supported standalone entry point.  When it is executed by path,
+# Python adds scripts/ (not the repository root or src/) to sys.path.  Resolve the
+# repository-local package explicitly so discovery uses the same authority module
+# as installed runtime validation without requiring an editable install.
+REPOSITORY_ROOT = Path(__file__).resolve().parents[1]
+SOURCE_ROOT = REPOSITORY_ROOT / "src"
+if str(SOURCE_ROOT) not in sys.path:
+    sys.path.insert(0, str(SOURCE_ROOT))
+
+
+def _parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--architect-repo", required=True)
+    parser.add_argument("--ce-repo", required=True)
+    parser.add_argument("--output", required=True)
+    return parser
+
+
+# argparse help must remain usable even when neither this project nor its
+# dependencies have been installed in a fresh source checkout.
+if __name__ == "__main__" and {"-h", "--help"}.intersection(sys.argv[1:]):
+    _parser().parse_args()
+
+from ev4_transition.external_lock import (  # noqa: E402
     ARCHITECT_COMMIT,
     ARCHITECT_REPO,
     CE_COMMIT,
@@ -193,11 +216,7 @@ def discover(architect_repo: Path, ce_repo: Path) -> dict[str, Any]:
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--architect-repo", required=True)
-    parser.add_argument("--ce-repo", required=True)
-    parser.add_argument("--output", required=True)
-    args = parser.parse_args(argv)
+    args = _parser().parse_args(argv)
 
     payload = discover(Path(args.architect_repo), Path(args.ce_repo))
     text = canonical_dumps(payload) + "\n"
