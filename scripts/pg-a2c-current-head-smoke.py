@@ -399,7 +399,7 @@ def _single_json_line(text: str) -> dict[str, Any]:
     lines = [line for line in text.splitlines() if line.strip()]
     if not lines:
         raise SystemExit("expected structured JSON output was empty")
-    value = json.loads(lines[-1])
+    value = json.loads(lines[-1], parse_constant=_reject_constant)
     if not isinstance(value, dict):
         raise SystemExit("structured JSON output was not an object")
     return value
@@ -410,7 +410,7 @@ def _write_json(path: Path, value: Any) -> None:
 
 
 def _read_json(path: Path) -> dict[str, Any]:
-    value = json.loads(path.read_text(encoding="utf-8"))
+    value = json.loads(path.read_text(encoding="utf-8"), parse_constant=_reject_constant)
     if not isinstance(value, dict):
         raise SystemExit(f"expected object JSON: {path}")
     return value
@@ -418,6 +418,10 @@ def _read_json(path: Path) -> dict[str, Any]:
 
 def _sha256(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def _reject_constant(value: str) -> Any:
+    raise ValueError(f"non-finite JSON constant is forbidden: {value}")
 
 
 if __name__ == "__main__":
