@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import copy
+import importlib.util
 import json
 import subprocess
 import sys
@@ -12,6 +13,7 @@ from ev4_transition.producer_integration import intake as intake_module
 from ev4_transition.producer_integration.join_preflight import validate_join_evidence_packet
 from ev4_transition.producer_integration.registry import validate_adoption_registry, git_blob_sha256
 from ev4_transition.producer_integration.intake import intake_producer_export, transition_producer_export
+from ev4_transition.external_lock import ARCHITECT_COMMIT, ARCHITECT_REPO, CE_COMMIT, CE_REPO
 
 
 def load(path: str):
@@ -30,6 +32,37 @@ def test_registry_is_valid_and_uses_merged_runtime_pins():
     reg = load("contracts/producer-adoption/ev4-producer-adoption-set.v1.json")
     for producer in reg["producers"]:
         assert producer["runtime_pin"]["merged_commit_sha"] != producer["pr_head_sha"]
+
+
+def test_architect_registry_lock_and_lock_discovery_share_runtime_authority():
+    reg = load("contracts/producer-adoption/ev4-producer-adoption-set.v1.json")
+    architect = next(item for item in reg["producers"] if item["stage"] == "architect")
+    assert architect["repository"] == ARCHITECT_REPO
+    assert architect["runtime_pin"]["merged_commit_sha"] == ARCHITECT_COMMIT
+
+    lock = load("contracts/locks/architect-to-ce-transition.v1.lock.json")
+    commits_by_repository = {}
+    for item in lock["files"]:
+        commits_by_repository.setdefault(item["repository"], set()).add(item["accepted_commit"])
+    assert commits_by_repository == {
+        ARCHITECT_REPO: {ARCHITECT_COMMIT},
+        CE_REPO: {CE_COMMIT},
+    }
+
+    script_path = Path("scripts/discover-architect-to-ce-contract-lock.py")
+    spec = importlib.util.spec_from_file_location("discover_a2c_lock", script_path)
+    assert spec is not None and spec.loader is not None
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    assert module.ARCHITECT_COMMIT == ARCHITECT_COMMIT
+    assert module.CE_COMMIT == CE_COMMIT
+    assert {
+        (item["repository"], item["accepted_commit"])
+        for item in module.ROLE_SPECS
+    } == {
+        (ARCHITECT_REPO, ARCHITECT_COMMIT),
+        (CE_REPO, CE_COMMIT),
+    }
 
 
 def test_git_blob_unavailable_is_insufficient_not_mismatch(tmp_path):

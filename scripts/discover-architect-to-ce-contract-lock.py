@@ -9,11 +9,13 @@ import sys
 from pathlib import Path
 from typing import Any
 
-TRANSITION_ID = "ev4-architect-to-ce-transition@1.0.0"
-ARCHITECT_REPO = "rezahh107/EV4-Architect-Repo"
-ARCHITECT_COMMIT = "b0651668b97f682bb17f66840c8e8c503fd3935d"
-CE_REPO = "rezahh107/EV4-Constructability-Engineer-Repo"
-CE_COMMIT = "546680a2e2a309c0d7e0ddbfc017e9e194ece7cb"
+from ev4_transition.external_lock import (
+    ARCHITECT_COMMIT,
+    ARCHITECT_REPO,
+    CE_COMMIT,
+    CE_REPO,
+    TRANSITION_ID,
+)
 
 ROLE_SPECS: tuple[dict[str, str], ...] = (
     {
