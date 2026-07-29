@@ -220,7 +220,7 @@ jobs:
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
         with:
           repository: rezahh107/EV4-Architect-Repo
-          ref: 3d4eda2643f68888cc38bcaba5b5f451774c33db
+          ref: bd7cb512f9b61222cee2512fbfc53a2bb01a1175
           path: EV4-Architect-Repo
           persist-credentials: false
           show-progress: false
@@ -235,14 +235,80 @@ jobs:
           persist-credentials: false
           show-progress: false
 
+      - name: Checkout immutable Decision Kernel PCVP policy authority for Architect boundary
+        if: matrix.boundary == 'architect_to_ce'
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+        with:
+          repository: rezahh107/EV4-Decision-Kernel
+          ref: 069a50fa243b01fa578a7c1bcb8864d9e796d34b
+          fetch-depth: 0
+          path: EV4-Decision-Kernel-PCVP-A2C
+          persist-credentials: false
+          show-progress: false
+
+      - name: Checkout exact Decision Kernel staged activation authority
+        if: matrix.boundary == 'architect_to_ce'
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+        with:
+          repository: rezahh107/EV4-Decision-Kernel
+          ref: ad0e7235929d7f6d847724f6b4d1a6a3c57453db
+          fetch-depth: 1
+          path: EV4-Decision-Kernel-PCVP-Activation
+          persist-credentials: false
+          show-progress: false
+
+      - name: Setup Node for Kernel boundary only
+        if: matrix.boundary == 'architect_to_ce' || matrix.boundary == 'kernel_intake'
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: 20
+
       - name: Verify Architect to CE boundary
         if: matrix.boundary == 'architect_to_ce'
         working-directory: EV4-Project-Gate
         env:
           EV4_ARCHITECT_REPO: ${{ github.workspace }}/EV4-Architect-Repo
           EV4_CE_REPO: ${{ github.workspace }}/EV4-Constructability-Engineer-Repo
+          EV4_PCVP_KERNEL_REPO: ${{ github.workspace }}/EV4-Decision-Kernel-PCVP-A2C
+          EV4_PCVP_ACTIVATION_REPO: ${{ github.workspace }}/EV4-Decision-Kernel-PCVP-Activation
         run: |
-          uv run pytest -q tests/test_architect_to_ce_transition.py tests/producer_integration/test_pg_a2c_io.py tests/producer_integration/test_pg_a2c_dispatch.py
+          set -euo pipefail
+          test "$(git -C "$EV4_ARCHITECT_REPO" rev-parse HEAD)" = "bd7cb512f9b61222cee2512fbfc53a2bb01a1175"
+          test "$(git -C "$EV4_CE_REPO" rev-parse HEAD)" = "bc4a901d82fcdbdb131e30058b399508262706c5"
+          test "$(git -C "$EV4_PCVP_KERNEL_REPO" rev-parse HEAD)" = "069a50fa243b01fa578a7c1bcb8864d9e796d34b"
+          test "$(git -C "$EV4_PCVP_ACTIVATION_REPO" rev-parse HEAD)" = "ad0e7235929d7f6d847724f6b4d1a6a3c57453db"
+          git -C "$EV4_PCVP_KERNEL_REPO" fetch --quiet --no-tags origin ad0e7235929d7f6d847724f6b4d1a6a3c57453db
+          git -C "$EV4_PCVP_KERNEL_REPO" cat-file -e 'ad0e7235929d7f6d847724f6b4d1a6a3c57453db^{commit}'
+          test "$(git -C "$EV4_PCVP_KERNEL_REPO" rev-parse HEAD)" = "069a50fa243b01fa578a7c1bcb8864d9e796d34b"
+          test -z "$(git -C "$EV4_PCVP_KERNEL_REPO" status --porcelain=v1 --untracked-files=all)"
+          test ! -e "$EV4_PCVP_KERNEL_REPO/node_modules"
+
+          (cd "$EV4_PCVP_ACTIVATION_REPO" && npm ci --ignore-scripts --no-audit --no-fund && node tools/test-pcvp-activation-v1.mjs)
+          EV4_PCVP_ACTIVATION_REPO="$EV4_PCVP_ACTIVATION_REPO" node --input-type=module - <<'NODE'
+          import assert from 'node:assert/strict';
+          import fs from 'node:fs';
+          import path from 'node:path';
+          import { pathToFileURL } from 'node:url';
+
+          const root = process.env.EV4_PCVP_ACTIVATION_REPO;
+          const schema = JSON.parse(fs.readFileSync(path.join(root, 'kernel/pcvp/pcvp-activation.v1.schema.json'), 'utf8'));
+          const record = JSON.parse(fs.readFileSync(path.join(root, 'kernel/pcvp/pcvp-activation.v1.json'), 'utf8'));
+          const moduleUrl = pathToFileURL(path.join(root, 'kernel/validator/pcvp-activation-v1.mjs')).href;
+          const { validateActivationRecord } = await import(moduleUrl);
+          const clone = (value) => structuredClone(value);
+          const mustFail = (mutate) => {
+            const candidate = clone(record);
+            mutate(candidate);
+            assert.equal(validateActivationRecord(candidate, schema).result, 'FAIL');
+          };
+          mustFail((value) => { value.activation_id = 'EV4-PCVP-ACT-WRONG'; });
+          mustFail((value) => { value.activation_scope.enabled_edges = []; });
+          mustFail((value) => { value.runtime_authorization.project_gate_to_ce = false; });
+          mustFail((value) => { value.runtime_authorization.ce_to_builder_emission = true; });
+          console.log('PCVP_REQUIRED_ACTIVATION_MUTATIONS_REJECTED');
+          NODE
+
+          uv run pytest -q tests/producer_integration/test_pcvp_a2c_activation.py tests/test_architect_to_ce_transition.py tests/producer_integration/test_pg_a2c_io.py tests/producer_integration/test_pg_a2c_dispatch.py tests/producer_integration/test_pcvp_boundary_reader.py
           python scripts/discover-architect-to-ce-contract-lock.py --help >/dev/null
           uv run python scripts/discover-architect-to-ce-contract-lock.py --architect-repo "$EV4_ARCHITECT_REPO" --ce-repo "$EV4_CE_REPO" --output /tmp/a2c-lock-discovery.json
           python - <<'PY'
@@ -259,6 +325,10 @@ jobs:
           uv run python scripts/transition-smoke.py --architect-repo "$EV4_ARCHITECT_REPO" --ce-repo "$EV4_CE_REPO"
           (cd "$EV4_ARCHITECT_REPO" && "${{ github.workspace }}/EV4-Project-Gate/.venv/bin/python" scripts/check-architect-stage-payload.py)
           (cd "$EV4_CE_REPO" && "${{ github.workspace }}/EV4-Project-Gate/.venv/bin/python" scripts/validate-ce-architect-stage-intake.py)
+          uv run python scripts/pg-a2c-current-head-smoke.py --architect-repo "$EV4_ARCHITECT_REPO" --ce-repo "$EV4_CE_REPO" --kernel-repo "$EV4_PCVP_KERNEL_REPO" --evidence-dir pg-a2c-exact-head-evidence
+          test "$(git -C "$EV4_PCVP_KERNEL_REPO" rev-parse HEAD)" = "069a50fa243b01fa578a7c1bcb8864d9e796d34b"
+          test -z "$(git -C "$EV4_PCVP_KERNEL_REPO" status --porcelain=v1 --untracked-files=all)"
+          test ! -e "$EV4_PCVP_KERNEL_REPO/node_modules"
 
       - name: Checkout CE owner repository for Builder boundary
         if: matrix.boundary == 'ce_to_builder'
@@ -358,12 +428,6 @@ jobs:
           persist-credentials: false
           show-progress: false
 
-      - name: Setup Node for Kernel boundary only
-        if: matrix.boundary == 'kernel_intake'
-        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
-        with:
-          node-version: 20
-
       - name: Verify Kernel intake and PCVP owner boundaries
         if: matrix.boundary == 'kernel_intake'
         working-directory: EV4-Project-Gate
@@ -398,7 +462,7 @@ jobs:
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
         with:
           repository: rezahh107/EV4-Architect-Repo
-          ref: 3d4eda2643f68888cc38bcaba5b5f451774c33db
+          ref: bd7cb512f9b61222cee2512fbfc53a2bb01a1175
           path: producers/architect
           persist-credentials: false
           show-progress: false

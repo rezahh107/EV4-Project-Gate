@@ -327,6 +327,8 @@ def transition_producer_export(
             artifact,
             project_gate_root=project_gate_repo,
             artifact_root=architect_repo,
+            decision_kernel_repo=decision_kernel_repo,
+            downstream_stage=DOWNSTREAM_STAGE_BY_TRANSITION[resolved],
         )
         if operational_failure is not None:
             return operational_failure
@@ -347,6 +349,7 @@ def transition_producer_export(
             receipt_path=receipt_path
             if receipt_path is not None
             else defaults["receipt"],
+            decision_kernel_repo=decision_kernel_repo,
         )
 
     if resolved == "ce-to-builder":
@@ -406,10 +409,14 @@ def _operational_truth_failure(
     *,
     project_gate_root: str | Path,
     artifact_root: str | Path,
+    decision_kernel_repo: str | Path | None = None,
+    downstream_stage: str | None = None,
 ) -> dict[str, Any] | None:
     validation = OperationalProducerGateExportValidator(
         project_gate_root,
         artifact_root,
+        decision_kernel_repo=decision_kernel_repo,
+        downstream_stage=downstream_stage,
     ).validate(artifact)
     if validation.get("status") == "valid":
         return None

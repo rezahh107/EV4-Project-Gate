@@ -13,6 +13,45 @@
     "bundle_root": "kernel/pcvp/v1.0.0/bundle",
     "validator_path": "kernel/validator/pcvp-v1.mjs"
   },
+  "activation_authority": {
+    "repository": "rezahh107/EV4-Decision-Kernel",
+    "commit_sha": "ad0e7235929d7f6d847724f6b4d1a6a3c57453db",
+    "record_path": "kernel/pcvp/pcvp-activation.v1.json",
+    "schema_path": "kernel/pcvp/pcvp-activation.v1.schema.json",
+    "validator_path": "kernel/validator/pcvp-activation-v1.mjs",
+    "runner_path": "tools/validate-pcvp-activation-v1.mjs",
+    "scope_path": "planning/governance/scopes/pcvp-v1-activation.scope.json",
+    "authority_files": [
+      {
+        "path": "kernel/pcvp/pcvp-activation.v1.json",
+        "git_blob_sha": "c5c43d852871d05f483280f559d4e5dea6b84adc"
+      },
+      {
+        "path": "kernel/pcvp/pcvp-activation.v1.schema.json",
+        "git_blob_sha": "d9f47b98da42c81c26d0ccd45794d7d63a2db68f"
+      },
+      {
+        "path": "kernel/validator/pcvp-activation-v1.mjs",
+        "git_blob_sha": "200857ccbe6b6c83f84aafe3e2cded7f6a264030"
+      },
+      {
+        "path": "tools/validate-pcvp-activation-v1.mjs",
+        "git_blob_sha": "fe678ee9914ec09fd4a06439449fdccecef8dde2"
+      },
+      {
+        "path": "planning/governance/scopes/pcvp-v1-activation.scope.json",
+        "git_blob_sha": "1708132cf584f56828823db270256fa4db10b562"
+      },
+      {
+        "path": "package.json",
+        "git_blob_sha": "30f2977512731d42e814e80c379223966e0c8ce1"
+      },
+      {
+        "path": "package-lock.json",
+        "git_blob_sha": "c72c094d16f94165725c0b2016c9da3ebf026ec1"
+      }
+    ]
+  },
   "authority_files": [
     {
       "path": "kernel/validator/pcvp-v1.mjs",

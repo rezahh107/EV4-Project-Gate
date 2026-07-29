@@ -36,8 +36,8 @@
       "version": "1.0.0"
     },
     "produced_by": {
-      "commit_sha": "3d4eda2643f68888cc38bcaba5b5f451774c33db",
-      "ref": "3d4eda2643f68888cc38bcaba5b5f451774c33db",
+      "commit_sha": "bd7cb512f9b61222cee2512fbfc53a2bb01a1175",
+      "ref": "bd7cb512f9b61222cee2512fbfc53a2bb01a1175",
       "repository": "rezahh107/EV4-Architect-Repo"
     },
     "provenance": {
@@ -58,8 +58,8 @@
   },
   "pipeline_id": "synthetic-pipeline",
   "producer": {
-    "commit_sha": "3d4eda2643f68888cc38bcaba5b5f451774c33db",
-    "ref": "3d4eda2643f68888cc38bcaba5b5f451774c33db",
+    "commit_sha": "bd7cb512f9b61222cee2512fbfc53a2bb01a1175",
+    "ref": "bd7cb512f9b61222cee2512fbfc53a2bb01a1175",
     "repository": "rezahh107/EV4-Architect-Repo",
     "stage": "architect"
   },

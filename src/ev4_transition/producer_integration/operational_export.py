@@ -11,11 +11,25 @@ class OperationalProducerGateExportValidator(ProducerGateExportValidator):
     """Validate operational Producer authority against the actual owner checkout.
 
     Contract schemas remain Project Gate-owned, while referenced artifact bytes are
-    resolved relative to the producer checkout that owns those artifacts.
+    resolved relative to the producer checkout that owns those artifacts. Optional
+    PCVP validation receives the same already-resolved transition context as the
+    shared intake pass; this does not create or change activation authority.
     """
 
-    def __init__(self, project_gate_root: str | Path, artifact_root: str | Path) -> None:
-        super().__init__(project_gate_root, operational=True)
+    def __init__(
+        self,
+        project_gate_root: str | Path,
+        artifact_root: str | Path,
+        *,
+        decision_kernel_repo: str | Path | None = None,
+        downstream_stage: str | None = None,
+    ) -> None:
+        super().__init__(
+            project_gate_root,
+            operational=True,
+            decision_kernel_repo=decision_kernel_repo,
+            downstream_stage=downstream_stage,
+        )
         self.artifact_root = Path(artifact_root)
 
     def _resolve_reference(self, artifact_ref: Any) -> tuple[Path | None, Diagnostic | None]:

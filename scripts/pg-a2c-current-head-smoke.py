@@ -11,8 +11,10 @@ import sys
 from pathlib import Path
 from typing import Any
 
-from ev4_transition.canonical_json import canonical_dumps
+from ev4_transition.canonical_json import canonical_dumps, canonical_sha256
 from ev4_transition.external_lock import ARCHITECT_COMMIT, ARCHITECT_REPO, CE_COMMIT, CE_REPO
+from ev4_transition.runners.pcvp_activation import ACTIVATION_COMMIT, ACTIVATION_EDGE, ACTIVATION_ID
+from ev4_transition.runners.pcvp_owner import CANONICAL_COMMIT, CANONICAL_REPOSITORY
 from ev4_transition.runners.repository_identity import inspect_checkout
 
 PROJECT_GATE_REPOSITORY = "rezahh107/EV4-Project-Gate"
@@ -20,16 +22,18 @@ PROJECT_GATE_REPOSITORY = "rezahh107/EV4-Project-Gate"
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
-        description="Prove current-head synthetic Architect→CE compatibility."
+        description="Prove exact-head active Architect→Project Gate→CE PCVP compatibility."
     )
     parser.add_argument("--architect-repo", type=Path, required=True)
     parser.add_argument("--ce-repo", type=Path, required=True)
+    parser.add_argument("--kernel-repo", type=Path, required=True)
     parser.add_argument("--evidence-dir", type=Path, required=True)
     args = parser.parse_args(argv)
 
     project_gate = Path.cwd().resolve()
     architect = args.architect_repo.resolve()
     ce = args.ce_repo.resolve()
+    kernel = args.kernel_repo.resolve()
     evidence = args.evidence_dir.resolve()
     evidence.mkdir(parents=True, exist_ok=True)
     try:
@@ -52,62 +56,91 @@ def main(argv: list[str] | None = None) -> int:
             expected_repository=CE_REPO,
             expected_commit=CE_COMMIT,
         ),
+        "decision_kernel_policy": inspect_checkout(
+            kernel,
+            expected_repository=CANONICAL_REPOSITORY,
+            expected_commit=CANONICAL_COMMIT,
+        ),
     }
     if any(item["status"] != "accepted" for item in identities.values()):
         _write_json(evidence / "identity-failure.json", identities)
         raise SystemExit("exact repository identity verification failed")
 
-    _ensure_named_branch(architect)
-    architect_export = architect / "architect-project-gate.json"
-    architect_export.unlink(missing_ok=True)
-    payload = architect / "fixtures/architect-stage-payload/valid/minimal-complete.v1.json"
-    exporter_command = [
-        sys.executable,
-        "-B",
-        "scripts/export-architect-project-gate.py",
-        "--payload",
-        str(payload.relative_to(architect)),
-        "--run-id",
-        "pg-a2c-current-head-synthetic",
-        "--output",
-        architect_export.name,
-        "--format",
-        "json",
-    ]
-    exporter = _run(exporter_command, cwd=architect)
-    _write_process(
-        evidence / "architect-exporter-result.json",
-        exporter_command,
-        exporter,
-    )
-    if exporter.returncode not in {0, 2} or not architect_export.is_file():
-        raise SystemExit("official Architect exporter did not emit its artifact")
+    _assert_activation_object_available(kernel)
 
+    # Generate the source through the current public Architect Runtime authority.
+    # The Stage history is an owner fixture, so the resulting handoff must remain
+    # synthetic/blocked; the producer provenance itself comes from the real exact
+    # checkout because git_provider=None uses Architect's SubprocessGitProvider.
+    architect_output = evidence / "architect-runtime-output"
+    if architect_output.exists():
+        shutil.rmtree(architect_output)
+    architect_output.mkdir(parents=True)
+    runtime_command = _architect_runtime_command(architect_output)
+    runtime = _run(runtime_command, cwd=architect)
+    _write_process(evidence / "architect-runtime-finalization.json", runtime_command, runtime)
+    if runtime.returncode != 0:
+        raise SystemExit("official Architect Runtime finalization failed")
+    runtime_result = _single_json_line(runtime.stdout)
+    if runtime_result.get("finalization_succeeded") is not True:
+        raise SystemExit("official Architect Runtime did not finalize the Project Gate artifact")
+    if runtime_result.get("synthetic") is not True:
+        raise SystemExit("owner-fixture Runtime evidence must remain synthetic")
+    if runtime_result.get("handoff_allowed") is not False:
+        raise SystemExit("synthetic Architect Runtime evidence unexpectedly authorized handoff")
+    if runtime_result.get("publication_status") != "published_blocked":
+        raise SystemExit("synthetic Architect Runtime finalization status drifted")
+
+    architect_export = architect_output / "architect-project-gate.json"
+    if not architect_export.is_file():
+        raise SystemExit("official Architect Runtime did not publish architect-project-gate.json")
     export_value = _read_json(architect_export)
     final_bundle = export_value.get("final_stage_bundle")
+    continuation = export_value.get("continuation_assurance")
     if export_value.get("schema_version") != "producer-gate-export.v1":
-        raise SystemExit("Architect exporter emitted an unexpected contract identity")
+        raise SystemExit("Architect Runtime emitted an unexpected export contract identity")
+    producer = export_value.get("producer") if isinstance(export_value.get("producer"), dict) else {}
+    if producer.get("repository") != ARCHITECT_REPO or producer.get("commit_sha") != ARCHITECT_COMMIT:
+        raise SystemExit("Architect Runtime export did not carry the exact current producer identity")
     if not isinstance(final_bundle, dict) or final_bundle.get("synthetic") is not True:
-        raise SystemExit("current-head integration evidence must remain synthetic")
-    source_handoff_allowed = bool((export_value.get("handoff") or {}).get("allowed"))
-    if source_handoff_allowed:
-        expected_project_gate_exit = 0
-        expected_project_gate_status = "accepted"
-    else:
-        expected_project_gate_exit = 2
-        expected_project_gate_status = "insufficient_evidence"
+        raise SystemExit("Architect Runtime final bundle lost synthetic classification")
+    if not isinstance(continuation, dict):
+        raise SystemExit("current active Architect Runtime did not emit continuation_assurance")
+    if bool((export_value.get("handoff") or {}).get("allowed")) is not False:
+        raise SystemExit("synthetic Architect export unexpectedly upgraded ordinary handoff")
 
+    runtime_payload = (
+        (final_bundle.get("payload") or {}).get("data")
+        if isinstance(final_bundle.get("payload"), dict)
+        else None
+    )
+    architect_intent = (
+        runtime_payload.get("architect_intent")
+        if isinstance(runtime_payload, dict)
+        else None
+    )
+    responsive_risk_seeds = (
+        architect_intent.get("responsive_risk_seeds")
+        if isinstance(architect_intent, dict)
+        else None
+    )
+    if not isinstance(responsive_risk_seeds, list) or not responsive_risk_seeds:
+        raise SystemExit("Architect Runtime payload omitted owner-shaped responsive risk seeds")
+    responsive_risk_states = [
+        seed.get("state") if isinstance(seed, dict) else None
+        for seed in responsive_risk_seeds
+    ]
+    if any(state != "insufficient_evidence" for state in responsive_risk_states):
+        raise SystemExit(
+            "Architect Runtime payload did not preserve the owner-shaped "
+            "insufficient_evidence responsive risk state"
+        )
+
+    source_pcvp_hash = canonical_sha256({"continuation_assurance": continuation})
     source_copy = evidence / "architect-project-gate.json"
     source_copy.write_bytes(architect_export.read_bytes())
     source_bundle_path = evidence / "architect-source-bundle.json"
     _write_json(source_bundle_path, final_bundle)
-
-    first_ce = evidence / "ce-input.first.json"
-    first_receipt = evidence / "project-gate-a2c-receipt.first.json"
-    second_ce = evidence / "ce-input.second.json"
-    second_receipt = evidence / "project-gate-a2c-receipt.second.json"
-    for path in (first_ce, first_receipt, second_ce, second_receipt):
-        path.unlink(missing_ok=True)
 
     cli_command = [
         sys.executable,
@@ -122,68 +155,53 @@ def main(argv: list[str] | None = None) -> int:
         str(architect),
         "--ce-repo",
         str(ce),
+        "--kernel-repo",
+        str(kernel),
         "--output-dir",
         evidence.relative_to(project_gate).as_posix(),
         "--format",
         "json",
     ]
+
     first = _run(cli_command, cwd=project_gate)
     _write_process(evidence / "project-gate-first-result.json", cli_command, first)
     first_result = _single_json_line(first.stdout)
-    output = Path(first_result["downstream_artifact"]["path"])
-    receipt = Path(first_result["receipt"]["path"])
-    _assert_publication(
-        first,
-        first_result,
-        output,
-        receipt,
-        expected_exit=expected_project_gate_exit,
-        expected_status=expected_project_gate_status,
-        expected_handoff=source_handoff_allowed,
-    )
-
-    shutil.copyfile(output, first_ce)
-    shutil.copyfile(receipt, first_receipt)
-    first_ce_bytes = first_ce.read_bytes()
-    first_receipt_value = _read_json(first_receipt)
+    _assert_blocked_active_path(first, first_result)
 
     second = _run(cli_command, cwd=project_gate)
     _write_process(evidence / "project-gate-second-result.json", cli_command, second)
     second_result = _single_json_line(second.stdout)
-    second_output = Path(second_result["downstream_artifact"]["path"])
-    second_receipt_path = Path(second_result["receipt"]["path"])
-    _assert_publication(
-        second,
-        second_result,
-        second_output,
-        second_receipt_path,
-        expected_exit=expected_project_gate_exit,
-        expected_status=expected_project_gate_status,
-        expected_handoff=source_handoff_allowed,
+    _assert_blocked_active_path(second, second_result)
+
+    first_ce = _transition_ce_input(first_result)
+    second_ce = _transition_ce_input(second_result)
+    if canonical_dumps(first_ce) != canonical_dumps(second_ce):
+        raise SystemExit("repeated exact active-path execution changed CE intake bytes")
+    if first_ce.get("continuation_assurance") != continuation:
+        raise SystemExit("CE intake did not preserve the exact Architect continuation_assurance")
+    ce_pcvp_hash = canonical_sha256(
+        {"continuation_assurance": first_ce.get("continuation_assurance")}
     )
-    shutil.copyfile(second_output, second_ce)
-    shutil.copyfile(second_receipt_path, second_receipt)
-    if second_ce.read_bytes() != first_ce_bytes:
-        raise SystemExit("repeated execution changed CE input bytes")
-    second_receipt_value = _read_json(second_receipt)
-    if output.parent == second_output.parent:
-        raise SystemExit("repeated execution reused a collision-safe execution directory")
+    if ce_pcvp_hash != source_pcvp_hash:
+        raise SystemExit("Architect and CE PCVP carrier canonical identities differ")
 
-    ce_input = _read_json(output)
-    receipt_value = _read_json(receipt)
-    _assert_receipt_binds_output(first_receipt_value, output, first_result)
-    _assert_receipt_binds_output(second_receipt_value, second_output, second_result)
-    if first_receipt_value.get("receipt_id") == second_receipt_value.get("receipt_id"):
-        raise SystemExit("collision-safe executions unexpectedly reused a receipt identity")
-    if ce_input.get("schema_id") != "ev4-ce-architect-stage-intake@1.1.0":
-        raise SystemExit("standalone output is not the active CE intake contract")
-    if receipt_value.get("schema_version") != "project-gate-a2c-receipt.v1":
-        raise SystemExit("receipt contract identity is missing")
-    if receipt_value.get("synthetic") is not True:
-        raise SystemExit("receipt lost synthetic evidence classification")
-    if receipt_value.get("handoff_allowed") is not source_handoff_allowed:
-        raise SystemExit("receipt changed the producer handoff decision")
+    activation = first_result.get("pcvp_activation")
+    if not isinstance(activation, dict):
+        raise SystemExit("Project Gate omitted staged activation evidence")
+    if activation.get("activation_commit") != ACTIVATION_COMMIT:
+        raise SystemExit("Project Gate did not bind the exact staged activation commit")
+    if activation.get("activation_id") != ACTIVATION_ID:
+        raise SystemExit("Project Gate staged activation id drifted")
+    if activation.get("enabled_edge") != ACTIVATION_EDGE:
+        raise SystemExit("Project Gate staged activation edge drifted")
+    if activation.get("full_rollout_authorized") is not False:
+        raise SystemExit("Project Gate incorrectly reported full PCVP rollout authority")
 
+    # Re-run the official CE validator on the exact mapped object. This file is
+    # test evidence only; Project Gate correctly refuses operational publication
+    # because the Architect fixture handoff is false.
+    mapped_ce_path = evidence / "ce-input.synthetic-blocked.validation-only.json"
+    _write_json(mapped_ce_path, first_ce)
     ce_validator_command = [
         sys.executable,
         "-B",
@@ -191,7 +209,7 @@ def main(argv: list[str] | None = None) -> int:
         "--repo-root",
         str(ce),
         "--file",
-        str(output),
+        str(mapped_ce_path),
         "--source-bundle",
         str(source_bundle_path),
         "--expect",
@@ -200,18 +218,9 @@ def main(argv: list[str] | None = None) -> int:
         "json",
     ]
     ce_validation = _run(ce_validator_command, cwd=ce)
-    _write_process(
-        evidence / "official-ce-revalidation.json",
-        ce_validator_command,
-        ce_validation,
-    )
+    _write_process(evidence / "official-ce-revalidation.json", ce_validator_command, ce_validation)
     if ce_validation.returncode != 0:
-        raise SystemExit("standalone CE input failed official CE revalidation")
-
-    if not output.parent.name.startswith("run-") or output.parent.parent != evidence.resolve():
-        raise SystemExit("first publication escaped the selected output root")
-    if not second_output.parent.name.startswith("run-") or second_output.parent.parent != evidence.resolve():
-        raise SystemExit("second publication escaped the selected output root")
+        raise SystemExit("mapped active-PCVP CE intake failed official CE revalidation")
 
     summary = {
         "schema_version": "pg-a2c-exact-head-evidence.v1",
@@ -222,113 +231,157 @@ def main(argv: list[str] | None = None) -> int:
             key: {"repository": value["repository"], "commit": value["commit"]}
             for key, value in identities.items()
         },
-        "architect_export": {
-            "path": source_copy.name,
-            "sha256_file_bytes": _sha256(source_copy),
-            "export_id": export_value.get("export_id"),
-            "exporter_exit_code": exporter.returncode,
-            "handoff_allowed": source_handoff_allowed,
+        "architect_runtime": {
+            "public_api": "scripts/architect_quality_runtime.py#finalize_project_gate",
+            "artifact_path": source_copy.name,
+            "artifact_sha256_file_bytes": _sha256(source_copy),
+            "producer_commit": producer.get("commit_sha"),
+            "handoff_allowed": False,
+            "publication_status": runtime_result.get("publication_status"),
+            "responsive_risk_states": responsive_risk_states,
+            "continuation_assurance_canonical_sha256": source_pcvp_hash,
+        },
+        "pcvp_activation": {
+            "activation_commit": activation.get("activation_commit"),
+            "activation_id": activation.get("activation_id"),
+            "enabled_edge": activation.get("enabled_edge"),
+            "full_rollout_authorized": activation.get("full_rollout_authorized"),
+            "carrier_lossless": ce_pcvp_hash == source_pcvp_hash,
+            "downstream_activation": False,
         },
         "project_gate_result": {
             "status": first_result.get("status"),
             "handoff_allowed": first_result.get("handoff_allowed"),
+            "publication_allowed": first_result.get("publication_allowed"),
+            "downstream_artifact": first_result.get("downstream_artifact"),
+            "receipt": first_result.get("receipt"),
         },
-        "ce_input": {
-            "path": output.name,
-            "schema_id": ce_input.get("schema_id"),
-            "sha256_file_bytes": _sha256(output),
-            "canonical_sha256": first_result["downstream_artifact"]["canonical_sha256"],
+        "ce_intake": {
+            "schema_id": first_ce.get("schema_id"),
+            "canonical_sha256": canonical_sha256(first_ce),
+            "continuation_assurance_canonical_sha256": ce_pcvp_hash,
+            "official_revalidation": "valid",
+            "publication_claim": "none_validation_only",
         },
-        "receipt": {
-            "path": receipt.name,
-            "schema_version": receipt_value.get("schema_version"),
-            "receipt_id": receipt_value.get("receipt_id"),
-            "sha256_file_bytes": _sha256(receipt),
-            "canonical_sha256": first_result["receipt"]["canonical_sha256"],
-        },
-        "validators": {
-            "architect": first_result["producer_validation"]["official_validator_status"],
-            "ce": first_result["consumer_validation"]["status"],
-            "ce_standalone_revalidation": "valid",
+        "owner_validators": {
+            "architect": first_result.get("producer_validation", {}).get("official_validator_status"),
+            "ce": first_result.get("consumer_validation", {}).get("status"),
         },
         "determinism": {
-            "ce_input_byte_identical": True,
-            "receipt_binding_verified_per_execution": True,
-            "receipt_identity_unique_per_execution": True,
+            "mapped_ce_input_canonical_identical": True,
         },
-        "fail_closed": {
-            "collision_safe_execution_directories": True,
-            "no_overwrite_tests": "covered_by_exact_head_test_suite",
-            "stale_pin_tests": "covered_by_exact_head_test_suite",
-            "tamper_tests": "covered_by_adversarial_test_suite",
+        "authority_preservation": {
+            "source_handoff_false_remains_false": True,
+            "publication_remains_blocked": True,
+            "policy_and_activation_commits_distinct": CANONICAL_COMMIT != ACTIVATION_COMMIT,
         },
-        "operator_command": (
-            "ev4-transition transition architect-to-ce architect-project-gate.json "
-            "--acquisition-mode producer_emitted_gate_artifact "
-            "--architect-repo ../EV4-Architect-Repo "
-            "--ce-repo ../EV4-Constructability-Engineer-Repo "
-            "--output-dir pg-a2c-exact-head-evidence --format json"
-        ),
     }
     _write_json(evidence / "summary.json", summary)
     print(canonical_dumps(summary))
     return 0
 
 
-def _assert_receipt_binds_output(
-    receipt_value: dict[str, Any],
-    output: Path,
-    result: dict[str, Any],
-) -> None:
-    ce_input = receipt_value.get("ce_input") if isinstance(receipt_value.get("ce_input"), dict) else {}
-    expected_suffix = output.resolve().relative_to(Path.cwd().resolve()).as_posix()
-    if ce_input.get("path") != expected_suffix:
-        raise SystemExit("receipt does not reference its execution-specific CE output path")
-    if ce_input.get("canonical_sha256") != result["downstream_artifact"]["canonical_sha256"]:
-        raise SystemExit("receipt CE output hash does not match the published artifact")
-    if ce_input.get("publication_state") != "published_verified":
-        raise SystemExit("receipt did not preserve verified publication state")
+def _architect_runtime_command(output_directory: Path) -> list[str]:
+    code = r'''
+import copy
+import importlib
+import importlib.util
+import json
+import sys
+from pathlib import Path
+
+root = Path.cwd().resolve()
+scripts = root / "scripts"
+tests = root / "tests"
+sys.path.insert(0, str(scripts))
+sys.path.insert(0, str(tests))
+
+spec = importlib.util.spec_from_file_location(
+    "_pg_pcvp_exact_head_architect_runtime",
+    scripts / "architect_quality_runtime.py",
+)
+assert spec is not None and spec.loader is not None
+runtime = importlib.util.module_from_spec(spec)
+sys.modules[spec.name] = runtime
+spec.loader.exec_module(runtime)
+legacy = importlib.import_module("_legacy_architect_runtime_truth_spine")
+
+stage_history = copy.deepcopy(legacy.full_outputs())
+implementation_stages = [
+    stage for stage in stage_history
+    if isinstance(stage, dict) and stage.get("stage_id") == "/implementation"
+]
+assert len(implementation_stages) == 1
+canonical_content = implementation_stages[0].get("canonical_content")
+assert isinstance(canonical_content, dict)
+responsive_risk_seeds = canonical_content.get("responsive_risk_seeds")
+assert isinstance(responsive_risk_seeds, list) and responsive_risk_seeds
+for seed in responsive_risk_seeds:
+    assert isinstance(seed, dict)
+    assert seed.get("state") == "proposed"
+    seed["state"] = "insufficient_evidence"
+
+result = runtime.finalize_project_gate(
+    stage_history,
+    run_context=legacy.context("fixture"),
+    repository_root=root,
+    output_directory=Path(sys.argv[1]).resolve(),
+    git_provider=None,
+)
+print(json.dumps(result.to_dict(), sort_keys=True, separators=(",", ":")))
+'''
+    return [sys.executable, "-B", "-c", code, str(output_directory)]
 
 
-def _assert_publication(
+def _assert_blocked_active_path(
     completed: subprocess.CompletedProcess[str],
     result: dict[str, Any],
-    output: Path,
-    receipt: Path,
-    *,
-    expected_exit: int,
-    expected_status: str,
-    expected_handoff: bool,
 ) -> None:
-    if completed.returncode != expected_exit or not output.is_file() or not receipt.is_file():
-        raise SystemExit("Project Gate did not publish expected standalone outputs")
-    if result.get("status") != expected_status:
-        raise SystemExit("Project Gate status did not preserve evidence classification")
-    if result.get("handoff_allowed") is not expected_handoff:
-        raise SystemExit("Project Gate changed the producer handoff decision")
+    if completed.returncode != 2:
+        raise SystemExit(
+            "blocked synthetic A2C path expected exit 2, "
+            f"observed {completed.returncode}; "
+            f"result={canonical_dumps(result)}; stderr={completed.stderr.strip()}"
+        )
+    if result.get("status") != "insufficient_evidence":
+        raise SystemExit("blocked synthetic A2C path did not remain insufficient_evidence")
+    if result.get("handoff_allowed") is not False:
+        raise SystemExit("PCVP upgraded ordinary handoff authority")
+    if result.get("publication_allowed") is not False:
+        raise SystemExit("PCVP upgraded publication authority")
+    if (result.get("downstream_artifact") or {}).get("status") != "not_published":
+        raise SystemExit("blocked synthetic A2C path unexpectedly published CE input")
+    if (result.get("receipt") or {}).get("status") != "not_generated":
+        raise SystemExit("blocked synthetic A2C path unexpectedly generated a receipt")
     if result.get("producer_validation", {}).get("official_validator_status") != "accepted":
         raise SystemExit("official Architect validator was not accepted")
     if result.get("consumer_validation", {}).get("status") != "accepted":
         raise SystemExit("official CE validator was not accepted")
+    _transition_ce_input(result)
 
 
-def _ensure_named_branch(repo: Path) -> None:
-    current = subprocess.run(
-        ["git", "-C", str(repo), "symbolic-ref", "--short", "HEAD"],
-        stdout=subprocess.PIPE,
-        stderr=subprocess.DEVNULL,
-        text=True,
-        check=False,
-    )
-    if current.returncode == 0:
-        return
-    subprocess.run(
-        ["git", "-C", str(repo), "switch", "-c", "pg-a2c-current-head-integration"],
-        check=True,
+def _transition_ce_input(result: dict[str, Any]) -> dict[str, Any]:
+    transition = result.get("transition_result")
+    output = transition.get("output") if isinstance(transition, dict) else None
+    payload = output.get("payload") if isinstance(output, dict) else None
+    data = payload.get("data") if isinstance(payload, dict) else None
+    if not isinstance(data, dict):
+        raise SystemExit("Project Gate did not preserve mapped CE intake for blocked handoff evidence")
+    if data.get("schema_id") != "ev4-ce-architect-stage-intake@1.1.0":
+        raise SystemExit("mapped object is not the canonical CE Architect intake")
+    return data
+
+
+def _assert_activation_object_available(kernel: Path) -> None:
+    observed = subprocess.run(
+        ["git", "-C", str(kernel), "cat-file", "-e", f"{ACTIVATION_COMMIT}^{{commit}}"],
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
         text=True,
+        check=False,
     )
+    if observed.returncode != 0:
+        raise SystemExit("exact staged activation commit object is unavailable from the policy checkout")
 
 
 def _run(command: list[str], *, cwd: Path) -> subprocess.CompletedProcess[str]:
@@ -349,7 +402,7 @@ def _run(command: list[str], *, cwd: Path) -> subprocess.CompletedProcess[str]:
         stderr=subprocess.PIPE,
         text=True,
         check=False,
-        timeout=120,
+        timeout=420,
     )
 
 
@@ -373,21 +426,21 @@ def _single_json_line(text: str) -> dict[str, Any]:
     lines = [line for line in text.splitlines() if line.strip()]
     if not lines:
         raise SystemExit("expected structured JSON output was empty")
-    value = json.loads(lines[-1])
+    value = json.loads(lines[-1], parse_constant=_reject_constant)
     if not isinstance(value, dict):
         raise SystemExit("structured JSON output was not an object")
     return value
 
 
+def _write_json(path: Path, value: Any) -> None:
+    path.write_text(canonical_dumps(value) + "\n", encoding="utf-8")
+
+
 def _read_json(path: Path) -> dict[str, Any]:
     value = json.loads(path.read_text(encoding="utf-8"), parse_constant=_reject_constant)
     if not isinstance(value, dict):
-        raise SystemExit(f"expected JSON object: {path}")
+        raise SystemExit(f"expected object JSON: {path}")
     return value
-
-
-def _write_json(path: Path, value: Any) -> None:
-    path.write_text(canonical_dumps(value) + "\n", encoding="utf-8")
 
 
 def _sha256(path: Path) -> str:

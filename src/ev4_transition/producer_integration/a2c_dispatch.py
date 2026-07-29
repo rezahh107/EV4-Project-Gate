@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import copy
 from pathlib import Path
 from typing import Any
 
@@ -12,6 +13,7 @@ from ev4_transition.architect_to_ce import (
 )
 from ev4_transition.bundle_validator import ResultValidationError
 from ev4_transition.canonical_json import CANONICAL_JSON_VERSION, canonical_sha256
+from ev4_transition.diagnostics import diagnostic
 from ev4_transition.external_lock import (
     ARCHITECT_COMMIT,
     ARCHITECT_REPO,
@@ -34,6 +36,7 @@ from ev4_transition.io.secure_snapshot import (
     verify_snapshot_unchanged,
 )
 from ev4_transition.presentation.status_mapping import normalize_status
+from ev4_transition.runners.pcvp_activation import validate_first_edge_activation
 from ev4_transition.runners.records import ToolExecutionOutcome
 from ev4_transition.runners.repository_identity import inspect_checkout
 from ev4_transition.validator_runner import (
@@ -56,6 +59,7 @@ def dispatch_architect_export(
     project_gate_repo: str | Path,
     output_path: str | Path,
     receipt_path: str | Path,
+    decision_kernel_repo: str | Path | None = None,
 ) -> dict[str, Any]:
     """Execute A2C authority and atomically publish an authorized pair."""
 
@@ -110,6 +114,40 @@ def dispatch_architect_export(
             identities=identities,
         )
 
+    pcvp_continuation: dict[str, Any] | None = None
+    pcvp_document_hash: str | None = None
+    if "continuation_assurance" in artifact:
+        pcvp_continuation, pcvp_document_hash, pcvp_diagnostics = _validated_pcvp_carrier(
+            artifact,
+            intake_result,
+        )
+        if pcvp_diagnostics:
+            return _base_result(
+                intake_result,
+                "invalid",
+                pcvp_diagnostics,
+                identities=identities,
+            )
+        activation, activation_diagnostics = validate_first_edge_activation(
+            project_gate_repo,
+            decision_kernel_repo,
+        )
+        if activation_diagnostics:
+            status = (
+                "invalid"
+                if any(item.get("severity") == "error" for item in activation_diagnostics)
+                else "insufficient_evidence"
+            )
+            return _base_result(
+                intake_result,
+                status,
+                activation_diagnostics,
+                identities=identities,
+            )
+        assert activation is not None
+        intake_result = dict(intake_result)
+        intake_result["pcvp_activation"] = activation
+
     architect_outcome: ToolExecutionOutcome | None = None
     ce_outcome: ToolExecutionOutcome | None = None
     events: list[str] = []
@@ -121,6 +159,22 @@ def dispatch_architect_export(
 
     def _ce(payload: dict[str, Any], source_bundle: dict[str, Any]):
         nonlocal ce_outcome
+        if pcvp_continuation is not None:
+            payload["continuation_assurance"] = copy.deepcopy(pcvp_continuation)
+            observed_hash = canonical_sha256(
+                {"continuation_assurance": payload["continuation_assurance"]}
+            )
+            if observed_hash != pcvp_document_hash:
+                return [
+                    diagnostic(
+                        "PG_A2C_PCVP_CARRIER_MUTATED",
+                        "error",
+                        "The validated PCVP carrier changed before CE owner validation.",
+                        "$.continuation_assurance",
+                        expected_canonical_sha256=pcvp_document_hash,
+                        actual_canonical_sha256=observed_hash,
+                    )
+                ]
         ce_outcome = execute_ce_validator(ce_repo, payload, source_bundle)
         return ce_outcome.diagnostics
 
@@ -174,7 +228,31 @@ def dispatch_architect_export(
         else None
     )
 
-    transition_authorized = transition_status == "accepted"
+    pcvp_lossless = True
+    if pcvp_continuation is not None and isinstance(ce_input, dict):
+        observed_document = {
+            "continuation_assurance": ce_input.get("continuation_assurance")
+        }
+        observed_hash = canonical_sha256(observed_document)
+        pcvp_lossless = (
+            "continuation_assurance" in ce_input
+            and ce_input.get("continuation_assurance") == pcvp_continuation
+            and observed_hash == pcvp_document_hash
+        )
+        if not pcvp_lossless:
+            transition_status = "invalid"
+            diagnostics.append(
+                _diag(
+                    "PG_A2C_PCVP_CARRIER_MUTATED",
+                    "error",
+                    "$.continuation_assurance",
+                    "The CE intake does not contain the exact validated PCVP carrier.",
+                    expected_canonical_sha256=pcvp_document_hash,
+                    actual_canonical_sha256=observed_hash,
+                )
+            )
+
+    transition_authorized = transition_status == "accepted" and pcvp_lossless
     evidence_ready = (
         isinstance(ce_input, dict)
         and ce_input.get("intake_status") == "complete"
@@ -406,6 +484,58 @@ def dispatch_architect_export(
         }
     )
     return result
+
+
+def _validated_pcvp_carrier(
+    artifact: dict[str, Any],
+    intake_result: dict[str, Any],
+) -> tuple[dict[str, Any] | None, str | None, list[dict[str, Any]]]:
+    projection = intake_result.get("pcvp_carrier")
+    if not isinstance(projection, dict) or projection.get("status") != "validated":
+        return None, None, [
+            _diag(
+                "PG_A2C_PCVP_CARRIER_NOT_VALIDATED",
+                "error",
+                "$.continuation_assurance",
+                "A present PCVP carrier must have passed the Producer Gate owner-backed validation boundary before A2C mapping.",
+            )
+        ]
+    document = projection.get("carrier")
+    expected_hash = projection.get("canonical_sha256")
+    if (
+        not isinstance(document, dict)
+        or set(document) != {"continuation_assurance"}
+        or not isinstance(document.get("continuation_assurance"), dict)
+        or not isinstance(expected_hash, str)
+    ):
+        return None, None, [
+            _diag(
+                "PG_A2C_PCVP_VALIDATION_EVIDENCE_INVALID",
+                "error",
+                "$.continuation_assurance",
+                "The validated PCVP carrier evidence is incomplete or malformed.",
+            )
+        ]
+    source_document = {"continuation_assurance": artifact.get("continuation_assurance")}
+    observed_validated_hash = canonical_sha256(document)
+    observed_source_hash = canonical_sha256(source_document)
+    if (
+        observed_validated_hash != expected_hash
+        or observed_source_hash != expected_hash
+        or document != source_document
+    ):
+        return None, None, [
+            _diag(
+                "PG_A2C_PCVP_CARRIER_MUTATED",
+                "error",
+                "$.continuation_assurance",
+                "The incoming PCVP carrier changed after Producer Gate intake validation.",
+                expected_canonical_sha256=expected_hash,
+                validated_canonical_sha256=observed_validated_hash,
+                source_canonical_sha256=observed_source_hash,
+            )
+        ]
+    return copy.deepcopy(document["continuation_assurance"]), expected_hash, []
 
 
 def _map_group_records(
