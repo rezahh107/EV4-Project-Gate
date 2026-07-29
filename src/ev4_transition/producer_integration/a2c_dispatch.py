@@ -229,14 +229,15 @@ def dispatch_architect_export(
     )
 
     pcvp_lossless = True
-    if pcvp_continuation is not None:
+    if pcvp_continuation is not None and isinstance(ce_input, dict):
+        observed_document = {
+            "continuation_assurance": ce_input.get("continuation_assurance")
+        }
+        observed_hash = canonical_sha256(observed_document)
         pcvp_lossless = (
-            isinstance(ce_input, dict)
+            "continuation_assurance" in ce_input
             and ce_input.get("continuation_assurance") == pcvp_continuation
-            and canonical_sha256(
-                {"continuation_assurance": ce_input.get("continuation_assurance")}
-            )
-            == pcvp_document_hash
+            and observed_hash == pcvp_document_hash
         )
         if not pcvp_lossless:
             transition_status = "invalid"
@@ -247,6 +248,7 @@ def dispatch_architect_export(
                     "$.continuation_assurance",
                     "The CE intake does not contain the exact validated PCVP carrier.",
                     expected_canonical_sha256=pcvp_document_hash,
+                    actual_canonical_sha256=observed_hash,
                 )
             )
 
