@@ -8,7 +8,7 @@ from types import SimpleNamespace
 import pytest
 
 from ev4_transition.canonical_json import canonical_sha256
-from ev4_transition.producer_integration import a2c_dispatch
+from ev4_transition.producer_integration import a2c_dispatch, intake_runtime
 from ev4_transition.runners import pcvp_activation
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -293,3 +293,47 @@ def test_policy_activation_and_a2c_identities_are_distinct_and_exact() -> None:
     }
     assert architect_commits == {"bd7cb512f9b61222cee2512fbfc53a2bb01a1175"}
     assert ce_commits == {"bc4a901d82fcdbdb131e30058b399508262706c5"}
+
+
+def test_operational_revalidation_preserves_exact_a2c_pcvp_context(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    captured: dict[str, object] = {}
+
+    class FakeOperationalValidator:
+        def __init__(
+            self,
+            project_gate_root: str | Path,
+            artifact_root: str | Path,
+            **kwargs: object,
+        ) -> None:
+            captured["project_gate_root"] = project_gate_root
+            captured["artifact_root"] = artifact_root
+            captured.update(kwargs)
+
+        def validate(self, artifact: object) -> dict[str, object]:
+            captured["artifact"] = artifact
+            return {"status": "valid", "diagnostics": []}
+
+    monkeypatch.setattr(
+        intake_runtime,
+        "OperationalProducerGateExportValidator",
+        FakeOperationalValidator,
+    )
+    artifact = {"continuation_assurance": copy.deepcopy(CARRIER)}
+    kernel = tmp_path / "decision-kernel"
+
+    failure = intake_runtime._operational_truth_failure(
+        {"status": "accepted"},
+        artifact,
+        project_gate_root=tmp_path / "project-gate",
+        artifact_root=tmp_path / "architect",
+        decision_kernel_repo=kernel,
+        downstream_stage="CONSTRUCTABILITY_ENGINEER",
+    )
+
+    assert failure is None
+    assert captured["decision_kernel_repo"] == kernel
+    assert captured["downstream_stage"] == "CONSTRUCTABILITY_ENGINEER"
+    assert captured["artifact"] == artifact
