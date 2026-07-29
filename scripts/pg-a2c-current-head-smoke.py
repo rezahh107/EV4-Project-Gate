@@ -109,6 +109,33 @@ def main(argv: list[str] | None = None) -> int:
     if bool((export_value.get("handoff") or {}).get("allowed")) is not False:
         raise SystemExit("synthetic Architect export unexpectedly upgraded ordinary handoff")
 
+    runtime_payload = (
+        (final_bundle.get("payload") or {}).get("data")
+        if isinstance(final_bundle.get("payload"), dict)
+        else None
+    )
+    architect_intent = (
+        runtime_payload.get("architect_intent")
+        if isinstance(runtime_payload, dict)
+        else None
+    )
+    responsive_risk_seeds = (
+        architect_intent.get("responsive_risk_seeds")
+        if isinstance(architect_intent, dict)
+        else None
+    )
+    if not isinstance(responsive_risk_seeds, list) or not responsive_risk_seeds:
+        raise SystemExit("Architect Runtime payload omitted owner-shaped responsive risk seeds")
+    responsive_risk_states = [
+        seed.get("state") if isinstance(seed, dict) else None
+        for seed in responsive_risk_seeds
+    ]
+    if any(state != "insufficient_evidence" for state in responsive_risk_states):
+        raise SystemExit(
+            "Architect Runtime payload did not preserve the owner-shaped "
+            "insufficient_evidence responsive risk state"
+        )
+
     source_pcvp_hash = canonical_sha256({"continuation_assurance": continuation})
     source_copy = evidence / "architect-project-gate.json"
     source_copy.write_bytes(architect_export.read_bytes())
@@ -211,6 +238,7 @@ def main(argv: list[str] | None = None) -> int:
             "producer_commit": producer.get("commit_sha"),
             "handoff_allowed": False,
             "publication_status": runtime_result.get("publication_status"),
+            "responsive_risk_states": responsive_risk_states,
             "continuation_assurance_canonical_sha256": source_pcvp_hash,
         },
         "pcvp_activation": {
@@ -255,6 +283,7 @@ def main(argv: list[str] | None = None) -> int:
 
 def _architect_runtime_command(output_directory: Path) -> list[str]:
     code = r'''
+import copy
 import importlib
 import importlib.util
 import json
@@ -277,8 +306,23 @@ sys.modules[spec.name] = runtime
 spec.loader.exec_module(runtime)
 legacy = importlib.import_module("_legacy_architect_runtime_truth_spine")
 
+stage_history = copy.deepcopy(legacy.full_outputs())
+implementation_stages = [
+    stage for stage in stage_history
+    if isinstance(stage, dict) and stage.get("stage_id") == "/implementation"
+]
+assert len(implementation_stages) == 1
+canonical_content = implementation_stages[0].get("canonical_content")
+assert isinstance(canonical_content, dict)
+responsive_risk_seeds = canonical_content.get("responsive_risk_seeds")
+assert isinstance(responsive_risk_seeds, list) and responsive_risk_seeds
+for seed in responsive_risk_seeds:
+    assert isinstance(seed, dict)
+    assert seed.get("state") == "proposed"
+    seed["state"] = "insufficient_evidence"
+
 result = runtime.finalize_project_gate(
-    legacy.full_outputs(),
+    stage_history,
     run_context=legacy.context("fixture"),
     repository_root=root,
     output_directory=Path(sys.argv[1]).resolve(),
