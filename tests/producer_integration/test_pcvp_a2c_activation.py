@@ -4,6 +4,7 @@ import copy
 import json
 from pathlib import Path
 from types import SimpleNamespace
+from typing import Callable
 
 import pytest
 
@@ -112,9 +113,16 @@ def _call(
     carrier: dict | None,
     intake_carrier: dict | None = None,
     handoff_allowed: bool = False,
+    transition_impl: Callable[..., dict] | None = None,
 ):
     order: list[str] = []
     _configure_transition(monkeypatch, order)
+    if transition_impl is not None:
+        monkeypatch.setattr(
+            a2c_dispatch,
+            "transition_from_local_paths",
+            transition_impl,
+        )
     source = tmp_path / "architect-project-gate.json"
     source.write_text("{}", encoding="utf-8")
     artifact = {
@@ -143,6 +151,19 @@ def _call(
     return result, order
 
 
+def _accepted_activation(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(
+        a2c_dispatch,
+        "validate_first_edge_activation",
+        lambda *_args, **_kwargs: ({
+            "status": "validated",
+            "activation_commit": pcvp_activation.ACTIVATION_COMMIT,
+            "activation_id": pcvp_activation.ACTIVATION_ID,
+            "enabled_edge": pcvp_activation.ACTIVATION_EDGE,
+        }, []),
+    )
+
+
 def test_legacy_absence_does_not_load_activation_dependency(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
@@ -167,25 +188,114 @@ def test_active_carrier_is_attached_before_ce_validator_and_handoff_remains_bloc
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    monkeypatch.setattr(
-        a2c_dispatch,
-        "validate_first_edge_activation",
-        lambda *_args, **_kwargs: ({
-            "status": "validated",
-            "activation_commit": pcvp_activation.ACTIVATION_COMMIT,
-            "activation_id": pcvp_activation.ACTIVATION_ID,
-            "enabled_edge": pcvp_activation.ACTIVATION_EDGE,
-        }, []),
-    )
+    _accepted_activation(monkeypatch)
 
     result, order = _call(tmp_path, monkeypatch, carrier=CARRIER)
 
     ce_input = result["transition_result"]["output"]["payload"]["data"]
     assert ce_input["continuation_assurance"] == CARRIER
     assert canonical_sha256({"continuation_assurance": ce_input["continuation_assurance"]}) == canonical_sha256({"continuation_assurance": CARRIER})
+    assert "PG_A2C_PCVP_CARRIER_MUTATED" not in {
+        item["code"] for item in result["diagnostics"]
+    }
     assert result["pcvp_activation"]["enabled_edge"] == pcvp_activation.ACTIVATION_EDGE
     assert result["handoff_allowed"] is False
     assert result["publication_allowed"] is False
+    assert order == ["architect", "ce"]
+
+
+def test_prior_transition_failure_does_not_claim_carrier_mutation(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _accepted_activation(monkeypatch)
+
+    def failed_transition(source, *_args, validator_hooks, **_kwargs):
+        validator_hooks.architect(source)
+        return {
+            "status": "invalid",
+            "diagnostics": [{
+                "code": "A2C_PRIMARY_SCHEMA_FAILURE",
+                "severity": "error",
+                "path": "$.architect_intent",
+                "message": "primary transition failure",
+                "details": {},
+                "repair_owner": "Architect",
+            }],
+            "output": None,
+        }
+
+    result, order = _call(
+        tmp_path,
+        monkeypatch,
+        carrier=CARRIER,
+        transition_impl=failed_transition,
+    )
+
+    codes = [item["code"] for item in result["diagnostics"]]
+    assert result["status"] == "invalid"
+    assert codes == ["A2C_PRIMARY_SCHEMA_FAILURE"]
+    assert "PG_A2C_PCVP_CARRIER_MUTATED" not in codes
+    assert result["transition_result"]["output"] is None
+    assert order == ["architect"]
+
+
+@pytest.mark.parametrize("mutation", ["omit", "change"])
+def test_produced_target_carrier_mutation_reports_both_hashes(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    mutation: str,
+) -> None:
+    _accepted_activation(monkeypatch)
+
+    def mutated_target_transition(source, *_args, validator_hooks, **_kwargs):
+        validator_hooks.architect(source)
+        payload = {
+            "schema_id": "ev4-ce-architect-stage-intake@1.1.0",
+            "intake_status": "complete",
+        }
+        assert validator_hooks.ce(payload, source) == []
+        if mutation == "omit":
+            payload.pop("continuation_assurance")
+        else:
+            payload["continuation_assurance"] = {
+                **payload["continuation_assurance"],
+                "claims": [{"claim_id": "mutated"}],
+            }
+        return {
+            "status": "accepted",
+            "diagnostics": [],
+            "output": {"payload": {"data": payload}},
+        }
+
+    result, order = _call(
+        tmp_path,
+        monkeypatch,
+        carrier=CARRIER,
+        transition_impl=mutated_target_transition,
+    )
+
+    mutation_diagnostics = [
+        item
+        for item in result["diagnostics"]
+        if item["code"] == "PG_A2C_PCVP_CARRIER_MUTATED"
+    ]
+    assert result["status"] == "invalid"
+    assert len(mutation_diagnostics) == 1
+    details = mutation_diagnostics[0]["details"]
+    assert details["expected_canonical_sha256"] == canonical_sha256(
+        {"continuation_assurance": CARRIER}
+    )
+    assert details["actual_canonical_sha256"] == canonical_sha256({
+        "continuation_assurance": (
+            None
+            if mutation == "omit"
+            else {
+                **CARRIER,
+                "claims": [{"claim_id": "mutated"}],
+            }
+        )
+    })
     assert order == ["architect", "ce"]
 
 
