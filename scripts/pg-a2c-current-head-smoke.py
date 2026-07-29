@@ -294,7 +294,11 @@ def _assert_blocked_active_path(
     result: dict[str, Any],
 ) -> None:
     if completed.returncode != 2:
-        raise SystemExit(f"blocked synthetic A2C path expected exit 2, observed {completed.returncode}")
+        raise SystemExit(
+            "blocked synthetic A2C path expected exit 2, "
+            f"observed {completed.returncode}; "
+            f"result={canonical_dumps(result)}; stderr={completed.stderr.strip()}"
+        )
     if result.get("status") != "insufficient_evidence":
         raise SystemExit("blocked synthetic A2C path did not remain insufficient_evidence")
     if result.get("handoff_allowed") is not False:
